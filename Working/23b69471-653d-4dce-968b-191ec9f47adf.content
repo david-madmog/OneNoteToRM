@@ -1,0 +1,370 @@
+{
+    "cPages": {
+        "lastOpened": {
+            "timestamp": "1:490",
+            "value": "2b974798-3186-4b37-9a76-6f3fd5e63147"
+        },
+        "original": {
+            "timestamp": "0:0",
+            "value": -1
+        },
+        "pages": [
+            {
+                "id": "75474fad-2763-4e96-b5b5-b75c88d11f4f",
+                "idx": {
+                    "timestamp": "1:1",
+                    "value": "baac"
+                },
+                "scrollTime": {
+                    "timestamp": "1:449",
+                    "value": "2024-03-22T09:41:28Z"
+                },
+                "template": {
+                    "timestamp": "1:1",
+                    "value": "P Checklist"
+                },
+                "verticalScroll": {
+                    "timestamp": "1:449",
+                    "value": 3520
+                }
+            },
+            {
+                "id": "2b974798-3186-4b37-9a76-6f3fd5e63147",
+                "idx": {
+                    "timestamp": "1:2",
+                    "value": "baad"
+                },
+                "scrollTime": {
+                    "timestamp": "1:222",
+                    "value": "2024-03-19T16:36:58Z"
+                },
+                "template": {
+                    "timestamp": "6:1",
+                    "value": "P Checklist"
+                },
+                "verticalScroll": {
+                    "timestamp": "1:222",
+                    "value": 3123
+                }
+            },
+            {
+                "id": "9be9292d-78fa-4323-853d-67e4cf4f2a47",
+                "idx": {
+                    "timestamp": "6:1",
+                    "value": "bd"
+                },
+                "scrollTime": {
+                    "timestamp": "1:202",
+                    "value": "2024-03-14T17:04:17Z"
+                },
+                "template": {
+                    "timestamp": "6:1",
+                    "value": "P Checklist"
+                },
+                "verticalScroll": {
+                    "timestamp": "1:202",
+                    "value": 1872
+                }
+            },
+            {
+                "id": "89748cec-fb8b-4f74-9777-1d2680c44b0a",
+                "idx": {
+                    "timestamp": "1:3",
+                    "value": "onea"
+                },
+                "scrollTime": {
+                    "timestamp": "1:108",
+                    "value": "2024-03-19T15:47:17Z"
+                },
+                "template": {
+                    "timestamp": "1:1",
+                    "value": "P Checklist"
+                },
+                "verticalScroll": {
+                    "timestamp": "1:108",
+                    "value": 1872
+                }
+            },
+            {
+                "id": "0f6d8f7c-e5de-404a-92dd-02065435259c",
+                "idx": {
+                    "timestamp": "1:3",
+                    "value": "oneb"
+                },
+                "scrollTime": {
+                    "timestamp": "1:137",
+                    "value": "2024-02-01T10:50:29Z"
+                },
+                "template": {
+                    "timestamp": "1:3",
+                    "value": "P Grid large"
+                },
+                "verticalScroll": {
+                    "timestamp": "1:137",
+                    "value": 1872
+                }
+            },
+            {
+                "deleted": {
+                    "timestamp": "1:1",
+                    "value": 1
+                },
+                "id": "3d53c4c5-6e06-4b56-91ba-8664622df816",
+                "idx": {
+                    "timestamp": "1:1",
+                    "value": "baab"
+                },
+                "template": {
+                    "timestamp": "1:1",
+                    "value": "P Checklist"
+                }
+            },
+            {
+                "deleted": {
+                    "timestamp": "1:1",
+                    "value": 1
+                },
+                "id": "50543240-25cb-4c2e-a559-19e054e3011c",
+                "idx": {
+                    "timestamp": "1:1",
+                    "value": "baacb"
+                },
+                "template": {
+                    "timestamp": "1:1",
+                    "value": "P Checklist"
+                }
+            },
+            {
+                "deleted": {
+                    "timestamp": "1:1",
+                    "value": 1
+                },
+                "id": "56c26321-da22-42d1-aaf5-8877127624b9",
+                "idx": {
+                    "timestamp": "1:1",
+                    "value": "oneb"
+                },
+                "scrollTime": {
+                    "timestamp": "1:2",
+                    "value": "2023-02-07T09:39:21Z"
+                },
+                "template": {
+                    "timestamp": "1:1",
+                    "value": "P Checklist"
+                },
+                "verticalScroll": {
+                    "timestamp": "1:2",
+                    "value": 1872
+                }
+            },
+            {
+                "deleted": {
+                    "timestamp": "1:1",
+                    "value": 1
+                },
+                "id": "641a53c2-7370-4e2f-9f12-787a1a2ceb4d",
+                "idx": {
+                    "timestamp": "6:1",
+                    "value": "ba"
+                },
+                "scrollTime": {
+                    "timestamp": "1:59",
+                    "value": "2023-01-12T12:22:09Z"
+                },
+                "template": {
+                    "timestamp": "6:1",
+                    "value": "P Checklist"
+                },
+                "verticalScroll": {
+                    "timestamp": "1:59",
+                    "value": 1873
+                }
+            },
+            {
+                "deleted": {
+                    "timestamp": "1:1",
+                    "value": 1
+                },
+                "id": "b612b50f-27c6-4949-9597-96a659d67577",
+                "idx": {
+                    "timestamp": "1:1",
+                    "value": "bdb"
+                },
+                "template": {
+                    "timestamp": "1:2",
+                    "value": ""
+                }
+            },
+            {
+                "deleted": {
+                    "timestamp": "1:1",
+                    "value": 1
+                },
+                "id": "b62496f2-1010-4501-b2b1-bea119eb9d56",
+                "idx": {
+                    "timestamp": "1:1",
+                    "value": "bcb"
+                },
+                "template": {
+                    "timestamp": "1:2",
+                    "value": ""
+                }
+            },
+            {
+                "deleted": {
+                    "timestamp": "1:1",
+                    "value": 1
+                },
+                "id": "d275fe0b-03ec-4434-ac87-7d95bf1182c6",
+                "idx": {
+                    "timestamp": "1:2",
+                    "value": "onec"
+                },
+                "template": {
+                    "timestamp": "1:2",
+                    "value": "P Grid large"
+                }
+            },
+            {
+                "deleted": {
+                    "timestamp": "1:1",
+                    "value": 1
+                },
+                "id": "d5a61a11-5cdb-48fd-bd68-209b6740e870",
+                "idx": {
+                    "timestamp": "1:1",
+                    "value": "baacb"
+                },
+                "template": {
+                    "timestamp": "1:2",
+                    "value": ""
+                }
+            },
+            {
+                "deleted": {
+                    "timestamp": "1:1",
+                    "value": 1
+                },
+                "id": "ef7f60ac-f16b-4383-af93-911d4ffa56c5",
+                "idx": {
+                    "timestamp": "1:2",
+                    "value": "baacb"
+                },
+                "template": {
+                    "timestamp": "1:2",
+                    "value": "P Checklist"
+                }
+            }
+        ],
+        "uuids": [
+            {
+                "first": "81b8e4d0-5a6c-55df-8145-94a522b644d2",
+                "second": 8
+            },
+            {
+                "first": "52ea79dd-4d0b-50fe-8698-bc8f8e3cb3a0",
+                "second": 7
+            },
+            {
+                "first": "2f4260ea-611a-5bc8-90ee-8c5c34a92c78",
+                "second": 5
+            },
+            {
+                "first": "c8fa798d-b019-5e31-8450-c6b543ce0f69",
+                "second": 4
+            },
+            {
+                "first": "ce41d4b8-2c53-5bcb-a2d5-7ac69bbf0ddb",
+                "second": 3
+            },
+            {
+                "first": "097fbe60-04be-5f4b-b9ed-a6096376c5d4",
+                "second": 2
+            },
+            {
+                "first": "03d838ed-7925-4b6a-bf45-6ba222c966bd",
+                "second": 6
+            },
+            {
+                "first": "976e8536-7ab6-5c9a-a040-d6cb6e455b4f",
+                "second": 1
+            }
+        ]
+    },
+    "coverPageNumber": -1,
+    "customZoomCenterX": 0,
+    "customZoomCenterY": 936,
+    "customZoomOrientation": "portrait",
+    "customZoomPageHeight": 1872,
+    "customZoomPageWidth": 1404,
+    "customZoomScale": 1,
+    "documentMetadata": {
+    },
+    "dummyDocument": false,
+    "extraMetadata": {
+        "LastBallpointColor": "Black",
+        "LastBallpointSize": "2",
+        "LastBallpointv2Color": "Black",
+        "LastBallpointv2Size": "2",
+        "LastCalligraphyColor": "Black",
+        "LastCalligraphySize": "2",
+        "LastClearPageColor": "Black",
+        "LastClearPageSize": "2",
+        "LastEraseSectionColor": "Black",
+        "LastEraseSectionSize": "2",
+        "LastEraserColor": "Black",
+        "LastEraserSize": "2",
+        "LastEraserTool": "Eraser",
+        "LastFinelinerColor": "Black",
+        "LastFinelinerSize": "2",
+        "LastFinelinerv2Color": "Black",
+        "LastFinelinerv2Size": "1",
+        "LastHighlighterColor": "Black",
+        "LastHighlighterSize": "2",
+        "LastHighlighterv2Color": "HighlighterYellow",
+        "LastHighlighterv2Size": "1",
+        "LastMarkerColor": "Black",
+        "LastMarkerSize": "2",
+        "LastMarkerv2Color": "Black",
+        "LastMarkerv2Size": "2",
+        "LastPaintbrushColor": "Black",
+        "LastPaintbrushSize": "2",
+        "LastPaintbrushv2Color": "Black",
+        "LastPaintbrushv2Size": "2",
+        "LastPen": "Finelinerv2",
+        "LastPencilColor": "Black",
+        "LastPencilSize": "2",
+        "LastPencilv2Color": "Black",
+        "LastPencilv2Size": "2",
+        "LastReservedPenColor": "Black",
+        "LastReservedPenSize": "2",
+        "LastSelectionToolColor": "Black",
+        "LastSelectionToolSize": "2",
+        "LastSharpPencilColor": "Black",
+        "LastSharpPencilSize": "2",
+        "LastSharpPencilv2Color": "Black",
+        "LastSharpPencilv2Size": "2",
+        "LastSolidPenColor": "Black",
+        "LastSolidPenSize": "2",
+        "LastTool": "Finelinerv2",
+        "LastUndefinedColor": "Black",
+        "LastUndefinedSize": "2",
+        "LastZoomToolColor": "Black",
+        "LastZoomToolSize": "2"
+    },
+    "fileType": "notebook",
+    "fontName": "",
+    "formatVersion": 2,
+    "lineHeight": -1,
+    "margins": 100,
+    "orientation": "portrait",
+    "pageCount": 5,
+    "pageTags": [
+    ],
+    "sizeInBytes": "2138964",
+    "tags": [
+    ],
+    "textAlignment": "left",
+    "textScale": 1,
+    "zoomMode": "bestFit"
+}
