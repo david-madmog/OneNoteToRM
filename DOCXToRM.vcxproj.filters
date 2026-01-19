@@ -27,6 +27,21 @@
     <ClInclude Include="DOCXToRM.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="RMPage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RMZipFile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RMBlock.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RMBlockTypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RMTree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DOCXToRM.cpp">
@@ -36,6 +51,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="RMPage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RMBlock.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RMBlockTypes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RMTree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
