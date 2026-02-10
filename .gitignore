@@ -361,3 +361,8 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+*.rm
+*.rmdoc
+/Jobs.rmdoc
+/restore from Copy.bat
+/restore from Test2.bat
