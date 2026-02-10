@@ -17,10 +17,13 @@
 #define IDC_STATIC                      -1
 
 #define BTN_BUTTON 201
+#define BTN_BUTTONSAVE 202
 #define LST_LISTBOX 203
 #define MYDRAW 204
 #define BTN_BUTTON_L 205
 #define BTN_BUTTON_R 206
+#define CHK_RELOAD 207
+#define BTN_BUTTON_TEST 208
 
 // Next default values for new objects
 // 

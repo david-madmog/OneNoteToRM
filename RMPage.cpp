@@ -1,3 +1,4 @@
+
 #include "RMPage.h"
 
 #pragma pack(1)
@@ -7,27 +8,19 @@ struct rm_frontmatter_header {
     char ten_spaces[10]; //        contents : [0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20]
 };
 
-struct rm_BlockHead {
-    UINT32  len_body; //            doc : Byte count for block's main body.
-    unsigned char magic1;
-    unsigned char MinVersion;
-    unsigned char CurrentVersion; 
-    unsigned char BlockType;
-};
-
 
 RMPage::RMPage()
 {
-    MaxX = 100;
-    MaxY = 100;
-    MinX = 0;
-    MinY = 0;
+}
+
+RMPage::RMPage(std::string ID) {
+    m_id = ID;
 }
 
 void RMPage::Load(zip_file* file)
 {
     zip_int64_t NumRead;
-    char LogBuff[10240];
+    int NumBlocks = 0;
 
     if (file) {
         // So, first we read the file header
@@ -51,65 +44,75 @@ void RMPage::Load(zip_file* file)
             if (NumRead > 0)
                 NumRead = zip_fread(file, buffer, BH.len_body);
 //            NumRead = zip_fread(file, buffer, 1024);
+            if (NumRead != BH.len_body && NumRead > 0)
+            {
+                sprintf_s(LogBuffer, LB_SIZE, "Couldn't read the amount we wanted: Read %d wanted %d", (int)NumRead, BH.len_body);
+                DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
+            }
+
 
             if (NumRead > 0) {
+                NumBlocks++;
                 RMBlock* NewBlock = NULL;
 
                 switch (BH.BlockType) {
-                case 0:
+                case BT_MigrationInfo:
                     NewBlock = new MigrationInfo();
                     break;
-                case 1:
+                case BT_SceneTree:
                     NewBlock = new SceneTree();
                     break;
-                case 2:
+                case BT_TreeNode:
                     NewBlock = new TreeNode();
                     break;
-                case 3:
+                case BT_SceneGlyphItem:
                     NewBlock = new SceneGlyphItem();
                     break;
-                case 4:
+                case BT_SceneGroupItem:
                     NewBlock = new SceneGroupItem();
                     break;
-                case 5:
+                case BT_SceneLineItem:
                     NewBlock = new SceneLineItem();
                     break;
-                case 6:
+                case BT_SceneTextItem:
                     NewBlock = new SceneTextItem();
                     break;
-                case 7:
+                case BT_RootText:
                     NewBlock = new RootText();
                     break;
-                case 8:
+                case BT_SceneTombstoneItem:
                     NewBlock = new SceneTombstoneItem();
                     break;
-                case 9:
+                case BT_AuthorIds:
                     NewBlock = new AuthorIds();
                     break;
-                case 10:
+                case BT_PageInfo:
                     NewBlock = new PageInfo();
                     break;
-                case 13:
+                case BT_SceneInfo:
                     NewBlock = new SceneInfo();
                     break;
                 default:
-                    sprintf_s(LogBuff, "**** Unknown Type %d len %d", BH.BlockType, BH.len_body);
+                    sprintf_s(LogBuffer, LB_SIZE, "**** Unknown Type %d len %d", BH.BlockType, BH.len_body);
+                    DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
                     break;
                 }
-//                DoLog(LogBuff);
 
                 if (NewBlock) {
                     try {
-                        NewBlock->ParseBuffer(buffer, BH.len_body, BH.CurrentVersion);
+                        bool bUseful = NewBlock->ParseBuffer(buffer, BH.len_body, BH.CurrentVersion);
 
-                        // Stash the block, and also build it into the tree
-                        Blocks.push_back(NewBlock);
-                        Tree.AddBlock(NewBlock);
+                        // Stash the block, and also build it into the indexed collection if necessary
+                        if (bUseful) {
+                            AddBlock(NewBlock);
+                        } else {
+                            sprintf_s(LogBuffer, LB_SIZE, "Useless block: ignoring");
+                            DoLog(typeid(*this).name(), LogBuffer, LOG_INFO);
+                        }
                     }
                     catch (incorrect_tag &e) {
-                        DoLog(LogBuff);
-                        sprintf_s(LogBuff, "INCORRECT_TAG: [%s]", e.what());
-                        DoLog(LogBuff);
+                        sprintf_s(LogBuffer, LB_SIZE, "INCORRECT_TAG: [%s]", e.what());
+                        DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
                     }
                 }
 
@@ -119,84 +122,98 @@ void RMPage::Load(zip_file* file)
                 free(buffer);
         }
         zip_fclose(file);
-
+        sprintf_s(LogBuffer, LB_SIZE, "Read %d blocks: %lld blocks in Stash", NumBlocks, Blocks.size());
+        DoLog(typeid(*this).name(), LogBuffer, LOG_INFO);
     }
 
 }
+
+void* RMPage::Write(size_t *BuffSize)
+{
+    *BuffSize = sizeof(rm_frontmatter_header);
+
+    for (auto& Block : Blocks)
+    {
+        *BuffSize += Block->PrepareWrite();
+    }
+
+    void * Buff = malloc(*BuffSize);
+
+    void* Buff_Ptr = Buff;
+    char FMH[] = "reMarkable .lines file, version=6          ";
     
-void RMPage::DrawPage(HDC hDC) {
-
-    for (auto const& [key, val] : Tree.Tree)
+    if (*BuffSize >= sizeof(rm_frontmatter_header) && Buff_Ptr)
     {
-        for (auto const SIB : val.Children) {
-            if (typeid(*SIB) == typeid(SceneLineItem))
-                FindMinMax((SceneLineItem*)SIB);
+        memcpy(Buff_Ptr, (const void*)FMH, sizeof(rm_frontmatter_header));
+        Buff_Ptr = (void*)((char*)Buff + sizeof(rm_frontmatter_header));
+    }
+
+    for (auto& Block : Blocks)
+    {
+        try
+        {
+            Buff_Ptr = Block->WriteBlock(Buff_Ptr);
+        }
+        catch (std::logic_error ex) {
+            sprintf_s(LogBuffer, LB_SIZE, "Logic Error writing block of type %s: %s", typeid(*Block).name(), ex.what());
+            DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
         }
     }
 
+    return Buff;
+}
 
-    RECT rect;
-    SetRect(&rect, 0, 0, MaxX - MinX, MaxY - MinY);
-    FillRect(hDC, &rect, (HBRUSH)(COLOR_WINDOW+1));
+void RMPage::AddBlock(RMBlock * Block) {
+    Blocks.push_back(Block);
 
-    //for (RMSceneItemBlock &block: Tree)
-    //{
-    //    char LogBuff[10240];
-    //    sprintf_s(LogBuff, "<D> %s ID (%d, %d)",
-    //        typeid(block).name(), block.item_id.part1, block.item_id.part1);
+    if (Block->BlockType() == BT_SceneTree)
+        IndexBlocks[((SceneTree*)Block)->node_id] = Block;
+    else if (Block->BlockType() == BT_TreeNode)
+        IndexBlocks[((TreeNode*)Block)->node_id] = Block;
+    else if (dynamic_cast<RMSceneItemBlock*>(Block))
+        IndexBlocks[((RMSceneItemBlock*)Block)->item_id] = Block;
+    else if (Block->BlockType() == BT_RootText)
+        IndexBlocks[((RootText*)Block)->texts[0].item_id] = Block;
 
-    //    DoLog(LogBuff);
-    //}
+}
 
-    char LogBuff[10240];
-    //std::map<RM_CRDT_ID, RMTreeGroup> Tree;
-    for (auto const& [key, val] : Tree.Tree)
-    { 
-        sprintf_s(LogBuff, "<D> ID (%d, %d)", val.node_ID.part1, val.node_ID.part1);
-        DoLog(LogBuff);
+void RMPage::DrawPage(void * DrawDetails) {
+    DrawPageInit(DrawDetails);
 
-//        std::vector<RMSceneItemBlock*> Children;
-
-        for (auto const SIB : val.Children) {
-            sprintf_s(LogBuff, "<D> Type:%s", typeid(*SIB).name());
-            DoLog(LogBuff);
-
-            if (typeid(*SIB) == typeid(SceneLineItem))
-                DrawLineItem(hDC, (SceneLineItem*)SIB);
+    // We need to do two passes, so that we can be sure to have done the text anchors first
+    for (auto const& [key, val] : IndexBlocks)
+    {
+        if (typeid(*val) == typeid(RootText))
+        {
+            sprintf_s(LogBuffer, LB_SIZE, "Drawing Text Block ID (%d, %d)", key.part1, key.part2);
+            DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG_VERBOSE);
+            DrawTextItem(DrawDetails, (RootText*)val);
         }
     }
 
-    sprintf_s(LogBuff, "<D> Range:(%d,%d) to (%d, %d)", MinX, MinY, MaxX, MaxY);
-    DoLog(LogBuff);
-}
-
-void RMPage::DrawLineItem(HDC hDC, SceneLineItem* SLI)
-{
-    if (SLI->points.empty())
-        return;
-
-    HPEN hPen = CreatePen(PS_SOLID, SLI->points[0].width / 4, SLI->colour());
-    HGDIOBJ hPenOld;
-
-    hPenOld = SelectObject(hDC, hPen);
-
-    MoveToEx(hDC, int(SLI->points[0].x) - MinX, int(SLI->points[0].y)-MinY,NULL);
-    for (auto const& point : SLI->points)
+    for (auto const& [key, val] : IndexBlocks)
     {
-        LineTo(hDC, int(point.x) - MinX, int(point.y) - MinY);
-    }
-
-    SelectObject(hDC, hPenOld);
-    DeleteObject(hPen);
-}
-
-void RMPage::FindMinMax(SceneLineItem* SLI)
-{
-    for (auto const& point : SLI->points)
-    {
-        MaxX = max(MaxX, int(point.x));
-        MinX = min(MinX, int(point.x));
-        MaxY = max(MaxY, int(point.y));
-        MinY = min(MinY, int(point.y));
+        if (typeid(*val) == typeid(SceneLineItem))
+        {
+            sprintf_s(LogBuffer, LB_SIZE, "Drawing Line Block ID (%d, %d)", key.part1, key.part2);
+            DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG_VERBOSE);
+            DrawLineItem(DrawDetails, (SceneLineItem*)val);
+        }
     }
 }
+
+void RMPage::DrawPageInit(void* DrawDetails)
+{
+    ; //Do nothing in base class
+}
+
+void RMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
+{
+    ; //Do nothing in base class
+}
+
+void RMPage::DrawTextItem(void* DrawDetails, RootText* RT)
+{
+    ; //Do nothing in base class
+}
+

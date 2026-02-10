@@ -30,7 +30,7 @@
     <ClInclude Include="RMPage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="RMZipFile.h">
+    <ClInclude Include="RMDocFile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="RMBlock.h">
@@ -39,7 +39,10 @@
     <ClInclude Include="RMBlockTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="RMTree.h">
+    <ClInclude Include="WindowRMPage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RMTestFileBuilder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -47,7 +50,7 @@
     <ClCompile Include="DOCXToRM.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="RMZipFile.cpp">
+    <ClCompile Include="RMDocFile.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="RMPage.cpp">
@@ -59,7 +62,10 @@
     <ClCompile Include="RMBlockTypes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="RMTree.cpp">
+    <ClCompile Include="WindowRMPage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RMTestFileBuilder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -75,5 +81,8 @@
     <Image Include="DOCXToRM.ico">
       <Filter>Resource Files</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
   </ItemGroup>
 </Project>

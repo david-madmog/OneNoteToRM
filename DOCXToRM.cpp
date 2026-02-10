@@ -3,7 +3,18 @@
 
 #include "framework.h"
 #include "DOCXToRM.h"
-#include "RMZipFile.h"
+#include "RMDocFile.h"
+#include "WindowRMPage.h"
+#include "RMTestFileBuilder.h"
+#include <gdiplus.h>
+#include <cstdio>
+#include <iostream>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <array>
+
+using namespace Gdiplus;
 
 constexpr auto MAX_LOADSTRING = 100;
 
@@ -14,7 +25,7 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
 HWND hListBox;
 HWND hImage;
-RMZipFile* ZF;
+RMDocFile<WindowRMPage>* ZF;
 int NumPages;
 int CurrentPage;
 WNDPROC oldSDProc;
@@ -26,16 +37,40 @@ LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK    ODStaticWndProc(HWND hwnd, UINT Message, WPARAM wparam, LPARAM lparam);
 
+char * LogBuffer = new char[LB_SIZE];
+char LocalLogBuff[LB_SIZE];
+wchar_t LocalWLogBuff[LB_SIZE];
 
+const char* LogLevelName[] = {
+    "VERB" ,
+    "DBUG",
+    "INFO",
+    "WARN",
+    "*ERR"
+};
 
-void DoLog(const char* Msg, LogLevel Level)
+const LogLevel CurrentLevel = LogLevel::LOG_DEBUG_VERBOSE;
+
+void DoLog(const char * Class, const char* Msg, LogLevel Level)
 {
-    size_t newsize = strlen(Msg) + 1;
-    wchar_t* wcstring = new wchar_t[newsize];
+    sprintf_s(LocalLogBuff, LB_SIZE, "[%s][%s]:%s", LogLevelName[Level], Class, Msg);
     size_t convertedChars = 0;
-    mbstowcs_s(&convertedChars, wcstring, newsize, Msg, _TRUNCATE);
-    SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)wcstring);
-    delete[] wcstring;
+    mbstowcs_s(&convertedChars, LocalWLogBuff, LocalLogBuff, _TRUNCATE);
+    if (Level >= CurrentLevel)
+        SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)LocalWLogBuff);
+}
+
+static std::string exec(const char* cmd) {
+    std::array<char, 128> buffer{};
+    std::string result;
+    std::unique_ptr<FILE, decltype(&_pclose)> pipe(_popen(cmd, "r"), _pclose);
+    if (!pipe) {
+        throw std::runtime_error("popen() failed!");
+    }
+    while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+    return result;
 }
 
 
@@ -49,6 +84,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     // TODO: Place code here.
+    GdiplusStartupInput gdiplusStartupInput;
+    ULONG_PTR           gdiplusToken;
+
+    // Initialize GDI+.
+    GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 
     // Initialize global strings
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -74,6 +114,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             DispatchMessage(&msg);
         }
     }
+
+    GdiplusShutdown(gdiplusToken);
 
     return (int) msg.wParam;
 }
@@ -146,16 +188,17 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-//    const char WorkingDir[] = "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\DOCXToRM\\To Do list.zip";
-//
-//   const char WorkingDir[] = "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\DOCXToRM\\To Do list.rmdoc";
+//    const char WorkingDir[] = "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\DOCXToRM\\To Do list.rmdoc";
 //    const char WorkingDir[] = "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\DOCXToRM\\ICE.rmdoc";
-    const char WorkingDir[] = "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\DOCXToRM\\Jobs.rmdoc";
+//    const char WorkingDir[] = "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\DOCXToRM\\Jobs.rmdoc";
+    const char WorkingDir[] = "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\DOCXToRM\\Conversion test.rmdoc";
+    const char SaveDoc[] = "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\DOCXToRM\\Output.rmdoc";
+    std::string Result= "";
 
     switch (message)
     {
     case WM_CREATE:
-        CreateWindow(_T("button"), _T("Go!"),
+        CreateWindow(_T("button"), _T("Load RMDOC"),
             WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
             10, 10, 120, 30,
             hWnd, (HMENU)BTN_BUTTON, GetModuleHandle(NULL), NULL);
@@ -167,17 +210,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
             160, 10, 30, 30,
             hWnd, (HMENU)BTN_BUTTON_R, GetModuleHandle(NULL), NULL);
+        CreateWindow(_T("button"), _T("Download/Upload"),
+            WS_CHILD | WS_VISIBLE | BS_CHECKBOX,
+            190, 10, 160, 30,
+            hWnd, (HMENU)CHK_RELOAD, GetModuleHandle(NULL), NULL);
+        CreateWindow(_T("button"), _T("Test"),
+            WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+            350, 10, 120, 30,
+            hWnd, (HMENU)BTN_BUTTON_TEST, GetModuleHandle(NULL), NULL);
+
+
+        CreateWindow(_T("button"), _T("Save RMDOC"),
+            WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+            10, 40, 120, 30,
+            hWnd, (HMENU)BTN_BUTTONSAVE, GetModuleHandle(NULL), NULL);
 
 
         hListBox = CreateWindowEx(WS_EX_CLIENTEDGE, _T("listbox"),
             _T("caption.c_str()"),
-            WS_CHILD | WS_VISIBLE | WS_VSCROLL | LBS_DISABLENOSCROLL | LBS_NOTIFY,
-            10, 40, 500, 500,
+            WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_HSCROLL ,
+            10, 70, 500, 500,
             hWnd, (HMENU)LST_LISTBOX,
             hInst, 0); 
+        SendMessage(hListBox, LB_SETHORIZONTALEXTENT, 1000, 0);
 
-        hImage = CreateWindow(_T("static"), _T("DrawBox"), WS_CHILD | WS_VISIBLE | SS_OWNERDRAW ,
-            520, 10, 500, 500,
+        hImage = CreateWindow(_T("static"), _T("DrawBox"), WS_CHILD | WS_VISIBLE | SS_OWNERDRAW | WS_VSCROLL | WS_HSCROLL,
+            520, 10, 5000, 5000,
             hWnd, (HMENU)MYDRAW, NULL, NULL);
         oldSDProc = (WNDPROC)SetWindowLongPtr(hImage, GWLP_WNDPROC, (LPARAM)ODStaticWndProc);
 
@@ -195,12 +253,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 DestroyWindow(hWnd);
                 break;
             case BTN_BUTTON:
-                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM) _T("Starting..."));
-                ZF = new RMZipFile();
+                if (IsDlgButtonChecked(hWnd, CHK_RELOAD))
+                {
+                    SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Pre-load..."));
+                    Result = exec("rmapi get \"Conversion test\"");
+                    DoLog("MAIN", Result.c_str(), LOG_INFO);
+                }
+
+                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting..."));
+                ZF = new RMDocFile<WindowRMPage>();
 
                 NumPages = ZF->ExtractRMsFromZip(WorkingDir);
                 CurrentPage = 0;
                 InvalidateRect(hImage, NULL, TRUE);
+                break;
+            case BTN_BUTTONSAVE:
+                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting..."));
+                if (ZF)
+                    NumPages = ZF->SaveRMsToZip(SaveDoc);
+
+                Result = exec("copy Output.rmdoc \"Conversion test.rmdoc\" /B /Y");
+                DoLog("MAIN", Result.c_str(), LOG_INFO);
+
+                if (IsDlgButtonChecked(hWnd, CHK_RELOAD))
+                {
+                    Result = exec("rmapi put \"Conversion test.rmdoc\" --force");
+                    DoLog("MAIN", Result.c_str(), LOG_INFO);
+                }
                 break;
             case BTN_BUTTON_L:
                 if (CurrentPage > 0) {
@@ -214,6 +293,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     InvalidateRect(hImage, NULL, TRUE);
                 }
                 break;
+            case CHK_RELOAD:
+                if (IsDlgButtonChecked(hWnd, CHK_RELOAD)) {
+                    CheckDlgButton(hWnd, CHK_RELOAD, BST_UNCHECKED);
+                }
+                else {
+                    CheckDlgButton(hWnd, CHK_RELOAD, BST_CHECKED);
+                }
+                break;
+            case BTN_BUTTON_TEST:
+                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting..."));
+                ZF = new RMTestFileBuilder<WindowRMPage>;
+                NumPages = ((RMTestFileBuilder<WindowRMPage>*)ZF)->Build();
+                CurrentPage = 0;
+                InvalidateRect(hImage, NULL, TRUE);
+                break;
+
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }

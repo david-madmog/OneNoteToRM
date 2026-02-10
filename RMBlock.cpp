@@ -1,9 +1,9 @@
+#include <typeinfo>
 #include "RMBlock.h"
 #include "DOCXToRM.h"
 
 
 RMBlock::RMBlock() {
-	Class = BlockClass::BCUnknown;
 }
 
 void * RMBlock::ReadVarUINT(int * data, void * Buff_Ptr) {
@@ -52,8 +52,36 @@ void * RMBlock::ReadTag(RM_Tag* tag, void* Buff_Ptr, int index, TagTypeEnum TagT
 	return Buff_Ptr;
 };
 
-void* RMBlock::ReadString(RM_STRING* data, void * Buff_Ptr, int index) {
-//	"""Read a standard string block."""
+void* RMBlock::ReadStringWithFormat(RM_STRING* data, UINT32* fmt, void* Buff_Ptr, int index) {
+	//"""Read a string block with formatting."""
+	// First, read standard string block
+
+	try {
+		Buff_Ptr = ReadString(data, Buff_Ptr, index);
+	}
+	catch (incorrect_tag ex)
+	{
+		// tag not there... just carry on
+	}
+
+	try {
+		// See if the tag is there... without advancing!
+		RM_Tag Tag;
+		ReadTag(&Tag, Buff_Ptr, 2, TagTypeEnum::Byte4);
+
+		// if tag IS there, we will not have an exception, so we can read it
+		Buff_Ptr = ReadTaggedData(fmt, Buff_Ptr, 2);
+	}
+	catch (incorrect_tag ex)
+	{
+		// tag not there... just carry on
+	}
+	
+	return Buff_Ptr;
+}
+
+void* RMBlock::ReadString(RM_STRING* data, void* Buff_Ptr, int index) {
+	//	"""Read a standard string block."""
 	Buff_Ptr = ReadSubblock(Buff_Ptr, index);
 	int string_length;
 	RM_BOOL is_ascii;
@@ -103,6 +131,26 @@ void* RMBlock::Read(FLOAT* data, void* Buff_Ptr, int count) {
 	Local_Ptr = (FLOAT*)Buff_Ptr;
 	Local_Ptr += count;
 	return (void*)Local_Ptr;
+}
+
+void* RMBlock::Read(DOUBLE* data, void* Buff_Ptr, int count) {
+	DOUBLE* Local_Ptr;
+
+	memcpy(data, Buff_Ptr, count * sizeof(DOUBLE));
+	Local_Ptr = (DOUBLE*)Buff_Ptr;
+	Local_Ptr += count;
+	return (void*)Local_Ptr;
+}
+
+void* RMBlock::Read(RM_CRDT_ID* ID, void* Buff_Ptr, int count) {
+	UINT8* Local_Ptr;
+
+	Local_Ptr = (UINT8*)Buff_Ptr;
+	ID->part1 = *Local_Ptr;
+	Local_Ptr++;
+
+	Buff_Ptr = ReadVarUINT(&ID->part2, (void*)Local_Ptr);
+	return Buff_Ptr;
 }
 
 
@@ -219,7 +267,7 @@ void* RMBlock::ReadTaggedData(DOUBLE* data, void* Buff_Ptr, int index)
 }
 
 void* RMBlock::ReadTaggedDataOptional(UINT32* data, void* Buff_Ptr, int index) {
-	
+
 	try {
 		Buff_Ptr = ReadTaggedData(data, Buff_Ptr, index);
 	}
@@ -227,6 +275,20 @@ void* RMBlock::ReadTaggedDataOptional(UINT32* data, void* Buff_Ptr, int index) {
 	{
 		// OK - in this case it's fine, we just didn't have the thing we thought
 		*data = 0;
+	}
+
+	return Buff_Ptr;
+}
+
+void* RMBlock::ReadTaggedDataOptional(RM_CRDT_ID* data, void* Buff_Ptr, int index) {
+
+	try {
+		Buff_Ptr = ReadTaggedData(data, Buff_Ptr, index);
+	}
+	catch (incorrect_tag)
+	{
+		// OK - in this case it's fine, we just didn't have the thing we thought
+		*data = {0, 0};
 	}
 
 	return Buff_Ptr;
@@ -257,18 +319,326 @@ void* RMBlock::ReadSubblock(void* Buff_Ptr, int index, UINT32 * subblock_length)
 	return Local_Ptr;
 };
 
+void* RMBlock::ReadTextItem(struct rm_CRDT_SEQ_ITEM<RM_STRING>* data, void* Buff_Ptr)
+{
+	UINT32 fmt = 0;
+
+	Buff_Ptr = ReadSubblock((void*)Buff_Ptr, 0);
+
+	Buff_Ptr = ReadTaggedData(&data->item_id, Buff_Ptr, 2);
+	Buff_Ptr = ReadTaggedData(&data->left_id, Buff_Ptr, 3);
+	Buff_Ptr = ReadTaggedData(&data->right_id, Buff_Ptr, 4);
+	Buff_Ptr = ReadTaggedData(&data->deleted_length, Buff_Ptr, 5);
+	Buff_Ptr = ReadStringWithFormat(&data->value, &fmt, Buff_Ptr, 6);
+			//# It seems that formats are stored on empty strings, so it's one or the other
+			//if fmt is not None:
+			//	if text :
+			//		_logger.error("Unhandled combined text and format: %s, %s", text, fmt)
+			//		value = fmt
+			//	else:
+			//		value = text
+			//else:
+			//	value = ""
+
+
+	return Buff_Ptr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+size_t RMBlock::PrepareWrite() {
+	return 0; // Will be overridden by derived classes
+}
+
+void* RMBlock::WriteBlock(void* Buff)
+{
+	// So, the subclass should have nicely prepared the buffer in WriteBuff for length WriteBuffLen
+	if (!WriteBuff)
+	{
+		char LogBuff[1024];
+		sprintf_s(LogBuff, "Write Not Prepared");
+		throw std::logic_error(LogBuff);
+	}
+
+	memcpy(Buff, WriteBuff, WriteBuffLen);
+	Buff = (void*)((char*)Buff + WriteBuffLen);
+	free(WriteBuff);
+	WriteBuff = NULL;
+	WriteBuffLen = 0;
+
+	return Buff; 
+}
+
+void* RMBlock::WriteBlockHead(void* Buff_Ptr, size_t block_length, unsigned char version)
+{
+	rm_BlockHead BH{};
+
+	BH.magic1 = 0;
+	BH.MinVersion = version;
+	BH.CurrentVersion = version;
+	BH.BlockType = BlockType();
+	BH.len_body = (UINT32)block_length;
+
+	memcpy(Buff_Ptr, &BH, sizeof(BH));
+	Buff_Ptr = (void*)((UINT8*)Buff_Ptr + sizeof(BH));
+
+	return Buff_Ptr;
+}
+
+
+void* RMBlock::WriteVarUINT(int data, void* Buff_Ptr) {
+	//Write a varuint to the data stream."""
+
+	unsigned int uData = (unsigned int)data;
+
+	UINT8* Local_Ptr = (UINT8*)Buff_Ptr;
+	int to_write;
+	while (true) {
+		to_write = uData & 0x7F;
+		uData >>= 7;
+		if (uData)
+			*(Local_Ptr++) = to_write | 0x80;
+		else {
+			*(Local_Ptr++) = to_write;
+			break;
+		}
+	}
+	return Local_Ptr;
+}
+
+size_t RMBlock::VarUINTLen(int data)
+{
+	if (data < 0)
+		return 5;
+	if (data < 0x80)
+		return 1;
+	if (data < 0x4000)
+		return 2;
+	if (data < 0x200000)
+		return 3;
+	return 4;
+}
+
+void* RMBlock::WriteTag(void* Buff_Ptr, int index, TagTypeEnum TagType) {
+	int x = index << 4 | int(TagType);
+
+	Buff_Ptr = WriteVarUINT(x, Buff_Ptr);
+	return Buff_Ptr;
+};
+
+void* RMBlock::WriteStringWithFormat(RM_STRING* data, UINT32* fmt, void* Buff_Ptr, int index) {   // despite the name, we just ignore the format!
+	Buff_Ptr = WriteString(data, Buff_Ptr, index);
+//	Buff_Ptr = WriteTaggedData(fmt, Buff_Ptr, 2);
+	return Buff_Ptr;
+}
+
+void* RMBlock::WriteString(RM_STRING* data, void* Buff_Ptr, int index) { 
+	//	"""Read a standard string block."""
+	void* Local_Ptr = Buff_Ptr;
+	size_t string_length = *data?strlen(*data):0;
+
+	Buff_Ptr = WriteSubblock(Buff_Ptr, index, StringWriteSize(*data) - SIZE_OF_SUBBLOCK);
+
+	RM_BOOL is_ascii = true;
+
+	Buff_Ptr = WriteVarUINT((int) string_length, Buff_Ptr);
+	Buff_Ptr = Write(&is_ascii, Buff_Ptr);
+	Buff_Ptr = Write((UINT8 *)*data, Buff_Ptr, (int)string_length);
+
+	return Buff_Ptr;
+}
+
+size_t RMBlock::StringWriteSize(RM_STRING data) 
+{
+	size_t string_length = (data ? strlen(data) : 0) ;
+	return SIZE_OF_SUBBLOCK + VarUINTLen((int)string_length) + sizeof(RM_BOOL) + string_length;
+}
+
+///////////////////////
+// Overloaded set of generic write functions
+void* RMBlock::Write(UINT8* data, void* Buff_Ptr, int count) {
+	UINT8* Local_Ptr;
+
+	memcpy(Buff_Ptr, data, count);
+	Local_Ptr = (UINT8*)Buff_Ptr;
+	Local_Ptr += count;
+	return (void*)Local_Ptr;
+}
+
+void* RMBlock::Write(UINT16* data, void* Buff_Ptr, int count) {
+	UINT16* Local_Ptr;
+
+	memcpy(Buff_Ptr, data, count * sizeof(UINT16));
+	Local_Ptr = (UINT16*)Buff_Ptr;
+	Local_Ptr += count;
+	return (void*)Local_Ptr;
+}
+
+void* RMBlock::Write(UINT32* data, void* Buff_Ptr, int count) {
+	UINT32* Local_Ptr;
+
+	memcpy(Buff_Ptr, data, count * sizeof(UINT32));
+	Local_Ptr = (UINT32*)Buff_Ptr;
+	Local_Ptr += count;
+	return (void*)Local_Ptr;
+}
+
+void* RMBlock::Write(FLOAT* data, void* Buff_Ptr, int count) {
+	FLOAT* Local_Ptr;
+
+	memcpy(Buff_Ptr, data, count * sizeof(FLOAT));
+	Local_Ptr = (FLOAT*)Buff_Ptr;
+	Local_Ptr += count;
+	return (void*)Local_Ptr;
+}
+
+void* RMBlock::Write(DOUBLE* data, void* Buff_Ptr, int count) {
+	DOUBLE* Local_Ptr;
+
+	memcpy(Buff_Ptr, data, count * sizeof(DOUBLE));
+	Local_Ptr = (DOUBLE*)Buff_Ptr;
+	Local_Ptr += count;
+	return (void*)Local_Ptr;
+}
+
+void* RMBlock::Write(RM_CRDT_ID* ID, void* Buff_Ptr, int count) {
+	Buff_Ptr = Write(&ID->part1, Buff_Ptr);
+	Buff_Ptr = WriteVarUINT(ID->part2, Buff_Ptr);
+	
+	return Buff_Ptr;
+}
+
+void* RMBlock::WriteIntPair(UINT32* Ints, void* Buff_Ptr, int index) {
+	Buff_Ptr = WriteSubblock(Buff_Ptr, index, (UINT32)(2 * sizeof(UINT32)));
+	Buff_Ptr = Write(Ints, Buff_Ptr, 2);
+	return Buff_Ptr;
+}
+
+
+///////////////////////
+// Overloaded set of main read TAG functions
+
+void* RMBlock::WriteTaggedData(RM_CRDT_ID* ID, void* Buff_Ptr, int index) {
+	Buff_Ptr = WriteTag(Buff_Ptr, index, TagTypeEnum::ID);
+	Buff_Ptr = Write(ID, Buff_Ptr);
+	return Buff_Ptr;
+}
+
+void* RMBlock::WriteTaggedData(RM_BOOL* Bool, void* Buff_Ptr, int index) {
+	Buff_Ptr = WriteTag(Buff_Ptr, index, TagTypeEnum::Byte1);
+	Buff_Ptr = Write(Bool, Buff_Ptr);
+	return Buff_Ptr;
+}
+
+void* RMBlock::WriteTaggedData(RM_LWW_ID* data, void* Buff_Ptr, int index)
+{
+	Buff_Ptr = WriteSubblock(Buff_Ptr, index, data->SizeOf() - SIZE_OF_SUBBLOCK);
+	Buff_Ptr = WriteTaggedData(&data->timestamp, Buff_Ptr, 1);
+	Buff_Ptr = WriteTaggedData(&data->value, Buff_Ptr, 2);
+	return Buff_Ptr;
+}
+
+void* RMBlock::WriteTaggedData(RM_LWW_Bool* data, void* Buff_Ptr, int index) 
+{
+	Buff_Ptr = WriteSubblock(Buff_Ptr, index, data->SizeOf() - SIZE_OF_SUBBLOCK);
+	Buff_Ptr = WriteTaggedData(&data->timestamp, Buff_Ptr, 1);
+	Buff_Ptr = WriteTaggedData(&data->value, Buff_Ptr, 2);
+	return Buff_Ptr;
+}
+
+void* RMBlock::WriteTaggedData(RM_LWW_Byte* data, void* Buff_Ptr, int index)
+{
+	Buff_Ptr = WriteSubblock(Buff_Ptr, index, data->SizeOf() - SIZE_OF_SUBBLOCK);
+	Buff_Ptr = WriteTaggedData(&data->timestamp, Buff_Ptr, 1);
+	Buff_Ptr = WriteTaggedData(&data->value, Buff_Ptr, 2);
+	return Buff_Ptr;
+}
+
+void* RMBlock::WriteTaggedData(RM_LWW_String* data, void* Buff_Ptr, int index)
+{
+	Buff_Ptr = WriteSubblock(Buff_Ptr, index, data->SizeOfT() - SIZE_OF_SUBBLOCK);  
+	Buff_Ptr = WriteTaggedData(&data->timestamp, Buff_Ptr, 1);
+	Buff_Ptr = WriteString(&data->value, Buff_Ptr, 2);
+	return Buff_Ptr;
+}
+
+void* RMBlock::WriteTaggedData(RM_LWW_Float* data, void* Buff_Ptr, int index)
+{
+	Buff_Ptr = WriteSubblock(Buff_Ptr, index, data->SizeOf() - SIZE_OF_SUBBLOCK);
+	Buff_Ptr = WriteTaggedData(&data->timestamp, Buff_Ptr, 1);
+	Buff_Ptr = WriteTaggedData(&data->value, Buff_Ptr, 2);
+	return Buff_Ptr;
+}
+
+void* RMBlock::WriteTaggedData(UINT32* data, void* Buff_Ptr, int index)
+{
+	Buff_Ptr = WriteTag(Buff_Ptr, index, TagTypeEnum::Byte4);
+	Buff_Ptr = Write(data, Buff_Ptr);
+	return Buff_Ptr;
+}
+
+void* RMBlock::WriteTaggedData(FLOAT* data, void* Buff_Ptr, int index)
+{
+	Buff_Ptr = WriteTag(Buff_Ptr, index, TagTypeEnum::Byte4);
+	Buff_Ptr = Write(data, Buff_Ptr);
+	return Buff_Ptr;
+}
+
+void* RMBlock::WriteTaggedData(DOUBLE* data, void* Buff_Ptr, int index)
+{
+	Buff_Ptr = WriteTag(Buff_Ptr, index, TagTypeEnum::Byte8);
+	Buff_Ptr = Write(data, Buff_Ptr);
+	return Buff_Ptr;
+}
+
+//void* RMBlock::ReadTaggedDataOptional(UINT32* data, void* Buff_Ptr, int index) {
+//
+//	try {
+//		Buff_Ptr = ReadTaggedData(data, Buff_Ptr, index);
+//	}
+//	catch (incorrect_tag)
+//	{
+//		// OK - in this case it's fine, we just didn't have the thing we thought
+//		*data = 0;
+//	}
+//
+//	return Buff_Ptr;
+//}
+//
+
+void* RMBlock::WriteSubblock(void* Buff_Ptr, int index, size_t subblock_length) {
+	Buff_Ptr = WriteTag(Buff_Ptr, index, TagTypeEnum::Length4);
+	Buff_Ptr = Write((UINT32 *) & subblock_length, Buff_Ptr);
+	return Buff_Ptr;
+}
+	
+void* RMBlock::WriteTextItem(struct rm_CRDT_SEQ_ITEM<RM_STRING>* data, void* Buff_Ptr) 
+{
+	UINT32 fmt = 0;
+
+	Buff_Ptr = WriteSubblock((void*)Buff_Ptr, 0, data->SizeOfTWithoutTemplateItem() + StringWriteSize(data->value) - SIZE_OF_SUBBLOCK);
+
+	Buff_Ptr = WriteTaggedData(&data->item_id, Buff_Ptr, 2);
+	Buff_Ptr = WriteTaggedData(&data->left_id, Buff_Ptr, 3);
+	Buff_Ptr = WriteTaggedData(&data->right_id, Buff_Ptr, 4);
+	Buff_Ptr = WriteTaggedData(&data->deleted_length, Buff_Ptr, 5);
+	Buff_Ptr = WriteStringWithFormat(&data->value, &fmt, Buff_Ptr, 6);
+
+	return Buff_Ptr;
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
 
 RMSceneItemBlock::RMSceneItemBlock()
 {
-	Class = BlockClass::Item;
 	deleted_length = 0;
 }
 
 
 void* RMSceneItemBlock::ReadSceneItemDetails(const unsigned char* Buff, size_t ValidLen)
 {
-	char MessageBuffer[1024];
-	void* Buff_Ptr = (void *)Buff;
+	void* Buff_Ptr = (void*)Buff;
 	UINT8 SubblockType;
 
 	Buff_Ptr = ReadTaggedData(&parent_id, Buff_Ptr, 1);
@@ -297,13 +667,41 @@ void* RMSceneItemBlock::ReadSceneItemDetails(const unsigned char* Buff, size_t V
 	//		)
 
 	if (deleted_length > 0)
-		sprintf_s(MessageBuffer, "<B> Scene Item (deleted %d)...", deleted_length );
+	{
+		sprintf_s(LogBuffer, LB_SIZE, "Scene Item (deleted %d)...", deleted_length);
+		DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG_VERBOSE);
+	}
 	else
-		sprintf_s(MessageBuffer, "<B> Scene Item: Parent (%d, %d) ID (%d, %d) Left (%d, %d) Right (%d, %d) Deleted Len %d...",
+	{
+		sprintf_s(LogBuffer, LB_SIZE, "Scene Item: Parent (%d, %d) ID (%d, %d) Left (%d, %d) Right (%d, %d) Deleted Len %d...",
 			parent_id.part1, parent_id.part2, item_id.part1, item_id.part2, left_id.part1, left_id.part2, right_id.part1, right_id.part2, deleted_length
 		);
-	DoLog(MessageBuffer);
+		DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG_VERBOSE);
+	}
 
 	return Buff_Ptr;
+}
+
+void* RMSceneItemBlock::WriteSceneItemDetails(void* Buff_Ptr, size_t SubblockLen)
+{
+	UINT8 SubblockType = SubBlockType();   //// WTF is the Subblock type???
+
+	Buff_Ptr = WriteTaggedData(&parent_id, Buff_Ptr, 1);
+	Buff_Ptr = WriteTaggedData(&item_id, Buff_Ptr, 2);
+	Buff_Ptr = WriteTaggedData(&left_id, Buff_Ptr, 3);
+	Buff_Ptr = WriteTaggedData(&right_id, Buff_Ptr, 4);
+	Buff_Ptr = WriteTaggedData(&deleted_length, Buff_Ptr, 5);
+
+	Buff_Ptr = WriteSubblock(Buff_Ptr, 6, SubblockLen + sizeof(SubblockType));
+	Buff_Ptr = Write(&SubblockType, Buff_Ptr);
+	
+	return Buff_Ptr;
+}
+
+size_t RMSceneItemBlock::SizeOfSceneItemDetails()
+{
+	return
+		parent_id.SizeOf() + item_id.SizeOf() + left_id.SizeOf() + right_id.SizeOf() +
+		5 * SIZE_OF_TAG + sizeof(UINT32) + SIZE_OF_SUBBLOCK + sizeof(UINT8);
 }
 

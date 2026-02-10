@@ -44,25 +44,24 @@ void RMTree::AddBlock(RMBlock* block)
 }
 
 void RMTree::AddNode(SceneTree* block) {
-    char MessageBuffer[1024];
 
     if (block->node_id == RM_CRDT_ID{0, 0}) {
-        DoLog("<T> Blank Node");
+        DoLog(typeid(*this).name(), "Blank Node", LOG_DEBUG);
     //    return;
     }
 
     if (Tree.contains(block->node_id)) {
 //        throw std::range_error("Repeated Node");
-        DoLog("<T> Repeated Node");
+        DoLog(typeid(*this).name(), "Repeated Node", LOG_DEBUG);
     }
 
     RMTreeGroup NewGroup(block->node_id);
     Tree[block->node_id] = NewGroup;
 
-    sprintf_s(MessageBuffer, "<T> Adding Tree Node: Node ID (%d, %d) Parent ID(%d, %d)...",
+    sprintf_s(LogBuffer, LB_SIZE, "Adding Tree Node: Node ID (%d, %d) Parent ID(%d, %d)...",
         block->node_id.part1, block->node_id.part2, block->parent_id.part1, block->parent_id.part2
     );
-    DoLog(MessageBuffer);
+    DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG_VERBOSE);
 
     //        # parent = self._node_ids[parent_id]
     //        # parent.children.add(item)
@@ -71,7 +70,7 @@ void RMTree::AddNode(SceneTree* block) {
 void RMTree::UpdateNode(TreeNode* block)
 {
     if (!Tree.contains(block->node_id)) {
-        DoLog("<T> Missing Node");
+        DoLog(typeid(*this).name(), "Missing Node", LOG_DEBUG);
 //        throw std::range_error("Missing Node");
     }
 
@@ -90,7 +89,7 @@ void RMTree::ReplaceNode(SceneGroupItem* block)
     //        item = replace(b.item, value = tree[node_id])
     //        tree.add_item(item, b.parent_id)
     if (!Tree.contains(block->item_id)) {
-        DoLog("<T> Missing Node");
+        DoLog(typeid(*this).name(), "Missing Node", LOG_DEBUG_VERBOSE);
         //        throw std::range_error("Missing Node");
     }
     AddItem(block);
@@ -101,7 +100,7 @@ void RMTree::ReplaceNode(SceneGroupItem* block)
 void RMTree::AddItem(RMSceneItemBlock* block)
 {
     if (!Tree.contains(block->parent_id)) {
-        DoLog("<T> Missing Node");
+        DoLog(typeid(*this).name(), "Missing Node", LOG_DEBUG_VERBOSE);
     }
     Tree[block->parent_id].AddChild(block);
 }
@@ -165,8 +164,6 @@ RMTreeGroup::RMTreeGroup(RM_CRDT_ID Node_ID) {
 }
 
 void RMTreeGroup::Update(TreeNode* block) {
-    char MessageBuffer[1024];
-
     label = block->label;
     visible = block->visible;
     anchor_id = block->anchor_id;
@@ -174,18 +171,16 @@ void RMTreeGroup::Update(TreeNode* block) {
     anchor_threshold = block->anchor_threshold;
     anchor_origin_x = block->anchor_origin_x;
 
-    sprintf_s(MessageBuffer, "<T> Updating Tree Node: Node ID (%d, %d)...",
+    sprintf_s(LogBuffer, LB_SIZE, "Updating Tree Node: Node ID (%d, %d)...",
         block->node_id.part1, block->node_id.part2
     );
-    DoLog(MessageBuffer);
+    DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG_VERBOSE);
 }
 
 void RMTreeGroup::AddChild(RMSceneItemBlock* block) {
-    char MessageBuffer[1024];
-
     Children.push_back(block);
-    sprintf_s(MessageBuffer, "<T> Adding child block (%s) to Tree Node: Node ID (%d, %d)...",
+    sprintf_s(LogBuffer, LB_SIZE, "Adding child block (%s) to Tree Node: Node ID (%d, %d)...",
         typeid(*block).name(), block->item_id.part1, block->item_id.part2
     );
-    DoLog(MessageBuffer);
+    DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG_VERBOSE);
 }

@@ -10,20 +10,42 @@
 #include "RMTree.h"
 #include "RMBlockTypes.h"
 
+/*******************************************************************************
+
+    RMPage.H
+
+    Header for generic ReMarkable file format Pages
+    Intent is for this class to be subclassed, with three virtual functions being 
+    overridden for context specific rendering.
+
+    (C) David Poirier 2026
+
+    Based on knowledge from:
+    * Rick Lupton - https://github.com/ricklupton rmscene
+    * ddvk - https://github.com/ddvk
+
+*******************************************************************************/
+
+
 class RMPage
 {
-private:
+protected:
     std::vector<RMBlock*> Blocks;
-    RMTree Tree;
-    void DrawLineItem(HDC hDC, SceneLineItem* SIB);
-    void FindMinMax(SceneLineItem* SLI);
+    std::map<RM_CRDT_ID, RMBlock*> IndexBlocks;
+    std::map<RM_CRDT_ID, POINT> Anchors;
 
-    int MinX, MaxX, MinY, MaxY;
+    virtual void DrawLineItem(void* DrawDetails, SceneLineItem* SIB);
+    virtual void DrawTextItem(void* DrawDetails, RootText* RT);
+    virtual void DrawPageInit(void* DrawDetails);
 
 public:
     RMPage();
+    RMPage(std::string id);
+    bool operator== (const RMPage& b) { return m_id == b.m_id; };
+    bool operator== (const std::string& b) { return m_id == b; };
     void Load(zip_file* file);
-    void DrawPage(HDC hDC);
-
-
+    void * Write(size_t* BuffSize);
+    void DrawPage(void * DrawDetails);
+    void AddBlock(RMBlock * Block);
+    std::string m_id;
 };
