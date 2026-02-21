@@ -5,14 +5,11 @@
 #include "DOCXToRM.h"
 #include "RMDocFile.h"
 #include "WindowRMPage.h"
+#include "ONEDocFile.h"
+#include "WindowONEPage.h"
 #include "RMTestFileBuilder.h"
+#include "GraphDoc.h"
 #include <gdiplus.h>
-#include <cstdio>
-#include <iostream>
-#include <memory>
-#include <stdexcept>
-#include <string>
-#include <array>
 
 using namespace Gdiplus;
 
@@ -22,18 +19,24 @@ constexpr auto MAX_LOADSTRING = 100;
 HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
+WCHAR szPopupWindowClass[MAX_LOADSTRING];            // the main window class name
 
 HWND hListBox;
 HWND hImage;
 RMDocFile<WindowRMPage>* ZF;
+ONEDocFile<WindowONEPage>* OPF;
+GraphDoc<WindowONEPage>* GD;
 int NumPages;
 int CurrentPage;
 WNDPROC oldSDProc;
+HWND hLoginPopup;
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
+ATOM                MyRegisterPopupClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK    PopupWndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK    ODStaticWndProc(HWND hwnd, UINT Message, WPARAM wparam, LPARAM lparam);
 
@@ -93,7 +96,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     // Initialize global strings
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_DOCXTORM, szWindowClass, MAX_LOADSTRING);
+    LoadStringW(hInstance, IDC_DOCXTORML, szPopupWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
+    MyRegisterPopupClass(hInstance);
 
     // Perform application initialization:
     if (!InitInstance (hInstance, nCmdShow))
@@ -133,17 +138,38 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 
     wcex.cbSize = sizeof(WNDCLASSEX);
 
-    wcex.style          = CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc    = WndProc;
-    wcex.cbClsExtra     = 0;
-    wcex.cbWndExtra     = 0;
-    wcex.hInstance      = hInstance;
-    wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_DOCXTORM));
-    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
-    wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
-    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_DOCXTORM);
-    wcex.lpszClassName  = szWindowClass;
-    wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
+    wcex.style = CS_HREDRAW | CS_VREDRAW;
+    wcex.lpfnWndProc = WndProc;
+    wcex.cbClsExtra = 0;
+    wcex.cbWndExtra = 0;
+    wcex.hInstance = hInstance;
+    wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_DOCXTORM));
+    wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_DOCXTORM);
+    wcex.lpszClassName = szWindowClass;
+    wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
+
+    return RegisterClassExW(&wcex);
+}
+
+ATOM MyRegisterPopupClass(HINSTANCE hInstance)
+{
+    WNDCLASSEXW wcex{};
+
+    wcex.cbSize = sizeof(WNDCLASSEX);
+
+    wcex.style = CS_HREDRAW | CS_VREDRAW;
+    wcex.lpfnWndProc = PopupWndProc;
+    wcex.cbClsExtra = 0;
+    wcex.cbWndExtra = 0;
+    wcex.hInstance = hInstance;
+    wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_DOCXTORM));
+    wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    wcex.lpszMenuName = 0;
+    wcex.lpszClassName = szPopupWindowClass;
+    wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
     return RegisterClassExW(&wcex);
 }
@@ -192,7 +218,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 //    const char WorkingDir[] = "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\DOCXToRM\\ICE.rmdoc";
 //    const char WorkingDir[] = "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\DOCXToRM\\Jobs.rmdoc";
     const char WorkingDir[] = "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\DOCXToRM\\Conversion test.rmdoc";
-    const char SaveDoc[] = "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\DOCXToRM\\Output.rmdoc";
+    const char SaveDoc[] = "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\DOCXToRM\\Conversion test.rmdoc";
+    const char ONEDir[] = "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\DOCXToRM\\First test page.one";
     std::string Result= "";
 
     switch (message)
@@ -218,18 +245,28 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
             350, 10, 120, 30,
             hWnd, (HMENU)BTN_BUTTON_TEST, GetModuleHandle(NULL), NULL);
-
-
         CreateWindow(_T("button"), _T("Save RMDOC"),
             WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
             10, 40, 120, 30,
             hWnd, (HMENU)BTN_BUTTONSAVE, GetModuleHandle(NULL), NULL);
 
+        CreateWindow(_T("button"), _T("Login to Microsoft"),
+            WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+            10, 80, 120, 30,
+            hWnd, (HMENU)BTN_BUTTON_LOGIN, GetModuleHandle(NULL), NULL);
+
+        CreateWindow(_T("button"), _T("Load ONE doc"),
+            WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+            130, 80, 120, 30,
+            hWnd, (HMENU)BTN_BUTTON_ONE, GetModuleHandle(NULL), NULL);
+
+
+
 
         hListBox = CreateWindowEx(WS_EX_CLIENTEDGE, _T("listbox"),
             _T("caption.c_str()"),
             WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_HSCROLL ,
-            10, 70, 500, 500,
+            10, 120, 500, 500,
             hWnd, (HMENU)LST_LISTBOX,
             hInst, 0); 
         SendMessage(hListBox, LB_SETHORIZONTALEXTENT, 1000, 0);
@@ -247,8 +284,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             switch (wmId)
             {
             case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
             case IDM_EXIT:
                 DestroyWindow(hWnd);
                 break;
@@ -308,6 +343,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 CurrentPage = 0;
                 InvalidateRect(hImage, NULL, TRUE);
                 break;
+            case BTN_BUTTON_LOGIN:
+                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting..."));
+
+                hLoginPopup = CreateWindowW(szPopupWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+                    CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, hWnd, nullptr, hInst, nullptr);
+
+                if (!hLoginPopup) {
+                    DWORD err = GetLastError();
+                    sprintf_s(LogBuffer, LB_SIZE, "Creating popup error 0x%X", err);
+                    DoLog("POPUP", LogBuffer, LOG_ERROR);
+                } else {
+                    ShowWindow(hLoginPopup, SW_NORMAL);
+                    UpdateWindow(hLoginPopup);
+                    PostMessage(hLoginPopup, WM_LOGINTOMS, NULL, NULL);
+                }
+                break;
+            case BTN_BUTTON_ONE:
+                if (GD)
+                    GD->LoadDoc("");
+                //GD->LoadDoc("", hImage);
+                //
+                CurrentPage = 0;
+                InvalidateRect(hImage, NULL, TRUE);
+				break;
 
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
@@ -325,6 +384,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
+
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
@@ -339,7 +399,6 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_INITDIALOG:
         return (INT_PTR)TRUE;
-
     case WM_COMMAND:
         if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
         {
@@ -349,6 +408,58 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     }
     return (INT_PTR)FALSE;
+}
+
+// Message handler for popup login to microsoft  box.
+LRESULT CALLBACK PopupWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    UNREFERENCED_PARAMETER(lParam);
+    switch (message)
+    {
+    case WM_CREATE:
+        DoLog("POPUP", "WM_CREATE", LOG_INFO);
+        break;
+    case WM_NCCREATE:
+        DoLog("POPUP", "WM_NCCREATE", LOG_INFO);
+        break;
+    case WM_LOGINTOMS:
+        DoLog("POPUP", "WM_LOGINTOMS", LOG_INFO);
+        GD = new GraphDoc<WindowONEPage>();
+        GD->LoginToMicrosoft(hWnd);
+        SetTimer(hWnd, WM_LOGINTOMS, 3000, (TIMERPROC)NULL);
+        break;
+    case WM_TIMER:
+        DoLog("POPUP", "WM_TIMER", LOG_INFO);
+        KillTimer(hWnd, WM_LOGINTOMS);
+        if (GD)
+            GD->Resize(hWnd);
+        break;
+    case WM_DONELOGINTOMS:
+        DoLog("POPUP", "WM_DONELOGINTOMS", LOG_INFO);
+        GD->SetLoginCode((wchar_t*)lParam);
+
+        DestroyWindow(hWnd);
+        break;
+    case WM_SIZE:
+//        DoLog("POPUP", "WM_SIZE", LOG_INFO);
+        if (GD)
+            GD->Resize(hWnd);
+        break;
+    case WM_PAINT:
+    {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hWnd, &ps);
+        // TODO: Add any drawing code that uses hdc here...
+        FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1));
+        EndPaint(hWnd, &ps);
+    }
+        break;
+    default:
+        //sprintf_s(LogBuffer, LB_SIZE, "Windows msg 0x%X", message);
+        //DoLog("POPUP", LogBuffer, LOG_INFO);
+        break;
+    }
+    return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
 
@@ -374,7 +485,9 @@ LRESULT CALLBACK ODStaticWndProc(HWND hwnd, UINT Message, WPARAM wparam, LPARAM 
 
 		if (ZF) {
 			ZF->DrawPage(hDC, CurrentPage);
-		}
+		} else if (OPF) {
+			OPF->DrawPage(hDC, CurrentPage);
+        }
 
 		EndPaint(hwnd, &ps);
     }

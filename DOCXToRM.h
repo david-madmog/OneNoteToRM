@@ -2,7 +2,7 @@
 #include <windows.h>
 #include <objidl.h>
 #include <gdiplus.h>
-#include <vector>
+#include "framework.h"
 #include "resource.h"
 #include "zip.h"
 #pragma comment (lib,"Gdiplus.lib")
@@ -15,6 +15,7 @@ enum LogLevel {
 	LOG_ERROR
 };
 
+extern HWND hLoginPopup;
 
 extern char * LogBuffer;
 constexpr auto LB_SIZE = 10240;

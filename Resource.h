@@ -11,6 +11,7 @@
 #define IDI_DOCXTORM                    107
 #define IDI_SMALL                       108
 #define IDC_DOCXTORM                    109
+#define IDC_DOCXTORML                   110
 #define IDR_MAINFRAME                   128
 #define ID_FILE_DOIT                    32771
 #define IDM_GO                          32772
@@ -24,6 +25,12 @@
 #define BTN_BUTTON_R 206
 #define CHK_RELOAD 207
 #define BTN_BUTTON_TEST 208
+
+#define BTN_BUTTON_LOGIN 209
+#define BTN_BUTTON_ONE 210
+
+#define WM_LOGINTOMS (WM_USER + 1)
+#define WM_DONELOGINTOMS (WM_USER + 2)
 
 // Next default values for new objects
 // 

@@ -5,6 +5,7 @@
 #include "RMPage.h"
 #include <wtypes.h>
 #include <nlohmann/json.hpp>
+#include <type_traits> 
 
 /*******************************************************************************
 

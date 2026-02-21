@@ -1,5 +1,4 @@
 #pragma comment(lib, "rpcrt4.lib")  // UuidCreate - Minimum supported OS Win 2000
-#include <type_traits>
 #include "RMDocFile.h"
 using namespace std;
 

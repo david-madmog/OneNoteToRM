@@ -153,22 +153,29 @@
   <ItemGroup>
     <ClInclude Include="DOCXToRM.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="GraphDoc.h" />
+    <ClInclude Include="ONEPage.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="RMBlock.h" />
     <ClInclude Include="RMBlockTypes.h" />
     <ClInclude Include="RMPage.h" />
     <ClInclude Include="RMDocFile.h" />
     <ClInclude Include="RMTestFileBuilder.h" />
+    <ClInclude Include="secrets.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="WindowONEPage.h" />
     <ClInclude Include="WindowRMPage.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DOCXToRM.cpp" />
+    <ClCompile Include="GraphDoc.cpp" />
+    <ClCompile Include="ONEPage.cpp" />
     <ClCompile Include="RMBlock.cpp" />
     <ClCompile Include="RMBlockTypes.cpp" />
     <ClCompile Include="RMPage.cpp" />
     <ClCompile Include="RMDocFile.cpp" />
     <ClCompile Include="RMTestFileBuilder.cpp" />
+    <ClCompile Include="WindowONEPage.cpp" />
     <ClCompile Include="WindowRMPage.cpp" />
   </ItemGroup>
   <ItemGroup>
