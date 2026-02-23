@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include "framework.h"
-#include "DOCXToRM.h"
+#include "OneNoteToRM.h"
 #include <format>
 #include <iostream>
 #include <wtypes.h>
@@ -13,6 +13,6 @@ class ONEPage
 private:
 
 public:
-	void LoadPage(nlohmann::json PageJson);
+	void LoadPage(std::wstring * Data, std::string& Name);
 	void DrawPage(void* DrawDetails);
 };

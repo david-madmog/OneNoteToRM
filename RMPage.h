@@ -1,6 +1,6 @@
 #pragma once
 #include "framework.h"
-#include "DOCXToRM.h"
+#include "OneNoteToRM.h"
 #include "RMBlock.h"
 #include "RMBlockTypes.h"
 

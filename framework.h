@@ -6,6 +6,9 @@
 
 #define _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING 
 
+#pragma warning ( push )
+#pragma warning( disable : 26495 )
+
 
 #include "targetver.h"
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
@@ -32,3 +35,5 @@
 #include <memory>
 #include <stdexcept>
 #include <array>
+
+#pragma warning( pop )

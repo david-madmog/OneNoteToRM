@@ -24,6 +24,7 @@
     <ProjectGuid>{1c6944b2-fb35-4374-975e-3013aa21e0a7}</ProjectGuid>
     <RootNamespace>DOCXToRM</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>OneNoteToRM</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -70,6 +71,18 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <CopyLocalDeploymentContent>true</CopyLocalDeploymentContent>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <CopyLocalDeploymentContent>true</CopyLocalDeploymentContent>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <CopyLocalDeploymentContent>true</CopyLocalDeploymentContent>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <CopyLocalDeploymentContent>true</CopyLocalDeploymentContent>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -151,7 +164,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="DOCXToRM.h" />
+    <ClInclude Include="OneNoteToRM.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="GraphDoc.h" />
     <ClInclude Include="ONEPage.h" />
@@ -167,7 +180,7 @@
     <ClInclude Include="WindowRMPage.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DOCXToRM.cpp" />
+    <ClCompile Include="OneNoteToRM.cpp" />
     <ClCompile Include="GraphDoc.cpp" />
     <ClCompile Include="ONEPage.cpp" />
     <ClCompile Include="RMBlock.cpp" />
@@ -179,14 +192,22 @@
     <ClCompile Include="WindowRMPage.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="DOCXToRM.rc" />
+    <ResourceCompile Include="OneNoteToRM.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="DOCXToRM.ico" />
+    <Image Include="OneNoteToRM.ico" />
     <Image Include="small.ico" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
+    <Media Include="OneNoteToRM.ini">
+      <DeploymentContent>true</DeploymentContent>
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </Media>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

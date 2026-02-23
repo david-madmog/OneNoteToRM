@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include <iostream>
-#include "DOCXToRM.h"
+#include "OneNoteToRM.h"
 #include "RMPage.h"
 #include <wtypes.h>
 #include <nlohmann/json.hpp>

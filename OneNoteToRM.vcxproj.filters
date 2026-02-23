@@ -24,7 +24,7 @@
     <ClInclude Include="Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DOCXToRM.h">
+    <ClInclude Include="OneNoteToRM.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="RMPage.h">
@@ -59,7 +59,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DOCXToRM.cpp">
+    <ClCompile Include="OneNoteToRM.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="RMDocFile.cpp">
@@ -91,7 +91,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="DOCXToRM.rc">
+    <ResourceCompile Include="OneNoteToRM.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
@@ -99,11 +99,14 @@
     <Image Include="small.ico">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="DOCXToRM.ico">
+    <Image Include="OneNoteToRM.ico">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
+  </ItemGroup>
+  <ItemGroup>
+    <Media Include="OneNoteToRM.ini" />
   </ItemGroup>
 </Project>

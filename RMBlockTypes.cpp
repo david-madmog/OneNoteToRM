@@ -3,7 +3,7 @@
 #include <typeinfo>
 #include <assert.h>
 #include "RMBlockTypes.h"
-#include "DOCXToRM.h"
+#include "OneNoteToRM.h"
 
 bool MigrationInfo::ParseBuffer(const unsigned char* Buff, size_t ValidLen, int version)
 {

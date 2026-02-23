@@ -1,6 +1,6 @@
 #include <typeinfo>
 #include "RMBlock.h"
-#include "DOCXToRM.h"
+#include "OneNoteToRM.h"
 
 
 RMBlock::RMBlock() {

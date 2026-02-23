@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <wtypes.h>
 
-#include "DOCXToRM.h"
+#include "OneNoteToRM.h"
 
 /*******************************************************************************
 

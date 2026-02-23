@@ -1,6 +1,8 @@
 #include "GraphDoc.h"
-#include "DOCXToRM.h"
+#include "OneNoteToRM.h"
 
+#pragma warning ( push )
+#pragma warning( disable : 26439)
 #include <cpprest/http_client.h>
 #include <cpprest/http_msg.h>
 #include <cpprest/filestream.h>
@@ -9,6 +11,7 @@
 #include <wrl.h>
 #include <wil/com.h>
 #include <webview2.h>
+#pragma warning ( pop )
 
 using namespace utility;                    // Common utilities like string conversions
 using namespace web;                        // Common features like URIs.
@@ -26,11 +29,12 @@ static uri_builder URI;
 #include "WindowONEPage.h"
 template void GraphDoc<WindowONEPage>::LoginToMicrosoft(HWND hWnd);
 template void GraphDoc<WindowONEPage>::SetLoginCode(wchar_t* LoginCodeW);
-template int GraphDoc<WindowONEPage>::LoadDoc(const char* FileName);
+template int GraphDoc<WindowONEPage>::LoadDoc(const std::string& NotebookName, const std::string& SectionName);
 template void GraphDoc<WindowONEPage>::Resize(HWND hWnd);
+template void GraphDoc<WindowONEPage>::DrawPage(void* DrawDetails, int Page);
 
 
-template<class PageType> nlohmann::json * GraphDoc<PageType>::SendRequestAndAwaitResponse(const wchar_t * URLPath){
+template<class PageType> std::wstring * GraphDoc<PageType>::SendRequestAndAwaitResponse(const wchar_t * URLPath){
     if (!Token) {
         sprintf_s(LogBuffer, LB_SIZE, "Failed to get Auth Token");
         DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
@@ -71,14 +75,12 @@ template<class PageType> nlohmann::json * GraphDoc<PageType>::SendRequestAndAwai
 
     if (response.status_code() == status_codes::OK)
     {
-        pplx::task<utility::string_t> RespDataTask = response.extract_string();
-        utility::string_t RespData = RespDataTask.get();
-        
-        njson * json = new njson(njson::parse(RespData));
-
-        sprintf_s(LogBuffer, LB_SIZE, "GOT data: %ws", RespData.c_str());
+        pplx::task<utility::string_t> RespDataTask = response.extract_string(true); /// need to handle multipart response - sets ignore content type to true
+//        utility::string_t tmp = ;
+        utility::string_t * RespData = new utility::string_t(RespDataTask.get());
+        sprintf_s(LogBuffer, LB_SIZE, "GOT data: %ws", RespData->substr(0, LB_SIZE - 50).c_str()); // response can be quite long!
         DoLog(typeid(*this).name(), LogBuffer, LOG_INFO);
-        return json;
+        return RespData;
     }
     else {
         reason_phrase Reason = response.reason_phrase();
@@ -141,8 +143,6 @@ template<class PageType> void GraphDoc<PageType>::LoginToMicrosoft(HWND hWnd)
 
                         // Schedule an async task to navigate to Our Logon site
                         webview->Navigate(URI.to_uri().to_string().c_str());
-                        //webview->Navigate(L"https://blanquilla.uk");
-
 
                         EventRegistrationToken token;
                         // SO, this is how it works... 
@@ -158,13 +158,16 @@ template<class PageType> void GraphDoc<PageType>::LoginToMicrosoft(HWND hWnd)
                                 web::uri redirectURI(source);
                                 if (redirectURI.host() == RedirectURIHost && redirectURI.path() == RedirectURIPath) {
                                     wchar_t* QueryString = (wchar_t*) malloc((redirectURI.query().size() + 1) * sizeof(wchar_t));
-                                    wcscpy_s(QueryString, redirectURI.query().size() + 1, redirectURI.query().c_str());
-                                    PostMessage(hLoginPopup, WM_DONELOGINTOMS, NULL, (LPARAM)QueryString);
+                                    if (QueryString)
+                                    {
+                                        wcscpy_s(QueryString, redirectURI.query().size() + 1, redirectURI.query().c_str());
+                                        PostMessage(hLoginPopup, WM_DONELOGINTOMS, NULL, (LPARAM)QueryString);
+                                    }
 
                                     sprintf_s(LogBuffer, LB_SIZE, "Got there! : %ws", redirectURI.query().c_str());
                                     DoLog("WEBVIEW", LogBuffer, LOG_INFO);
                                 } else {
-                                    sprintf_s(LogBuffer, LB_SIZE, "Nav starting: [%ws]//[%ws]", redirectURI.host().c_str(), redirectURI.path().c_str());
+                                    sprintf_s(LogBuffer, LB_SIZE, "Nav starting: %ws%ws", redirectURI.host().c_str(), redirectURI.path().c_str());
                                     DoLog("WEBVIEW", LogBuffer, LOG_INFO);
                                 }
 
@@ -270,15 +273,106 @@ template<class PageType> void GraphDoc<PageType>::SetLoginCode(wchar_t* LoginCod
     wcstombs_s(&i, LoginCode, Size, LoginCodeW, Size-1 );
 }
 
+template<class PageType> int GraphDoc<PageType>::LoadPages(wchar_t * SectionID) {
 
-template<class PageType> int GraphDoc<PageType>::LoadDoc(const char* FileName)
+    std::wstring PagesList = L"me/onenote/sections/";
+    PagesList.append(SectionID);
+    PagesList.append(L"/pages?$select=id,title");
+
+    std::wstring* RespData = SendRequestAndAwaitResponse(PagesList.c_str());
+    if (RespData == nullptr)
+        return 0;
+
+    njson respJson;
+    try {
+        respJson = njson::parse(*RespData);
+    }
+    catch (njson::parse_error ex) {
+        sprintf_s(LogBuffer, LB_SIZE, "JSON Parse Error: %s", ex.what());
+        DoLog(typeid(*this).name(), LogBuffer, LOG_INFO);
+        return 0;
+    }
+
+    if (respJson.contains("value")) {
+        size_t convertedChars = 0;
+        wchar_t LocalWBuff[1024];
+
+		for (njson& PageJson : respJson["value"])
+        {
+            std::wstring PageQuery{ L"me/onenote/pages/" };
+            std::string ID = PageJson["id"].get< std::string>();
+            mbstowcs_s(&convertedChars, LocalWBuff, 1024, ID.c_str(), ID.length());
+            PageQuery.append(LocalWBuff);
+            PageQuery.append(L"/content?includeinkML=true");
+            std::wstring* PageData = SendRequestAndAwaitResponse(PageQuery.c_str());
+
+            PageType * Page = new PageType;
+            Pages.push_back(Page);
+            std::string Title{ PageJson["title"].get< std::string>() };
+            Page->LoadPage(PageData, Title);
+        }
+    }
+
+    return (int)Pages.size();
+    
+    //RespData = SendRequestAndAwaitResponse(L"me/onenote/pages/0-5b84d480aca444a4bb0c96faf54de213!1-ADAEA281180757D1!s1756d7d985564b62aff053397eb347df/content");
+    //RespData = SendRequestAndAwaitResponse(L"me/onenote/pages/0-5b84d480aca444a4bb0c96faf54de213!1-ADAEA281180757D1!s1756d7d985564b62aff053397eb347df/content?includeinkML=true");
+
+    // https://graph.microsoft.com/v1.0/me/onenote/sections/0-ADAEA281180757D1!s1756d7d985564b62aff053397eb347df/pages
+    //    "@microsoft.graph.tips": "Use $select to choose only the properties your app needs, as this can lead to performance improvements. For example: GET me/onenote/sections('<key>')/pages?$select=content,contentUrl",
+        // https://graph.microsoft.com/v1.0/me/onenote/pages/0-5b84d480aca444a4bb0c96faf54de213!1-ADAEA281180757D1!s1756d7d985564b62aff053397eb347df/content?includeinkML=true
+
+
+    //    SendRequestAndAwaitResponse(L"me");
+    //    SendRequestAndAwaitResponse(L"me/photo/$value");
+
+}
+
+
+template<class PageType> int GraphDoc<PageType>::LoadDoc(const std::string& NotebookName,const std::string& SectionName)
 {
     if (!Token)
         GetLogonToken();
     
-//    SendRequestAndAwaitResponse(L"me");
-    njson * J = SendRequestAndAwaitResponse(L"me/onenote/notebooks");
-//    SendRequestAndAwaitResponse(L"me/photo/$value");
+    // Get full list of sections and get the ID of the one which matches our input
+    std::wstring* RespData = SendRequestAndAwaitResponse(L"me/onenote/sections?$select=id,displayName&$expand=parentNotebook($select=id,displayName)");
+    njson respJson;
+    try {
+        respJson = njson::parse(*RespData);
+    }
+    catch (njson::parse_error ex) {
+        sprintf_s(LogBuffer, LB_SIZE, "JSON Parse Error: %s", ex.what());
+        DoLog(typeid(*this).name(), LogBuffer, LOG_INFO);
+        return 0;
+    }
+
+    if (respJson.contains("value")) {
+        for (njson & Section : respJson["value"]) 
+        {
+            if (Section.contains("displayName") &&
+                Section.contains("parentNotebook") &&
+                Section["parentNotebook"].contains("displayName")
+                ) 
+            {
+                std::string XXX = Section.dump(4);
+                std::string FoundSectionName = Section["displayName"].get< std::string>() ;
+                std::string FoundNotebookName = Section["parentNotebook"]["displayName"].get< std::string>();
+
+                if (SectionName== FoundSectionName && NotebookName==FoundNotebookName) {
+                    // Hooray - found what we're looking for
+                    std::string SectionID = Section["id"].get< std::string>();
+                    size_t convertedChars = 0;
+                    wchar_t* LocalWBuff = (wchar_t*)malloc((SectionID.length() + 1) * sizeof(wchar_t));
+                    mbstowcs_s(&convertedChars, LocalWBuff, SectionID.length() + 1, SectionID.c_str(), SectionID.length());
+                    int NumPages = LoadPages(LocalWBuff);
+                    free(LocalWBuff);
+                    return NumPages;
+                }
+            }
+        }
+    }
+
+
     return 0;
 }
 
@@ -290,3 +384,228 @@ template<class PageType> void GraphDoc<PageType>::Resize(HWND hWnd) {
         webviewController->put_Bounds(bounds);
     }
 }
+
+template<class PageType> void GraphDoc<PageType>::DrawPage(void* DrawDetails, int Page)
+{
+    if (Page < Pages.size())
+    {
+        ONEPage* P = Pages[Page];
+        P->DrawPage(DrawDetails);
+    }
+}
+
+
+/*
+* 
+* 
+* 
+* 
+* 
+me/onenote/sections?$select=id,displayName&$expand=parentNotebook($select=id,displayName)
+List of sections RESPONSE
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('david%40madmog.co.uk')/onenote/sections(id,displayName,parentNotebook(id,displayName))",
+    "value": [
+        {
+            "id": "0-ADAEA281180757D1!s1756d7d985564b62aff053397eb347df",
+            "displayName": "New Section 1",
+            "parentNotebook@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('david%40madmog.co.uk')/onenote/sections('0-ADAEA281180757D1%21s1756d7d985564b62aff053397eb347df')/parentNotebook(id,displayName)/$entity",
+            "parentNotebook": {
+                "id": "0-ADAEA281180757D1!s1b2642be5dce4e2cb16bee5f157a4db3",
+                "displayName": "TestNotebook 2"
+            }
+        },
+        {
+            "id": "0-ADAEA281180757D1!sc9911f43ef4e4e3381d49eb4214618d0",
+            "displayName": "New Section 1",
+            "parentNotebook@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('david%40madmog.co.uk')/onenote/sections('0-ADAEA281180757D1%21sc9911f43ef4e4e3381d49eb4214618d0')/parentNotebook(id,displayName)/$entity",
+            "parentNotebook": {
+                "id": "0-ADAEA281180757D1!s21b15485600a4dc3911b99974f571c62",
+                "displayName": "Test1"
+            }
+        },
+        {
+            "id": "0-ADAEA281180757D1!s4cc1e448591a40c39821dd696b95ad61",
+            "displayName": "New Section 1",
+            "parentNotebook@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('david%40madmog.co.uk')/onenote/sections('0-ADAEA281180757D1%21s4cc1e448591a40c39821dd696b95ad61')/parentNotebook(id,displayName)/$entity",
+            "parentNotebook": {
+                "id": "0-ADAEA281180757D1!sd63d087487064ffeaeb5e452d32aae0c",
+                "displayName": "test3"
+            }
+        }
+    ]
+}
+
+    //https://graph.microsoft.com/v1.0/me/onenote/sections/0-ADAEA281180757D1!s1756d7d985564b62aff053397eb347df/pages?$select=id,title
+
+
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('david%40madmog.co.uk')/onenote/sections('0-ADAEA281180757D1%21s1756d7d985564b62aff053397eb347df')/pages(id,title)",
+    "value": [
+        {
+            "id": "0-89b0f965a4f4434ba7d479926c2c1f82!1-ADAEA281180757D1!s1756d7d985564b62aff053397eb347df",
+            "title": "Second page"
+        },
+        {
+            "id": "0-5b84d480aca444a4bb0c96faf54de213!1-ADAEA281180757D1!s1756d7d985564b62aff053397eb347df",
+            "title": "Test Notebook 2"
+        }
+    ]
+}
+
+
+
+
+{   "@odata.context":"https://graph.microsoft.com/v1.0/$metadata#users('david%40madmog.co.uk')/onenote/notebooks", 
+    "value" : [
+        {   "id":"0-ADAEA281180757D1!s21b15485600a4dc3911b99974f571c62", 
+            "self" : "https://graph.microsoft.com/v1.0/users/david@madmog.co.uk/onenote/notebooks/0-ADAEA281180757D1!s21b15485600a4dc3911b99974f571c62", 
+            "createdDateTime" : "2026-02-10T16:26:33Z", 
+            "displayName" : "Test1", 
+            "lastModifiedDateTime" : "2026 - 02 - 10T16 : 26 : 33Z", 
+            "isDefault" : false, 
+            "userRole" : "Owner", 
+            "isShared" : false, 
+            "sectionsUrl" : "https://graph.microsoft.com/v1.0/users/david@madmog.co.uk/onenote/notebooks/0-ADAEA281180757D1!s21b15485600a4dc3911b99974f571c62/sections", 
+            "sectionGroupsUrl" : "https://graph.microsoft.com/v1.0/users/david@madmog.co.uk/onenote/notebooks/0-ADAEA281180757D1!s21b15485600a4dc3911b99974f571c62/sectionGroups", 
+            "createdBy" : {"user":{"id":"ADAEA281180757D1", "displayName" : "David Poirier"}}, 
+            "lastModifiedBy" : {"user":{"id":"ADAEA281180757D1", "displayName" : "David Poirier"}}, 
+            "links" : {
+                "oneNoteClientUrl":{"href":"onenote:https://d.docs.live.net/adaea281180757d1/Documents/Development/ReMarkable/DOCXToRM/Test1"}, 
+                "oneNoteWebUrl" : {"href":"https://onedrive.live.com/redir.aspx?resid=ADAEA281180757D1!s21b15485600a4dc3911b99974f571c62&id=documents&page=edit&cid=adaea281180757d1"}
+            }
+        },
+        {   "id":"0-ADAEA281180757D1!sd63d087487064ffeaeb5e452d32aae0c",
+            "self" : "https://graph.microsoft.com/v1.0/users/david@madmog.co.uk/onenote/notebooks/0-ADAEA281180757D1!sd63d087487064ffeaeb5e452d32aae0c",
+            "createdDateTime" : "2026-02-10T16:37:10Z",
+            "displayName" : "test3",
+            "lastModifiedDateTime" : "2026-02-10T16:37:10Z",
+            "isDefault" : false,
+            "userRole" : "Owner",
+            "isShared" : false,
+            "sectionsUrl" : "https://graph.microsoft.com/v1.0/users/david@madmog.co.uk/onenote/notebooks/0-ADAEA281180757D1!sd63d087487064ffeaeb5e452d32aae0c/sections",
+            "sectionGroupsUrl" : "https://graph.microsoft.com/v1.0/users/david@madmog.co.uk/onenote/notebooks/0-ADAEA281180757D1!sd63d087487064ffeaeb5e452d32aae0c/sectionGroups",
+            "createdBy" : {"user":{"id":"ADAEA281180757D1","displayName" : "David Poirier"}},
+            "lastModifiedBy" : {"user":{"id":"ADAEA281180757D1","displayName" : "David Poirier"}},
+            "links" : {
+                "oneNoteClientUrl":{"href":"onenote:https://d.docs.live.net/adaea281180757d1/Documents/Development/ReMarkable/DOCXToRM/test3"},
+                "oneNoteWebUrl" : {"href":"https://onedrive.live.com/redir.aspx?resid=ADAEA281180757D1!sd63d087487064ffeaeb5e452d32aae0c&id=documents&page=edit&cid=adaea281180757d1"}
+            } 
+        }, 
+        {   "id":"0-ADAEA281180757D1!s1b2642be5dce4e2cb16bee5f157a4db3",
+            "self" : "https://graph.microsoft.com/v1.0/users/david@madmog.co.uk/onenote/notebooks/0-ADAEA281180757D1!s1b2642be5dce4e2cb16bee5f157a4db3",
+            "createdDateTime" : "2026-02-20T15:54:20Z",
+            "displayName" : "TestNotebook 2",
+            "lastModifiedDateTime" : "2026-02-20T15:54:20Z",
+            "isDefault" : false,
+            "userRole" : "Owner",
+            "isShared" : false,
+            "sectionsUrl" : "https://graph.microsoft.com/v1.0/users/david@madmog.co.uk/onenote/notebooks/0-ADAEA281180757D1!s1b2642be5dce4e2cb16bee5f157a4db3/sections",
+            "sectionGroupsUrl" : "https://graph.microsoft.com/v1.0/users/david@madmog.co.uk/onenote/notebooks/0-ADAEA281180757D1!s1b2642be5dce4e2cb16bee5f157a4db3/sectionGroups",  
+            "createdBy" : {"user":{"id":"ADAEA281180757D1","displayName" : "David Poirier"}},
+            "lastModifiedBy" : {"user":{"id":"ADAEA281180757D1","displayName" : "David Poirier"}},
+            "links" : {
+                "oneNoteClientUrl":{"href":"onenote:https://d.docs.live.net/adaea281180757d1/Documents/TestNotebook 2"},
+                "oneNoteWebUrl" : {"href":"https://onedrive.live.com/redir.aspx?resid=ADAEA281180757D1!s1b2642be5dce4e2cb16bee5f157a4db3&id=documents&page=edit&cid=adaea281180757d1"}
+            } 
+        }
+    ] 
+}
+
+
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('david%40madmog.co.uk')/onenote/sections",
+    "@microsoft.graph.tips": "Use $select to choose only the properties your app needs, as this can lead to performance improvements. For example: GET me/onenote/sections?$select=isDefault,links",
+    "value": [
+        {
+            "id": "0-ADAEA281180757D1!s1756d7d985564b62aff053397eb347df",
+            "self": "https://graph.microsoft.com/v1.0/users/david@madmog.co.uk/onenote/sections/0-ADAEA281180757D1!s1756d7d985564b62aff053397eb347df",
+            "createdDateTime": "2026-02-20T15:55:30Z",
+            "displayName": "New Section 1",
+            "lastModifiedDateTime": "2026-02-20T15:55:33Z",
+            "isDefault": false,
+            "pagesUrl": "https://graph.microsoft.com/v1.0/users/david@madmog.co.uk/onenote/sections/0-ADAEA281180757D1!s1756d7d985564b62aff053397eb347df/pages",
+            "createdBy": {
+                "user": {
+                    "id": "ADAEA281180757D1",
+                    "displayName": "David Poirier"
+                }
+            },
+            "lastModifiedBy": {
+                "user": {
+                    "id": "ADAEA281180757D1",
+                    "displayName": "David Poirier"
+                }
+            },
+            "parentNotebook@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('david%40madmog.co.uk')/onenote/sections('0-ADAEA281180757D1%21s1756d7d985564b62aff053397eb347df')/parentNotebook/$entity",
+            "parentNotebook": {
+                "id": "0-ADAEA281180757D1!s1b2642be5dce4e2cb16bee5f157a4db3",
+                "displayName": "TestNotebook 2",
+                "self": "https://graph.microsoft.com/v1.0/users/david@madmog.co.uk/onenote/notebooks/0-ADAEA281180757D1!s1b2642be5dce4e2cb16bee5f157a4db3"
+            },
+            "parentSectionGroup@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('david%40madmog.co.uk')/onenote/sections('0-ADAEA281180757D1%21s1756d7d985564b62aff053397eb347df')/parentSectionGroup/$entity",
+            "parentSectionGroup": null
+        },
+        {
+            "id": "0-ADAEA281180757D1!sc9911f43ef4e4e3381d49eb4214618d0",
+            "self": "https://graph.microsoft.com/v1.0/users/david@madmog.co.uk/onenote/sections/0-ADAEA281180757D1!sc9911f43ef4e4e3381d49eb4214618d0",
+            "createdDateTime": "2026-02-10T16:26:46Z",
+            "displayName": "New Section 1",
+            "lastModifiedDateTime": "2026-02-10T16:28:09Z",
+            "isDefault": false,
+            "pagesUrl": "https://graph.microsoft.com/v1.0/users/david@madmog.co.uk/onenote/sections/0-ADAEA281180757D1!sc9911f43ef4e4e3381d49eb4214618d0/pages",
+            "createdBy": {
+                "user": {
+                    "id": "ADAEA281180757D1",
+                    "displayName": "David Poirier"
+                }
+            },
+            "lastModifiedBy": {
+                "user": {
+                    "id": "ADAEA281180757D1",
+                    "displayName": "David Poirier"
+                }
+            },
+            "parentNotebook@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('david%40madmog.co.uk')/onenote/sections('0-ADAEA281180757D1%21sc9911f43ef4e4e3381d49eb4214618d0')/parentNotebook/$entity",
+            "parentNotebook": {
+                "id": "0-ADAEA281180757D1!s21b15485600a4dc3911b99974f571c62",
+                "displayName": "Test1",
+                "self": "https://graph.microsoft.com/v1.0/users/david@madmog.co.uk/onenote/notebooks/0-ADAEA281180757D1!s21b15485600a4dc3911b99974f571c62"
+            },
+            "parentSectionGroup@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('david%40madmog.co.uk')/onenote/sections('0-ADAEA281180757D1%21sc9911f43ef4e4e3381d49eb4214618d0')/parentSectionGroup/$entity",
+            "parentSectionGroup": null
+        },
+        {
+            "id": "0-ADAEA281180757D1!s4cc1e448591a40c39821dd696b95ad61",
+            "self": "https://graph.microsoft.com/v1.0/users/david@madmog.co.uk/onenote/sections/0-ADAEA281180757D1!s4cc1e448591a40c39821dd696b95ad61",
+            "createdDateTime": "2026-02-20T15:55:19Z",
+            "displayName": "New Section 1",
+            "lastModifiedDateTime": "2026-02-20T15:55:23Z",
+            "isDefault": false,
+            "pagesUrl": "https://graph.microsoft.com/v1.0/users/david@madmog.co.uk/onenote/sections/0-ADAEA281180757D1!s4cc1e448591a40c39821dd696b95ad61/pages",
+            "createdBy": {
+                "user": {
+                    "id": "ADAEA281180757D1",
+                    "displayName": "David Poirier"
+                }
+            },
+            "lastModifiedBy": {
+                "user": {
+                    "id": "ADAEA281180757D1",
+                    "displayName": "David Poirier"
+                }
+            },
+            "parentNotebook@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('david%40madmog.co.uk')/onenote/sections('0-ADAEA281180757D1%21s4cc1e448591a40c39821dd696b95ad61')/parentNotebook/$entity",
+            "parentNotebook": {
+                "id": "0-ADAEA281180757D1!sd63d087487064ffeaeb5e452d32aae0c",
+                "displayName": "test3",
+                "self": "https://graph.microsoft.com/v1.0/users/david@madmog.co.uk/onenote/notebooks/0-ADAEA281180757D1!sd63d087487064ffeaeb5e452d32aae0c"
+            },
+            "parentSectionGroup@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('david%40madmog.co.uk')/onenote/sections('0-ADAEA281180757D1%21s4cc1e448591a40c39821dd696b95ad61')/parentSectionGroup/$entity",
+            "parentSectionGroup": null
+        }
+    ]
+}
+
+
+*/

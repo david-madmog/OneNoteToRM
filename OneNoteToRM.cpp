@@ -2,7 +2,7 @@
 //
 
 #include "framework.h"
-#include "DOCXToRM.h"
+#include "OneNoteToRM.h"
 #include "RMDocFile.h"
 #include "WindowRMPage.h"
 #include "ONEDocFile.h"
@@ -24,7 +24,6 @@ WCHAR szPopupWindowClass[MAX_LOADSTRING];            // the main window class na
 HWND hListBox;
 HWND hImage;
 RMDocFile<WindowRMPage>* ZF;
-ONEDocFile<WindowONEPage>* OPF;
 GraphDoc<WindowONEPage>* GD;
 int NumPages;
 int CurrentPage;
@@ -39,6 +38,9 @@ LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK    PopupWndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK    ODStaticWndProc(HWND hwnd, UINT Message, WPARAM wparam, LPARAM lparam);
+
+//char gszIniFileName[] = "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\OneNoteToRM\\OneNoteToRM.ini";
+char gszIniFileName[] = ".\\OneNoteToRM.ini";
 
 char * LogBuffer = new char[LB_SIZE];
 char LocalLogBuff[LB_SIZE];
@@ -56,7 +58,7 @@ const LogLevel CurrentLevel = LogLevel::LOG_DEBUG_VERBOSE;
 
 void DoLog(const char * Class, const char* Msg, LogLevel Level)
 {
-    sprintf_s(LocalLogBuff, LB_SIZE, "[%s][%s]:%s", LogLevelName[Level], Class, Msg);
+    sprintf_s(LocalLogBuff, LB_SIZE, "[%s][%s]:%s", LogLevelName[Level], Class, std::string(Msg).substr(0, LB_SIZE - strlen(Class) - 10).c_str());
     size_t convertedChars = 0;
     mbstowcs_s(&convertedChars, LocalWLogBuff, LocalLogBuff, _TRUNCATE);
     if (Level >= CurrentLevel)
@@ -189,7 +191,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    hInst = hInstance; // Store instance handle in our global variable
 
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+      CW_USEDEFAULT, 0, 1500, 800, nullptr, nullptr, hInstance, nullptr);
 
    if (!hWnd)
    {
@@ -214,12 +216,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-//    const char WorkingDir[] = "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\DOCXToRM\\To Do list.rmdoc";
-//    const char WorkingDir[] = "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\DOCXToRM\\ICE.rmdoc";
-//    const char WorkingDir[] = "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\DOCXToRM\\Jobs.rmdoc";
-    const char WorkingDir[] = "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\DOCXToRM\\Conversion test.rmdoc";
-    const char SaveDoc[] = "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\DOCXToRM\\Conversion test.rmdoc";
-    const char ONEDir[] = "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\DOCXToRM\\First test page.one";
     std::string Result= "";
 
     switch (message)
@@ -288,6 +284,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 DestroyWindow(hWnd);
                 break;
             case BTN_BUTTON:
+            {
+                char* WorkingDir = (char *) malloc(LB_SIZE);
+                GetPrivateProfileStringA("RMFILE", "WorkingDir", "", WorkingDir, LB_SIZE, gszIniFileName);
+
                 if (IsDlgButtonChecked(hWnd, CHK_RELOAD))
                 {
                     SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Pre-load..."));
@@ -301,11 +301,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 NumPages = ZF->ExtractRMsFromZip(WorkingDir);
                 CurrentPage = 0;
                 InvalidateRect(hImage, NULL, TRUE);
+                free(WorkingDir);
+            }
                 break;
             case BTN_BUTTONSAVE:
+            {
+                char* WorkingDir = (char*)malloc(LB_SIZE);
+                GetPrivateProfileStringA("RMFILE", "SaveDoc", "", WorkingDir, LB_SIZE, gszIniFileName);
+
                 SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting..."));
                 if (ZF)
-                    NumPages = ZF->SaveRMsToZip(SaveDoc);
+                    NumPages = ZF->SaveRMsToZip(WorkingDir);
 
                 Result = exec("copy Output.rmdoc \"Conversion test.rmdoc\" /B /Y");
                 DoLog("MAIN", Result.c_str(), LOG_INFO);
@@ -315,6 +321,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     Result = exec("rmapi put \"Conversion test.rmdoc\" --force");
                     DoLog("MAIN", Result.c_str(), LOG_INFO);
                 }
+                free(WorkingDir);
+            }
                 break;
             case BTN_BUTTON_L:
                 if (CurrentPage > 0) {
@@ -347,7 +355,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting..."));
 
                 hLoginPopup = CreateWindowW(szPopupWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-                    CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, hWnd, nullptr, hInst, nullptr);
+                    CW_USEDEFAULT, 0, 500, 650, hWnd, nullptr, hInst, nullptr);
 
                 if (!hLoginPopup) {
                     DWORD err = GetLastError();
@@ -360,12 +368,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
                 break;
             case BTN_BUTTON_ONE:
+            {
+                char* Setting = (char*)malloc(LB_SIZE);
+                GetPrivateProfileStringA("OneNote", "Notebook", "", Setting, LB_SIZE, gszIniFileName);
+                const std::string Notebook{ Setting };
+                GetPrivateProfileStringA("OneNote", "Section", "", Setting, LB_SIZE, gszIniFileName);
+                const std::string Section{ Setting };
                 if (GD)
-                    GD->LoadDoc("");
+                    GD->LoadDoc(Notebook, Section);
                 //GD->LoadDoc("", hImage);
                 //
                 CurrentPage = 0;
                 InvalidateRect(hImage, NULL, TRUE);
+            }
 				break;
 
             default:
@@ -437,8 +452,10 @@ LRESULT CALLBACK PopupWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
     case WM_DONELOGINTOMS:
         DoLog("POPUP", "WM_DONELOGINTOMS", LOG_INFO);
         GD->SetLoginCode((wchar_t*)lParam);
-
         DestroyWindow(hWnd);
+        break;
+    case WM_DESTROY:
+        SetForegroundWindow(GetParent(hWnd));
         break;
     case WM_SIZE:
 //        DoLog("POPUP", "WM_SIZE", LOG_INFO);
@@ -485,8 +502,8 @@ LRESULT CALLBACK ODStaticWndProc(HWND hwnd, UINT Message, WPARAM wparam, LPARAM 
 
 		if (ZF) {
 			ZF->DrawPage(hDC, CurrentPage);
-		} else if (OPF) {
-			OPF->DrawPage(hDC, CurrentPage);
+		} else if (GD) {
+			GD->DrawPage(hDC, CurrentPage);
         }
 
 		EndPaint(hwnd, &ps);
