@@ -5,7 +5,6 @@
 #include "OneNoteToRM.h"
 #include "RMDocFile.h"
 #include "WindowRMPage.h"
-#include "ONEDocFile.h"
 #include "WindowONEPage.h"
 #include "RMTestFileBuilder.h"
 #include "GraphDoc.h"
@@ -246,14 +245,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             10, 40, 120, 30,
             hWnd, (HMENU)BTN_BUTTONSAVE, GetModuleHandle(NULL), NULL);
 
-        CreateWindow(_T("button"), _T("Login to Microsoft"),
-            WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-            10, 80, 120, 30,
-            hWnd, (HMENU)BTN_BUTTON_LOGIN, GetModuleHandle(NULL), NULL);
+        //CreateWindow(_T("button"), _T("Login to Microsoft"),
+        //    WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+        //    10, 80, 120, 30,
+        //    hWnd, (HMENU)BTN_BUTTON_LOGIN, GetModuleHandle(NULL), NULL);
 
         CreateWindow(_T("button"), _T("Load ONE doc"),
             WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-            130, 80, 120, 30,
+            10, 80, 120, 30,
             hWnd, (HMENU)BTN_BUTTON_ONE, GetModuleHandle(NULL), NULL);
 
 
@@ -351,33 +350,37 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 CurrentPage = 0;
                 InvalidateRect(hImage, NULL, TRUE);
                 break;
-            case BTN_BUTTON_LOGIN:
-                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting..."));
-
-                hLoginPopup = CreateWindowW(szPopupWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-                    CW_USEDEFAULT, 0, 500, 650, hWnd, nullptr, hInst, nullptr);
-
-                if (!hLoginPopup) {
-                    DWORD err = GetLastError();
-                    sprintf_s(LogBuffer, LB_SIZE, "Creating popup error 0x%X", err);
-                    DoLog("POPUP", LogBuffer, LOG_ERROR);
-                } else {
-                    ShowWindow(hLoginPopup, SW_NORMAL);
-                    UpdateWindow(hLoginPopup);
-                    PostMessage(hLoginPopup, WM_LOGINTOMS, NULL, NULL);
-                }
-                break;
             case BTN_BUTTON_ONE:
             {
+                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting..."));
+
                 char* Setting = (char*)malloc(LB_SIZE);
                 GetPrivateProfileStringA("OneNote", "Notebook", "", Setting, LB_SIZE, gszIniFileName);
                 const std::string Notebook{ Setting };
                 GetPrivateProfileStringA("OneNote", "Section", "", Setting, LB_SIZE, gszIniFileName);
                 const std::string Section{ Setting };
-                if (GD)
-                    GD->LoadDoc(Notebook, Section);
-                //GD->LoadDoc("", hImage);
-                //
+                if (!GD)
+                    GD = new GraphDoc<WindowONEPage>();
+                    
+                NumPages = GD->LoadDoc(Notebook, Section);
+                if (NumPages == -1) {
+                    // No Auth! Logon!
+                    SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("No Auth, starting popup"));
+                    hLoginPopup = CreateWindowW(szPopupWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+                        CW_USEDEFAULT, 0, 500, 650, hWnd, nullptr, hInst, nullptr);
+
+                    if (!hLoginPopup) {
+                        DWORD err = GetLastError();
+                        sprintf_s(LogBuffer, LB_SIZE, "Creating popup error 0x%X", err);
+                        DoLog("POPUP", LogBuffer, LOG_ERROR);
+                    }
+                    else {
+                        ShowWindow(hLoginPopup, SW_NORMAL);
+                        UpdateWindow(hLoginPopup);
+                        PostMessage(hLoginPopup, WM_LOGINTOMS, NULL, NULL);
+                    }
+
+                }
                 CurrentPage = 0;
                 InvalidateRect(hImage, NULL, TRUE);
             }
@@ -439,7 +442,8 @@ LRESULT CALLBACK PopupWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
         break;
     case WM_LOGINTOMS:
         DoLog("POPUP", "WM_LOGINTOMS", LOG_INFO);
-        GD = new GraphDoc<WindowONEPage>();
+        if (!GD)
+            GD = new GraphDoc<WindowONEPage>();
         GD->LoginToMicrosoft(hWnd);
         SetTimer(hWnd, WM_LOGINTOMS, 3000, (TIMERPROC)NULL);
         break;

@@ -168,6 +168,8 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="GraphDoc.h" />
     <ClInclude Include="ONEPage.h" />
+    <ClInclude Include="pugiconfig.hpp" />
+    <ClInclude Include="pugixml.hpp" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="RMBlock.h" />
     <ClInclude Include="RMBlockTypes.h" />
@@ -183,6 +185,7 @@
     <ClCompile Include="OneNoteToRM.cpp" />
     <ClCompile Include="GraphDoc.cpp" />
     <ClCompile Include="ONEPage.cpp" />
+    <ClCompile Include="pugixml.cpp" />
     <ClCompile Include="RMBlock.cpp" />
     <ClCompile Include="RMBlockTypes.cpp" />
     <ClCompile Include="RMPage.cpp" />

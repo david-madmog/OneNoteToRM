@@ -16,6 +16,7 @@ enum LogLevel {
 };
 
 extern HWND hLoginPopup;
+extern char gszIniFileName[];
 
 extern char * LogBuffer;
 constexpr auto LB_SIZE = 10240;

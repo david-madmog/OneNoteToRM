@@ -27,11 +27,20 @@ static uri_builder URI;
 
 // We need to include possible types so compiler knows what instantiations we need
 #include "WindowONEPage.h"
+template GraphDoc<WindowONEPage>::GraphDoc();
 template void GraphDoc<WindowONEPage>::LoginToMicrosoft(HWND hWnd);
 template void GraphDoc<WindowONEPage>::SetLoginCode(wchar_t* LoginCodeW);
 template int GraphDoc<WindowONEPage>::LoadDoc(const std::string& NotebookName, const std::string& SectionName);
 template void GraphDoc<WindowONEPage>::Resize(HWND hWnd);
 template void GraphDoc<WindowONEPage>::DrawPage(void* DrawDetails, int Page);
+
+
+template<class PageType> GraphDoc<PageType>::GraphDoc() {
+    // So, when we're instantiated, get the refresh token and clear the access token
+    Refresh_Token = (char*)malloc(LB_SIZE);
+    GetPrivateProfileStringA("OneNote", "RefreshToken", "", Refresh_Token, LB_SIZE, gszIniFileName);
+    Token = NULL;
+}
 
 
 template<class PageType> std::wstring * GraphDoc<PageType>::SendRequestAndAwaitResponse(const wchar_t * URLPath){
@@ -183,10 +192,18 @@ template<class PageType> void GraphDoc<PageType>::LoginToMicrosoft(HWND hWnd)
 
 }
 
-template<class PageType> void GraphDoc<PageType>::GetLogonToken()
+template<class PageType> int GraphDoc<PageType>::GetLogonToken()
 {
-    // NOW we request an access token...
-        // Create http_client to send the request.
+    // So, do we have a refresh token?
+    // If so, attempt to refresh, otherwise, do we have an Auth code?
+    bool bRefresh = false;
+    if (strlen(Refresh_Token) > 1)
+        bRefresh = true;
+    else if (!LoginCode) {
+        // We have neither - give up
+        return -1;
+    }
+
     http_client client(EndpointRoot);
 
     URI.set_path(TenantID);
@@ -198,11 +215,16 @@ template<class PageType> void GraphDoc<PageType>::GetLogonToken()
     body.append("client_id="); body.append(EntraAppID);
     //    body.append("&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default");
     body.append("&scope=offline_access%20Notes.Create%20Notes.Read%20Notes.ReadWrite%20Notes.Read.All%20Notes.ReadWrite.All");
-    body.append("&");
-    body.append(LoginCode);
     body.append("&redirect_uri="); body.append(RedirectURI);
-    //    body.append("&client_secret="); body.append(ClientSecretValue); // not sure if it's needed, but we have it
-    body.append("&grant_type=authorization_code");
+    if (bRefresh)
+    {
+        body.append("&refresh_token="); body.append(Refresh_Token);
+        body.append("&grant_type=refresh_token");
+    }
+    else {
+        body.append("&"); body.append(LoginCode);
+        body.append("&grant_type=authorization_code");
+    }
 
     http_request request(methods::POST);
     request.set_body(body);
@@ -219,7 +241,7 @@ template<class PageType> void GraphDoc<PageType>::GetLogonToken()
     {
         sprintf_s(LogBuffer, LB_SIZE, "Cannot receive data: %s", ex.what());
         DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
-        return;
+        return -1;
     }
 
     if (response.status_code() == status_codes::OK)
@@ -245,6 +267,18 @@ template<class PageType> void GraphDoc<PageType>::GetLogonToken()
             {
                 sprintf_s(LogBuffer, LB_SIZE, "Logon response doesn't contain token: %ws", RespData.serialize().c_str());
                 DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
+                return -1;
+            }
+
+            if (RespData.has_field(L"refresh_token"))
+            {
+                std::wstring RT{ std::wstring(RespData[L"refresh_token"].as_string()) };
+                Refresh_Token = (char*)malloc(LB_SIZE);
+                size_t Num;
+                wcstombs_s(&Num, Refresh_Token, LB_SIZE, RT.c_str(), LB_SIZE);
+                sprintf_s(LogBuffer, LB_SIZE, "Got Refresh token: %s", Refresh_Token);
+                DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG);
+                WritePrivateProfileStringA("OneNote", "RefreshToken", Refresh_Token, gszIniFileName);
             }
 
         }
@@ -254,6 +288,7 @@ template<class PageType> void GraphDoc<PageType>::GetLogonToken()
 
             sprintf_s(LogBuffer, LB_SIZE, "Logon response unexpected type: %ws", RespData.c_str());
             DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
+            return -1;
         }
     }
     else {
@@ -261,9 +296,10 @@ template<class PageType> void GraphDoc<PageType>::GetLogonToken()
         reason_phrase Reason = response.reason_phrase();
         sprintf_s(LogBuffer, LB_SIZE, "Cannot receive data: %ws", Reason.c_str());
         DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
+        return -1;
 
     }
-    
+    return 0;
 }
 
 template<class PageType> void GraphDoc<PageType>::SetLoginCode(wchar_t* LoginCodeW) {
@@ -331,8 +367,14 @@ template<class PageType> int GraphDoc<PageType>::LoadPages(wchar_t * SectionID) 
 
 template<class PageType> int GraphDoc<PageType>::LoadDoc(const std::string& NotebookName,const std::string& SectionName)
 {
-    if (!Token)
-        GetLogonToken();
+    if (!Token) {
+        if (GetLogonToken() == -1)
+        {
+            // We can't logon: no refresh token and no access token
+            return -1;
+        }
+
+    }
     
     // Get full list of sections and get the ID of the one which matches our input
     std::wstring* RespData = SendRequestAndAwaitResponse(L"me/onenote/sections?$select=id,displayName&$expand=parentNotebook($select=id,displayName)");

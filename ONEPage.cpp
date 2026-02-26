@@ -1,14 +1,198 @@
 #include "ONEPage.h"
 
-using namespace Gdiplus;
+using namespace std;
+using namespace pugi;
+
+wstring ONEPage::ParseAttribString(wstring Attrib, wstring Field)
+{
+    size_t Start = Attrib.find(Field);
+    if (Start == wstring::npos)
+        return L"";
+    Start += Field.length();
+    Start++; // Pop over colon
+    size_t End = Attrib.find(L";", Start);
+    return Attrib.substr(Start, End - Start);
+}
+
+int ONEPage::ParseAttribInt(wstring Attrib, wstring Field)
+{
+    try {
+        return stoi(ParseAttribString(Attrib, Field));
+    }
+    catch (exception ex){
+        return 0;
+    }
+}
+
+void ONEPage::RecurseParseHTMLNode(xml_node Node, ONE_Text * RootText)
+{
+    while (Node.type() != node_null) {
+        ONE_Text* text = new ONE_Text;
+        text->Font = ParseAttribString(Node.attribute(L"style").value(), L"font-family");
+        if (text->Font.length() == 0)
+            text->Font = RootText->Font;
+        text->FontSize = ParseAttribInt(Node.attribute(L"style").value(), L"font-size");
+        if (text->FontSize == 0)
+            text->FontSize = RootText->FontSize;
+        text->Left = ParseAttribInt(Node.attribute(L"style").value(), L"left");
+        if (text->Left == 0)
+            text->Left = RootText->Left;
+        text->Top = ParseAttribInt(Node.attribute(L"style").value(), L"top");
+        if (text->Top == 0)
+            text->Top = RootText->Top;
+
+        RecurseParseHTMLNode(Node.first_child(), text);
+        if (Node.type() == node_pcdata) {
+            text->Text.append(Node.value());
+            TextDivs.push_back(text);
+        }
+        Node = Node.next_sibling();
+    }
+
+}
+
+void ONEPage::ParseHTMLNode(xml_node htmlNode) {
+    xml_node Body = htmlNode.child(L"body");
+    ONE_Text* text = new ONE_Text;
+    text->Font = ParseAttribString(Body.attribute(L"style").value(), L"font-family");
+    text->FontSize = ParseAttribInt(Body.attribute(L"style").value(), L"font-size");
+
+    if (Body.type() != node_null)
+    {
+        xml_node Div = Body.first_child();
+        RecurseParseHTMLNode(Div, text);
+    }
+}
 
 
-void ONEPage::LoadPage(std::wstring * Data, std::string& Name ) {
+void ONEPage::ParseInkTrace(std::vector<INK_Point>& points, int NumValuesPerPoint, wchar_t * Data) {
+    wchar_t* PointData;
+    wchar_t* Context = NULL;
+    wchar_t* PointDataElem;
+    wchar_t* Context2 = NULL;
+    PointData = wcstok_s(Data, L",", &Context);
+    while (PointData)
+    {
+        INK_Point * point = new INK_Point;
+        PointDataElem = wcstok_s(PointData, L" ", &Context2);
+        point->X = stoi(PointDataElem);
+        if (NumValuesPerPoint > 1)
+        {
+            PointDataElem = wcstok_s(NULL, L" ", &Context2);
+            point->Y = stoi(PointDataElem);
+        }
+        if (NumValuesPerPoint > 2)
+        {
+            PointDataElem = wcstok_s(NULL, L" ", &Context2);
+            point->F = stoi(PointDataElem);
+        }
+
+        points.push_back(*point);
+        PointData = wcstok_s(NULL, L",", &Context);
+    }
+}
+
+
+void ONEPage::ParseInkNode(xml_node InkNode) {
+    xml_node TraceGroup = InkNode.child(L"inkml:traceGroup");
+    xml_node Definitions = InkNode.child(L"inkml:definitions");
+    if (Definitions.type() == node_null) {
+        sprintf_s(LogBuffer, LB_SIZE, "Can't find inkml:definitions");
+        DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
+        return;
+    }
+
+    for (auto& XMLTrace : TraceGroup.children()) {
+        INK_Trace* Trace = new(INK_Trace);
+        wstring BrushRef = XMLTrace.attribute(L"brushRef").value();
+        if (BrushRef[0] == L'#')
+            BrushRef.erase(0, 1);
+
+        // X-ref to fund the brush to get colour, thickness etc.
+        xml_node brush = Definitions.find_child_by_attribute(L"xml:id", BrushRef.c_str());
+        wstring colour = brush.find_child_by_attribute(L"name", L"color").attribute(L"value").value();
+        if (colour[0] == L'#')
+            colour.erase(0, 1);
+
+        int ARGB = stoi(colour, nullptr, 16);
+        float Transparency = brush.find_child_by_attribute(L"name", L"transparency").attribute(L"value").as_float();
+        UINT8 A = (UINT8)(255.0 * (1.0 - Transparency));
+        ARGB += A * 0x1000000;
+
+        Trace->colour = Gdiplus::Color(ARGB);
+
+        Trace->thickness_scale = max(brush.find_child_by_attribute(L"name", L"width").attribute(L"value").as_uint(),
+                                     brush.find_child_by_attribute(L"name", L"height").attribute(L"value").as_uint());
+        Trace->tool_id = 0;
+
+        // XRef to find the context to see the number of values per point
+        wstring ContextRef = XMLTrace.attribute(L"contextRef").value();
+        if (ContextRef[0] == L'#')
+            ContextRef.erase(0, 1);
+    
+        xml_node Context = Definitions.find_child_by_attribute(L"xml:id", ContextRef.c_str());
+        int NumValuesPerPoint = 3;
+        if (Context.type() != node_null) {
+            xml_node channelProps = Context.child(L"inkml:inkSource").child(L"inkml:channelProperties");
+            if (channelProps.type() != node_null) {
+                NumValuesPerPoint = 0;
+                for (xml_node Prop = channelProps.first_child(); Prop; Prop = Prop.next_sibling())
+                {
+                    if (Prop.type() == node_element)
+                        NumValuesPerPoint++;
+                }
+            }
+
+        }
+
+        ParseInkTrace(Trace->points, NumValuesPerPoint, (wchar_t *)XMLTrace.text().get());
+
+        InkTraces.push_back(Trace);
+
+    }
+}
+
+
+
+void ONEPage::LoadPage(wstring * Data, string& Name ) {
 	sprintf_s(LogBuffer, LB_SIZE, "Creating Page: %s", Name.c_str());
 	DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG);
 
 
+    // So, we assume it's a multipart message - lets split it into sections
+    // First, find the first CR, which gives us the MIME boundary delimiter
+    size_t CR = Data->find_first_of(L"\n\r");
+    wstring Sep = Data->substr(0, CR);
+    
+    // Now the sections
+    vector<wstring> Segments;
+    wstring Sub;
+    size_t LastCR = CR;
+    while (CR != wstring::npos) {
+        CR = Data->find(Sep, LastCR);
+        if (CR != wstring::npos) 
+            Segments.push_back(Data->substr(LastCR, CR - LastCR));
+        LastCR = CR + Sep.length();
+    }
 
+    for (auto& Segment : Segments) {
+        xml_document Doc;
+        xml_parse_result result = Doc.load_string(Segment.c_str());
+
+        if (result.status == status_ok) {
+            // See what sort of document we have
+            xml_node htmlNode = Doc.child(L"html");
+            if (htmlNode.type() != node_null)
+                ParseHTMLNode(htmlNode);
+            xml_node InkNode = Doc.child(L"inkml:ink");
+            if (InkNode.type() != node_null)
+                ParseInkNode(InkNode);
+        } else
+        {
+            sprintf_s(LogBuffer, LB_SIZE, "Parse segment result status: %s ", result.description());
+            DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG);
+        }
+    }
 }
 
 /*
@@ -28,6 +212,9 @@ Content-Type: text/html; charset=utf-8
         <!-- InkNode is not supported -->
         <div style="position:absolute;left:337px;top:304px;width:624px">
             <br />
+        </div>
+        <div style="position:absolute;left:48px;top:115px;width:720px">
+            <p style="margin-top:0pt;margin-bottom:0pt">Text on second page</p>
         </div>
     </body>
 </html>
