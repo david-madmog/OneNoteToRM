@@ -203,6 +203,65 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    return TRUE;
 }
 
+
+void LoadControls(HWND hWnd) {
+    CreateWindow(_T("button"), _T("Load RMDOC"),
+        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+        10, 10, 120, 30,
+        hWnd, (HMENU)BTN_BUTTON, GetModuleHandle(NULL), NULL);
+    CreateWindow(_T("button"), _T("<"),
+        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+        130, 10, 30, 30,
+        hWnd, (HMENU)BTN_BUTTON_L, GetModuleHandle(NULL), NULL);
+    CreateWindow(_T("button"), _T(">"),
+        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+        160, 10, 30, 30,
+        hWnd, (HMENU)BTN_BUTTON_R, GetModuleHandle(NULL), NULL);
+    CreateWindow(_T("button"), _T("Download/Upload"),
+        WS_CHILD | WS_VISIBLE | BS_CHECKBOX,
+        190, 10, 160, 30,
+        hWnd, (HMENU)CHK_RELOAD, GetModuleHandle(NULL), NULL);
+    CreateWindow(_T("button"), _T("Test"),
+        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+        350, 10, 120, 30,
+        hWnd, (HMENU)BTN_BUTTON_TEST, GetModuleHandle(NULL), NULL);
+    CreateWindow(_T("button"), _T("Save RMDOC"),
+        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+        10, 40, 120, 30,
+        hWnd, (HMENU)BTN_BUTTONSAVE, GetModuleHandle(NULL), NULL);
+
+    //CreateWindow(_T("button"), _T("Login to Microsoft"),
+    //    WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+    //    10, 80, 120, 30,
+    //    hWnd, (HMENU)BTN_BUTTON_LOGIN, GetModuleHandle(NULL), NULL);
+
+    CreateWindow(_T("button"), _T("Load ONE doc"),
+        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+        10, 80, 120, 30,
+        hWnd, (HMENU)BTN_BUTTON_ONE, GetModuleHandle(NULL), NULL);
+
+    CreateWindow(_T("button"), _T("Save ONE doc"),
+        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+        130, 80, 120, 30,
+        hWnd, (HMENU)BTN_BUTTON_ONESAVE, GetModuleHandle(NULL), NULL);
+
+
+    hListBox = CreateWindowEx(WS_EX_CLIENTEDGE, _T("listbox"),
+        _T("caption.c_str()"),
+        WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_HSCROLL,
+        10, 120, 500, 500,
+        hWnd, (HMENU)LST_LISTBOX,
+        hInst, 0);
+    SendMessage(hListBox, LB_SETHORIZONTALEXTENT, 1000, 0);
+
+    hImage = CreateWindow(_T("static"), _T("DrawBox"), WS_CHILD | WS_VISIBLE | SS_OWNERDRAW | WS_VSCROLL | WS_HSCROLL,
+        520, 10, 5000, 5000,
+        hWnd, (HMENU)MYDRAW, NULL, NULL);
+    oldSDProc = (WNDPROC)SetWindowLongPtr(hImage, GWLP_WNDPROC, (LPARAM)ODStaticWndProc);
+
+}
+
+
 //
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
@@ -220,56 +279,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message)
     {
     case WM_CREATE:
-        CreateWindow(_T("button"), _T("Load RMDOC"),
-            WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-            10, 10, 120, 30,
-            hWnd, (HMENU)BTN_BUTTON, GetModuleHandle(NULL), NULL);
-        CreateWindow(_T("button"), _T("<"),
-            WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-            130, 10, 30, 30,
-            hWnd, (HMENU)BTN_BUTTON_L, GetModuleHandle(NULL), NULL);
-        CreateWindow(_T("button"), _T(">"),
-            WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-            160, 10, 30, 30,
-            hWnd, (HMENU)BTN_BUTTON_R, GetModuleHandle(NULL), NULL);
-        CreateWindow(_T("button"), _T("Download/Upload"),
-            WS_CHILD | WS_VISIBLE | BS_CHECKBOX,
-            190, 10, 160, 30,
-            hWnd, (HMENU)CHK_RELOAD, GetModuleHandle(NULL), NULL);
-        CreateWindow(_T("button"), _T("Test"),
-            WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-            350, 10, 120, 30,
-            hWnd, (HMENU)BTN_BUTTON_TEST, GetModuleHandle(NULL), NULL);
-        CreateWindow(_T("button"), _T("Save RMDOC"),
-            WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-            10, 40, 120, 30,
-            hWnd, (HMENU)BTN_BUTTONSAVE, GetModuleHandle(NULL), NULL);
-
-        //CreateWindow(_T("button"), _T("Login to Microsoft"),
-        //    WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-        //    10, 80, 120, 30,
-        //    hWnd, (HMENU)BTN_BUTTON_LOGIN, GetModuleHandle(NULL), NULL);
-
-        CreateWindow(_T("button"), _T("Load ONE doc"),
-            WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-            10, 80, 120, 30,
-            hWnd, (HMENU)BTN_BUTTON_ONE, GetModuleHandle(NULL), NULL);
-
-
-
-
-        hListBox = CreateWindowEx(WS_EX_CLIENTEDGE, _T("listbox"),
-            _T("caption.c_str()"),
-            WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_HSCROLL ,
-            10, 120, 500, 500,
-            hWnd, (HMENU)LST_LISTBOX,
-            hInst, 0); 
-        SendMessage(hListBox, LB_SETHORIZONTALEXTENT, 1000, 0);
-
-        hImage = CreateWindow(_T("static"), _T("DrawBox"), WS_CHILD | WS_VISIBLE | SS_OWNERDRAW | WS_VSCROLL | WS_HSCROLL,
-            520, 10, 5000, 5000,
-            hWnd, (HMENU)MYDRAW, NULL, NULL);
-        oldSDProc = (WNDPROC)SetWindowLongPtr(hImage, GWLP_WNDPROC, (LPARAM)ODStaticWndProc);
+        LoadControls(hWnd);
 
     break;    
     case WM_COMMAND:
@@ -384,8 +394,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 CurrentPage = 0;
                 InvalidateRect(hImage, NULL, TRUE);
             }
-				break;
+			break;
+            case BTN_BUTTON_ONESAVE:
+            {
+                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting..."));
 
+                char* Setting = (char*)malloc(LB_SIZE);
+                GetPrivateProfileStringA("OneNote", "Notebook", "", Setting, LB_SIZE, gszIniFileName);
+                const std::string Notebook{ Setting };
+                GetPrivateProfileStringA("OneNote", "Section", "", Setting, LB_SIZE, gszIniFileName);
+                const std::string Section{ Setting };
+                if (GD)
+                    GD->SaveDoc(Notebook, Section);
+            }
+                break;
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }

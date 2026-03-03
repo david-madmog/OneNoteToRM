@@ -23,7 +23,9 @@ void WindowONEPage::DrawPage(void* DrawDetails)
         FontFamily fontFamily(text->Font.c_str());
         font = new Font(&fontFamily, (REAL)text->FontSize, FontStyleRegular, UnitPixel);
         PointF DrawPos((REAL)text->Left, (REAL)text->Top);
+        std::wstring str(text->Text);
         graphics.DrawString(text->Text.c_str(), (INT)text->Text.length(), font, DrawPos, &form, &solidBrush);
+        // NEED TO DEAL WITH NEWLINES
 
     }
 

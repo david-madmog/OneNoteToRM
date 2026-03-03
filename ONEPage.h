@@ -13,9 +13,9 @@
 
 typedef struct one_Text {
     std::wstring Font;
-    int FontSize;
-    int Left;
-    int Top;
+    int FontSize = 0;
+    int Left = 0;
+    int Top = 0;
     std::wstring Text;
 } ONE_Text;
 
@@ -28,8 +28,12 @@ typedef struct Ink_Point {
 typedef struct Ink_Trace {
 	std::vector<INK_Point> points;
 	Gdiplus::Color colour;
-	UINT32 tool_id = 0;
+	std::wstring tool_id;
+	std::wstring trace_id;
 	DOUBLE thickness_scale = 0;
+
+	bool operator<(Ink_Trace b) { return tool_id < b.tool_id; };
+	bool operator==(Ink_Trace b) { return tool_id == b.tool_id; };
 } INK_Trace;
 
 class ONEPage
@@ -41,12 +45,18 @@ private:
 	void ParseInkTrace(std::vector<INK_Point>& points, int NumValuesPerPoint, wchar_t* Data);
 	void ParseHTMLNode(pugi::xml_node htmlNode);
 	void ParseInkNode(pugi::xml_node InkNode);
+	std::wstring SaveText();
+	void SaveInkTrace(pugi::xml_node node, INK_Trace * Trace);
+	void CreateChildWithAttrs(pugi::xml_node node, const std::wstring& Name, int NumPairs, ...);
+	std::wstring SaveInk();
 
 protected:
 	std::vector<ONE_Text *> TextDivs;
 	std::vector<INK_Trace*> InkTraces;
+	std::wstring PageTitle = L"";
 
 public:
 	void LoadPage(std::wstring * Data, std::string& Name);
+	std::wstring* SavePage(std::wstring& MultipartBoundary);
 	virtual void DrawPage(void* DrawDetails);
 };

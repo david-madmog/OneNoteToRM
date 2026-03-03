@@ -4,7 +4,11 @@
 #include "OneNoteToRM.h"
 #include "RMPage.h"
 #include <wtypes.h>
+#pragma warning ( push )
+#pragma warning( disable : 4005 26819)
+//#define JSON_DIAGNOSTICS 1
 #include <nlohmann/json.hpp>
+#pragma warning ( pop )
 #include <type_traits> 
 
 /*******************************************************************************

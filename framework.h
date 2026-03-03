@@ -30,6 +30,7 @@
 #include <format>
 #include <wtypes.h>
 #include <map>
+#include <thread>
 
 #include <cstdio>
 #include <memory>

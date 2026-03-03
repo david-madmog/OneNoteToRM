@@ -6,6 +6,7 @@
 #include <cpprest/http_client.h>
 #include <cpprest/http_msg.h>
 #include <cpprest/filestream.h>
+#include <cpprest/asyncrt_utils.h>
 
 #include <Shlwapi.h>
 #include <wrl.h>
@@ -31,6 +32,7 @@ template GraphDoc<WindowONEPage>::GraphDoc();
 template void GraphDoc<WindowONEPage>::LoginToMicrosoft(HWND hWnd);
 template void GraphDoc<WindowONEPage>::SetLoginCode(wchar_t* LoginCodeW);
 template int GraphDoc<WindowONEPage>::LoadDoc(const std::string& NotebookName, const std::string& SectionName);
+template int GraphDoc<WindowONEPage>::SaveDoc(const std::string& NotebookName, const std::string& SectionName);
 template void GraphDoc<WindowONEPage>::Resize(HWND hWnd);
 template void GraphDoc<WindowONEPage>::DrawPage(void* DrawDetails, int Page);
 
@@ -42,8 +44,73 @@ template<class PageType> GraphDoc<PageType>::GraphDoc() {
     Token = NULL;
 }
 
+template<class PageType> std::wstring* GraphDoc<PageType>::PostUpdateAndAwaitResponse(const wchar_t* URLPath, const wchar_t* Body, const wchar_t* Boundary) {
+    if (!Token) {
+        sprintf_s(LogBuffer, LB_SIZE, "Failed to get Auth Token");
+        DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
+        return nullptr;
+    }
 
-template<class PageType> std::wstring * GraphDoc<PageType>::SendRequestAndAwaitResponse(const wchar_t * URLPath){
+    sprintf_s(LogBuffer, LB_SIZE, "Sending graph data: %ws", URLPath);
+    DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG);
+
+    // Create http_client to send the request.
+    http_client client(GraphRoot);
+
+    // Build request URI 
+    uri_builder URI;
+    URI.set_scheme(L"https");
+    URI.set_host(GraphHost);
+    URI.set_path(L"v1.0");
+    URI.append_path(URLPath);
+
+    utility::string_t s = URI.to_string();   // for debugging
+
+    http_request request(methods::POST);
+    request.headers().add(L"Authorization", *Token);
+    request.set_body(Body);
+    request.headers().set_content_length(wcslen(Body));
+    
+    utility::string_t ContentType(web::http::details::mime_types::multipart_form_data);
+    ContentType.append(L"; boundary=");
+    ContentType.append(Boundary);
+    //utility::string_t ContentType(L"application/xhtml+xml");
+
+
+    request.headers().set_content_type(ContentType);
+    request.set_request_uri(URI.to_uri());
+
+    pplx::task<http_response> requestTask = client.request(request);
+
+    http_response response;
+    try {
+        response = requestTask.get(); // If task is not complete, will wait
+    }
+    catch (std::exception& ex)
+    {
+        sprintf_s(LogBuffer, LB_SIZE, "Cannot receive data: %s", ex.what());
+        DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
+        return nullptr;
+    }
+    if (response.status_code() == status_codes::OK || response.status_code() == status_codes::Created)
+    {
+        pplx::task<utility::string_t> RespDataTask = response.extract_string(true);
+        //        utility::string_t tmp = ;
+        utility::string_t* RespData = new utility::string_t(RespDataTask.get());
+        sprintf_s(LogBuffer, LB_SIZE, "GOT data: %ws", RespData->substr(0, LB_SIZE - 50).c_str()); // response can be quite long!
+        DoLog(typeid(*this).name(), LogBuffer, LOG_INFO);
+        return RespData;
+    }
+    else {
+        reason_phrase Reason = response.reason_phrase();
+        sprintf_s(LogBuffer, LB_SIZE, "Cannot receive data: %ws", Reason.c_str());
+        DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
+    }
+    return nullptr;
+}
+
+
+template<class PageType> std::wstring* GraphDoc<PageType>::SendRequestAndAwaitResponse(const wchar_t* URLPath) {
     if (!Token) {
         sprintf_s(LogBuffer, LB_SIZE, "Failed to get Auth Token");
         DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
@@ -102,16 +169,6 @@ template<class PageType> std::wstring * GraphDoc<PageType>::SendRequestAndAwaitR
 template<class PageType> void GraphDoc<PageType>::LoginToMicrosoft(HWND hWnd)
 {
     char* code = nullptr;
-
-    // OK, first we need to do an authorisation on behalf of the user to get the user consent
-    //GET https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize?
-    //client_id=11111111-1111-1111-1111-111111111111
-    //&response_type=code
-    //&redirect_uri=http%3A%2F%2Flocalhost%2Fmyapp%2F
-    //&response_mode=query
-    //&scope=offline_access%20user.read%20mail.read
-    //&state=12345  HTTP/1.1
-
     // SO we build the URL, and then use the WebView to get permission/login
 
     URI.set_scheme(L"https");
@@ -311,6 +368,7 @@ template<class PageType> void GraphDoc<PageType>::SetLoginCode(wchar_t* LoginCod
 
 template<class PageType> int GraphDoc<PageType>::LoadPages(wchar_t * SectionID) {
 
+    // First get the list of pages
     std::wstring PagesList = L"me/onenote/sections/";
     PagesList.append(SectionID);
     PagesList.append(L"/pages?$select=id,title");
@@ -333,6 +391,7 @@ template<class PageType> int GraphDoc<PageType>::LoadPages(wchar_t * SectionID) 
         size_t convertedChars = 0;
         wchar_t LocalWBuff[1024];
 
+        // Now we have the list of pages, get the content for each one
 		for (njson& PageJson : respJson["value"])
         {
             std::wstring PageQuery{ L"me/onenote/pages/" };
@@ -341,41 +400,22 @@ template<class PageType> int GraphDoc<PageType>::LoadPages(wchar_t * SectionID) 
             PageQuery.append(LocalWBuff);
             PageQuery.append(L"/content?includeinkML=true");
             std::wstring* PageData = SendRequestAndAwaitResponse(PageQuery.c_str());
-
-            PageType * Page = new PageType;
-            Pages.push_back(Page);
-            std::string Title{ PageJson["title"].get< std::string>() };
-            Page->LoadPage(PageData, Title);
+            if (PageData)
+            {
+                PageType* Page = new PageType;
+                Pages.push_back(Page);
+                std::string Title{ PageJson["title"].get< std::string>() };
+                Page->LoadPage(PageData, Title);
+            }
         }
     }
 
     return (int)Pages.size();
-    
-    //RespData = SendRequestAndAwaitResponse(L"me/onenote/pages/0-5b84d480aca444a4bb0c96faf54de213!1-ADAEA281180757D1!s1756d7d985564b62aff053397eb347df/content");
-    //RespData = SendRequestAndAwaitResponse(L"me/onenote/pages/0-5b84d480aca444a4bb0c96faf54de213!1-ADAEA281180757D1!s1756d7d985564b62aff053397eb347df/content?includeinkML=true");
-
-    // https://graph.microsoft.com/v1.0/me/onenote/sections/0-ADAEA281180757D1!s1756d7d985564b62aff053397eb347df/pages
-    //    "@microsoft.graph.tips": "Use $select to choose only the properties your app needs, as this can lead to performance improvements. For example: GET me/onenote/sections('<key>')/pages?$select=content,contentUrl",
-        // https://graph.microsoft.com/v1.0/me/onenote/pages/0-5b84d480aca444a4bb0c96faf54de213!1-ADAEA281180757D1!s1756d7d985564b62aff053397eb347df/content?includeinkML=true
-
-
-    //    SendRequestAndAwaitResponse(L"me");
-    //    SendRequestAndAwaitResponse(L"me/photo/$value");
-
 }
 
 
-template<class PageType> int GraphDoc<PageType>::LoadDoc(const std::string& NotebookName,const std::string& SectionName)
+template<class PageType> wchar_t * GraphDoc<PageType>::FindDocID(const std::string& NotebookName,const std::string& SectionName)
 {
-    if (!Token) {
-        if (GetLogonToken() == -1)
-        {
-            // We can't logon: no refresh token and no access token
-            return -1;
-        }
-
-    }
-    
     // Get full list of sections and get the ID of the one which matches our input
     std::wstring* RespData = SendRequestAndAwaitResponse(L"me/onenote/sections?$select=id,displayName&$expand=parentNotebook($select=id,displayName)");
     njson respJson;
@@ -406,15 +446,71 @@ template<class PageType> int GraphDoc<PageType>::LoadDoc(const std::string& Note
                     size_t convertedChars = 0;
                     wchar_t* LocalWBuff = (wchar_t*)malloc((SectionID.length() + 1) * sizeof(wchar_t));
                     mbstowcs_s(&convertedChars, LocalWBuff, SectionID.length() + 1, SectionID.c_str(), SectionID.length());
-                    int NumPages = LoadPages(LocalWBuff);
-                    free(LocalWBuff);
-                    return NumPages;
+                    return LocalWBuff;
                 }
             }
         }
     }
 
 
+    return 0;
+}
+
+template<class PageType> int GraphDoc<PageType>::LoadDoc(const std::string& NotebookName, const std::string& SectionName)
+{
+    if (!Token) {
+        if (GetLogonToken() == -1)
+        {
+            // We can't logon: no refresh token and no access token
+            return -1;
+        }
+    }
+
+    wchar_t* SectionID = FindDocID(NotebookName, SectionName);
+    if (SectionID)
+    {
+        int NumPages = LoadPages(SectionID);
+        free(SectionID);
+        return NumPages;
+    }
+    return 0;
+}
+
+template<class PageType> int GraphDoc<PageType>::SaveDoc(const std::string& NotebookName, const std::string& SectionName)
+{
+    wchar_t* SectionID = FindDocID(NotebookName, SectionName);
+    if (SectionID)
+    {
+        nonce_generator NonceGen;
+        for ( auto& Page : Pages) {
+            utility::string_t Nonce = NonceGen.generate();
+
+            std::wstring* PageData = Page->SavePage(Nonce);
+
+            std::wstring PageURL = L"me/onenote/sections/";
+            PageURL.append(SectionID);
+            PageURL.append(L"/pages");
+
+            std::wstring* RespData = PostUpdateAndAwaitResponse(PageURL.c_str(), PageData->c_str(), Nonce.c_str());
+            if (RespData)
+            {
+                njson respJson;
+                try {
+                    respJson = njson::parse(*RespData);
+                }
+                catch (njson::parse_error ex) {
+                    sprintf_s(LogBuffer, LB_SIZE, "JSON Parse Error: %s", ex.what());
+                    DoLog(typeid(*this).name(), LogBuffer, LOG_INFO);
+                    return 0;
+                }
+            }
+
+            delete PageData;
+        }
+
+        //int NumPages = LoadPages(SectionID);
+        free(SectionID);
+    }
     return 0;
 }
 
