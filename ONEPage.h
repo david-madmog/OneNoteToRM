@@ -11,12 +11,16 @@
 #include "pugixml.hpp"
 
 
+typedef struct one_TextSpan {
+	std::wstring Font;
+	int FontSize = 0;
+	std::wstring Text;
+} ONE_TextSpan;
+
 typedef struct one_Text {
-    std::wstring Font;
-    int FontSize = 0;
     int Left = 0;
     int Top = 0;
-    std::wstring Text;
+	std::vector<ONE_TextSpan> Texts;
 } ONE_Text;
 
 typedef struct Ink_Point {
@@ -41,7 +45,6 @@ class ONEPage
 private:
 	std::wstring ParseAttribString(std::wstring Attrib, std::wstring Field);
 	int ParseAttribInt(std::wstring Attrib, std::wstring Field);
-	void RecurseParseHTMLNode(pugi::xml_node Node, ONE_Text* RootText);
 	void ParseInkTrace(std::vector<INK_Point>& points, int NumValuesPerPoint, wchar_t* Data);
 	void ParseHTMLNode(pugi::xml_node htmlNode);
 	void ParseInkNode(pugi::xml_node InkNode);

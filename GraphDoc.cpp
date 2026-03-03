@@ -2,7 +2,7 @@
 #include "OneNoteToRM.h"
 
 #pragma warning ( push )
-#pragma warning( disable : 26439)
+#pragma warning( disable : 26439 26495)
 #include <cpprest/http_client.h>
 #include <cpprest/http_msg.h>
 #include <cpprest/filestream.h>

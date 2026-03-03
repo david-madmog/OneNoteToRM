@@ -11,6 +11,9 @@
  * Copyright (C) 2003, by Kristen Wegner (kristen@tima.net)
  */
 
+#pragma warning( disable : 26495 28182 6054)
+
+
 #ifndef SOURCE_PUGIXML_CPP
 #define SOURCE_PUGIXML_CPP
 

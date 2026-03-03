@@ -5,6 +5,7 @@ using namespace Gdiplus;
 
 void WindowONEPage::DrawPage(void* DrawDetails)
 {
+    RectF BoundingBox;
     HDC hDC = (HDC)DrawDetails;
     Graphics graphics(hDC);
 
@@ -16,17 +17,21 @@ void WindowONEPage::DrawPage(void* DrawDetails)
     SolidBrush  solidBrush(Color(255, 0, 0, 0));
     StringFormat form(StringFormat::GenericTypographic()); // this is needed to prevent characters from including paddinf
     graphics.SetTextRenderingHint(TextRenderingHintAntiAlias);
+    Font* font;
 
     for (auto& text : TextDivs)
     {
-        Font* font;
-        FontFamily fontFamily(text->Font.c_str());
-        font = new Font(&fontFamily, (REAL)text->FontSize, FontStyleRegular, UnitPixel);
         PointF DrawPos((REAL)text->Left, (REAL)text->Top);
-        std::wstring str(text->Text);
-        graphics.DrawString(text->Text.c_str(), (INT)text->Text.length(), font, DrawPos, &form, &solidBrush);
-        // NEED TO DEAL WITH NEWLINES
-
+        for (auto& span : text->Texts)
+        {
+            FontFamily fontFamily(span.Font.c_str());
+            font = new Font(&fontFamily, (REAL)span.FontSize, FontStyleRegular, UnitPixel);
+            std::wstring str(span.Text);
+            graphics.DrawString(span.Text.c_str(), (INT)span.Text.length(), font, DrawPos, &form, &solidBrush);
+            // NEED TO DEAL WITH NEWLINES
+            graphics.MeasureString(span.Text.c_str(), 1, font, DrawPos, &form, &BoundingBox);
+            DrawPos.Y += BoundingBox.Height;
+        }
     }
 
     for (auto& Trace: InkTraces)
