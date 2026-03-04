@@ -36,5 +36,6 @@ public:
 
 	void DrawPage(void* DrawDetails, int page);
 
+	void AddPage(PageType* Page) { Pages.push_back(Page); }
 };
 

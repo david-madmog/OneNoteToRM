@@ -418,6 +418,10 @@ template<class PageType> wchar_t * GraphDoc<PageType>::FindDocID(const std::stri
 {
     // Get full list of sections and get the ID of the one which matches our input
     std::wstring* RespData = SendRequestAndAwaitResponse(L"me/onenote/sections?$select=id,displayName&$expand=parentNotebook($select=id,displayName)");
+    
+    if (!RespData)
+        return nullptr;
+
     njson respJson;
     try {
         respJson = njson::parse(*RespData);
@@ -478,6 +482,14 @@ template<class PageType> int GraphDoc<PageType>::LoadDoc(const std::string& Note
 
 template<class PageType> int GraphDoc<PageType>::SaveDoc(const std::string& NotebookName, const std::string& SectionName)
 {
+    if (!Token) {
+        if (GetLogonToken() == -1)
+        {
+            // We can't logon: no refresh token and no access token
+            return -1;
+        }
+    }
+
     wchar_t* SectionID = FindDocID(NotebookName, SectionName);
     if (SectionID)
     {

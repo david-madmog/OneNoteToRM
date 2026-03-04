@@ -1,10 +1,11 @@
-// DOCXToRM.cpp : Defines the entry point for the application.
+﻿// DOCXToRM.cpp : Defines the entry point for the application.
 //
 
 #include "framework.h"
 #include "OneNoteToRM.h"
 #include "RMDocFile.h"
 #include "WindowRMPage.h"
+#include "ToOneRMPage.h"
 #include "WindowONEPage.h"
 #include "RMTestFileBuilder.h"
 #include "GraphDoc.h"
@@ -23,6 +24,7 @@ WCHAR szPopupWindowClass[MAX_LOADSTRING];            // the main window class na
 HWND hListBox;
 HWND hImage;
 RMDocFile<WindowRMPage>* ZF;
+RMDocFile<ToOneRMPage>* TOZF;
 GraphDoc<WindowONEPage>* GD;
 int NumPages;
 int CurrentPage;
@@ -57,11 +59,14 @@ const LogLevel CurrentLevel = LogLevel::LOG_DEBUG_VERBOSE;
 
 void DoLog(const char * Class, const char* Msg, LogLevel Level)
 {
-    sprintf_s(LocalLogBuff, LB_SIZE, "[%s][%s]:%s", LogLevelName[Level], Class, std::string(Msg).substr(0, LB_SIZE - strlen(Class) - 10).c_str());
-    size_t convertedChars = 0;
-    mbstowcs_s(&convertedChars, LocalWLogBuff, LocalLogBuff, _TRUNCATE);
+    std::wostringstream buff;
+
+    buff << L"[" << LogLevelName[Level] << L"][" << Class << L"]:" << Msg;
     if (Level >= CurrentLevel)
-        SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)LocalWLogBuff);
+        SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)buff.str().c_str());
+
+    buff << std::endl;
+    OutputDebugString(buff.str().c_str());
 }
 
 static std::string exec(const char* cmd) {
@@ -205,35 +210,47 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 
 void LoadControls(HWND hWnd) {
-    CreateWindow(_T("button"), _T("Load RMDOC"),
+    CreateWindow(_T("button"), _T("←"),
         WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-        10, 10, 120, 30,
-        hWnd, (HMENU)BTN_BUTTON, GetModuleHandle(NULL), NULL);
-    CreateWindow(_T("button"), _T("<"),
-        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-        130, 10, 30, 30,
+        460, 45, 30, 30,
         hWnd, (HMENU)BTN_BUTTON_L, GetModuleHandle(NULL), NULL);
-    CreateWindow(_T("button"), _T(">"),
+    CreateWindow(_T("button"), _T("→"),
         WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-        160, 10, 30, 30,
+        490, 45, 30, 30,
         hWnd, (HMENU)BTN_BUTTON_R, GetModuleHandle(NULL), NULL);
-    CreateWindow(_T("button"), _T("Download/Upload"),
-        WS_CHILD | WS_VISIBLE | BS_CHECKBOX,
-        190, 10, 160, 30,
-        hWnd, (HMENU)CHK_RELOAD, GetModuleHandle(NULL), NULL);
-    CreateWindow(_T("button"), _T("Test"),
-        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-        350, 10, 120, 30,
-        hWnd, (HMENU)BTN_BUTTON_TEST, GetModuleHandle(NULL), NULL);
-    CreateWindow(_T("button"), _T("Save RMDOC"),
-        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-        10, 40, 120, 30,
-        hWnd, (HMENU)BTN_BUTTONSAVE, GetModuleHandle(NULL), NULL);
-
     //CreateWindow(_T("button"), _T("Login to Microsoft"),
     //    WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
     //    10, 80, 120, 30,
     //    hWnd, (HMENU)BTN_BUTTON_LOGIN, GetModuleHandle(NULL), NULL);
+    CreateWindow(_T("button"), _T("Load RMDOC"),
+        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+        10, 10, 120, 30,
+        hWnd, (HMENU)BTN_BUTTON, GetModuleHandle(NULL), NULL);
+    CreateWindow(_T("button"), _T("Save RMDOC"),
+        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+        130, 10, 120, 30,
+        hWnd, (HMENU)BTN_BUTTONSAVE, GetModuleHandle(NULL), NULL);
+    CreateWindow(_T("button"), _T("Test"),
+        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+        250, 10, 120, 30,
+        hWnd, (HMENU)BTN_BUTTON_TEST, GetModuleHandle(NULL), NULL);
+    CreateWindow(_T("button"), _T("Download/Upload"),
+        WS_CHILD | WS_VISIBLE | BS_CHECKBOX,
+        370, 10, 150, 30,
+        hWnd, (HMENU)CHK_RELOAD, GetModuleHandle(NULL), NULL);
+
+
+    CreateWindow(_T("button"), _T("↓"),
+        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+        55, 45, 30, 30,
+        hWnd, (HMENU)BTN_RM_TO_ONE, GetModuleHandle(NULL), NULL);
+
+    CreateWindow(_T("button"), _T("↑"),
+        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+        175, 45, 30, 30,
+        hWnd, (HMENU)BTN_ONE_TO_RM, GetModuleHandle(NULL), NULL);
+
+
 
     CreateWindow(_T("button"), _T("Load ONE doc"),
         WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
@@ -299,12 +316,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                 if (IsDlgButtonChecked(hWnd, CHK_RELOAD))
                 {
-                    SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Pre-load..."));
+                    SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Pre-load RM LOAD..."));
                     Result = exec("rmapi get \"Conversion test\"");
                     DoLog("MAIN", Result.c_str(), LOG_INFO);
                 }
 
-                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting..."));
+                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting  RM LOAD..."));
                 ZF = new RMDocFile<WindowRMPage>();
 
                 NumPages = ZF->ExtractRMsFromZip(WorkingDir);
@@ -318,7 +335,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 char* WorkingDir = (char*)malloc(LB_SIZE);
                 GetPrivateProfileStringA("RMFILE", "SaveDoc", "", WorkingDir, LB_SIZE, gszIniFileName);
 
-                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting..."));
+                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting  RM SAVE..."));
                 if (ZF)
                     NumPages = ZF->SaveRMsToZip(WorkingDir);
 
@@ -354,7 +371,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
                 break;
             case BTN_BUTTON_TEST:
-                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting..."));
+                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting TEST..."));
                 ZF = new RMTestFileBuilder<WindowRMPage>;
                 NumPages = ((RMTestFileBuilder<WindowRMPage>*)ZF)->Build();
                 CurrentPage = 0;
@@ -362,9 +379,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             case BTN_BUTTON_ONE:
             {
-                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting..."));
+                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting ONENOTE LOAD..."));
 
-                char* Setting = (char*)malloc(LB_SIZE);
+                char Setting[LB_SIZE] ;
                 GetPrivateProfileStringA("OneNote", "Notebook", "", Setting, LB_SIZE, gszIniFileName);
                 const std::string Notebook{ Setting };
                 GetPrivateProfileStringA("OneNote", "Section", "", Setting, LB_SIZE, gszIniFileName);
@@ -397,7 +414,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
             case BTN_BUTTON_ONESAVE:
             {
-                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting..."));
+                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting ONENOTE SAVE..."));
 
                 char* Setting = (char*)malloc(LB_SIZE);
                 GetPrivateProfileStringA("OneNote", "Notebook", "", Setting, LB_SIZE, gszIniFileName);
@@ -407,7 +424,55 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 if (GD)
                     GD->SaveDoc(Notebook, Section);
             }
-                break;
+            break;
+            case BTN_RM_TO_ONE:
+            {
+                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting RM TO ONE..."));
+
+                // First, load the RM page
+                char* WorkingDir = (char*)malloc(LB_SIZE);
+                GetPrivateProfileStringA("RMFILE", "WorkingDir", "", WorkingDir, LB_SIZE, gszIniFileName);
+
+                if (IsDlgButtonChecked(hWnd, CHK_RELOAD))
+                {
+                    SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Pre-load RM LOAD..."));
+                    Result = exec("rmapi get \"Conversion test\"");
+                    DoLog("MAIN", Result.c_str(), LOG_INFO);
+                }
+
+                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting RM LOAD..."));
+                TOZF = new RMDocFile<ToOneRMPage>();
+                NumPages = TOZF->ExtractRMsFromZip(WorkingDir);
+
+                // Second, create an empty OneNote doc to transfer into
+                char* Setting = (char*)malloc(LB_SIZE);
+                GetPrivateProfileStringA("OneNote", "Notebook", "", Setting, LB_SIZE, gszIniFileName);
+                const std::string Notebook{ Setting };
+                GetPrivateProfileStringA("OneNote", "Section", "", Setting, LB_SIZE, gszIniFileName);
+                const std::string Section{ Setting };
+                GD = new GraphDoc<WindowONEPage>();
+
+                // Now do the conversion...
+                for (int i = 0; i < NumPages; i++)
+                    TOZF->DrawPage((void*)GD, i);
+
+                // And save it!
+                GD->SaveDoc(Notebook, Section);
+            }
+            break;
+            case BTN_ONE_TO_RM:
+            {
+                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting ONE TO RM..."));
+
+                char* Setting = (char*)malloc(LB_SIZE);
+                GetPrivateProfileStringA("OneNote", "Notebook", "", Setting, LB_SIZE, gszIniFileName);
+                const std::string Notebook{ Setting };
+                GetPrivateProfileStringA("OneNote", "Section", "", Setting, LB_SIZE, gszIniFileName);
+                const std::string Section{ Setting };
+                if (GD)
+                    GD->SaveDoc(Notebook, Section);
+            }
+            break;
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }

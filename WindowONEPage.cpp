@@ -40,7 +40,8 @@ void WindowONEPage::DrawPage(void* DrawDetails)
         pen.SetLineJoin(LineJoinRound);
         pen.SetEndCap(LineCapRound);
 
-        Point* Points = (Point*)malloc(Trace->points.size() * sizeof(Point));
+//        Point* Points = (Point*)malloc(Trace->points.size() * sizeof(Point));
+        Point * Points = new Point[Trace->points.size()];
         if (Points != NULL)
             for (int i = 0; i < Trace->points.size(); i++)
                 Points[i] = Point((int)Trace->points[i].X/20 , (int)Trace->points[i].Y/20);
@@ -49,7 +50,7 @@ void WindowONEPage::DrawPage(void* DrawDetails)
 
 //        graphics.DrawLine(&pen, { 0, 0 }, Points[0]);
         
-        free(Points);
+        delete[] Points;
     }
 
 

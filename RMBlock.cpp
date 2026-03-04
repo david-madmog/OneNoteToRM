@@ -3,6 +3,11 @@
 #include "OneNoteToRM.h"
 
 
+std::wostream& operator<< (std::wostream& stream, const RM_CRDT_ID& RHS) {
+	stream << L"{" << RHS.part1 << L"-" << RHS.part2 << L"}";
+	return stream;
+}
+
 RMBlock::RMBlock() {
 }
 
@@ -19,6 +24,8 @@ void * RMBlock::ReadVarUINT(int * data, void * Buff_Ptr) {
 		result |= (i & 0x7F) << shift;
 		shift += 7;
 		if (!(i & 0x80))
+			break;
+		if (shift > 21) // We limit ourselves to 4 bytes...
 			break;
 	}
 	*data = result;
@@ -39,14 +46,14 @@ void * RMBlock::ReadTag(RM_Tag* tag, void* Buff_Ptr, int index, TagTypeEnum TagT
 	//	return index, tag_type
 
 	if (tag->index != index) {
-		char LogBuff[1024];
-		sprintf_s(LogBuff, "Expected index %d, got %d, at position %d", index, tag->index, 0);
-		throw incorrect_tag(LogBuff);
+	//	char LogBuff[1024];
+	//	sprintf_s(LogBuff, "Expected index %d, got %d, at position %d", index, tag->index, 0);
+		throw incorrect_tag("Index not as expected");
 	}
 	if (tag->TagType != TagType) {
-		char LogBuff[1024];
-		sprintf_s(LogBuff, "Expected tag type %d, got %d, at position %d", TagType, tag->TagType, 0);
-		throw incorrect_tag(LogBuff);
+	//	char LogBuff[1024];
+	//	sprintf_s(LogBuff, "Expected tag type %d, got %d, at position %d", TagType, tag->TagType, 0);
+		throw incorrect_tag("TagType not as expected");
 	}
 
 	return Buff_Ptr;
@@ -59,9 +66,10 @@ void* RMBlock::ReadStringWithFormat(RM_STRING* data, UINT32* fmt, void* Buff_Ptr
 	try {
 		Buff_Ptr = ReadString(data, Buff_Ptr, index);
 	}
-	catch (incorrect_tag ex)
+	catch (incorrect_tag& ex)
 	{
 		// tag not there... just carry on
+		DoLog("ReadStringWithFormat", ex.what(), LOG_DEBUG_VERBOSE);
 	}
 
 	try {
@@ -72,9 +80,10 @@ void* RMBlock::ReadStringWithFormat(RM_STRING* data, UINT32* fmt, void* Buff_Ptr
 		// if tag IS there, we will not have an exception, so we can read it
 		Buff_Ptr = ReadTaggedData(fmt, Buff_Ptr, 2);
 	}
-	catch (incorrect_tag ex)
+	catch (incorrect_tag& ex)
 	{
 		// tag not there... just carry on
+		DoLog("ReadStringWithFormat", ex.what(), LOG_DEBUG_VERBOSE);
 	}
 	
 	return Buff_Ptr;
@@ -339,7 +348,6 @@ void* RMBlock::ReadTextItem(struct rm_CRDT_SEQ_ITEM<RM_STRING>* data, void* Buff
 			//		value = text
 			//else:
 			//	value = ""
-
 
 	return Buff_Ptr;
 }

@@ -8,6 +8,12 @@ template int RMDocFile<WindowRMPage>::ExtractRMsFromZip(const char* FileName);
 template int RMDocFile<WindowRMPage>::SaveRMsToZip(const char* FileName);
 template void RMDocFile<WindowRMPage>::DrawPage(void* DrawDetails, int Page);
 
+#include "ToOneRMPage.h"
+template int RMDocFile<ToOneRMPage>::ExtractRMsFromZip(const char* FileName);
+template int RMDocFile<ToOneRMPage>::SaveRMsToZip(const char* FileName);
+template void RMDocFile<ToOneRMPage>::DrawPage(void* DrawDetails, int Page);
+
+
 template<class PageType> int RMDocFile<PageType>::ExtractRMsFromZip(const char* FileName)
 {
     int err;

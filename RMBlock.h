@@ -46,13 +46,17 @@ typedef struct rm_BlockHead {
 	BT_BlockType BlockType;
 } RM_Blockhead;
 
-struct incorrect_tag : std::range_error
+struct incorrect_tag : public std::exception
 {
-	using std::range_error::range_error;
+	//using std::range_error::range_error;
+	std::string s;
+	incorrect_tag(std::string ss) : s(ss) {}
+	~incorrect_tag() throw () {} // Updated
+	const char* what() const throw() { return s.c_str(); }
 };
 
 
-#pragma pack(1)
+#pragma pack( push, 1)
 
 enum TagTypeEnum {
 	//Tag type representing the type of following data."
@@ -107,6 +111,8 @@ public:
 	}
 	size_t SizeOfT(int index = 0) const { return SizeOf() + (index > 7 ? 2 : 1); }
 } RM_CRDT_ID;
+
+std::wostream& operator<< (std::wostream& stream, const RM_CRDT_ID& RHS);
 
 static const size_t SIZE_OF_TAG = sizeof(UINT8);
 static const size_t SIZE_OF_SUBBLOCK = sizeof(UINT32) + SIZE_OF_TAG;
@@ -168,6 +174,8 @@ typedef struct rm_LWW_Float {
 	size_t SizeOf() const { return timestamp.SizeOf() + sizeof(FLOAT) + 2 * SIZE_OF_TAG + SIZE_OF_SUBBLOCK; }
 	size_t SizeOfT(int index = 0) const { return SizeOf() + (index > 7 ? 1 : 0); }
 } RM_LWW_Float;
+
+#pragma pack( pop )
 
 class RMBlock {
 protected:

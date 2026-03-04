@@ -11,10 +11,12 @@
 #include "pugixml.hpp"
 
 
+
 typedef struct one_TextSpan {
+	std::wstring Text;
 	std::wstring Font;
 	int FontSize = 0;
-	std::wstring Text;
+	one_TextSpan() { Font = L""; Text = L""; }
 } ONE_TextSpan;
 
 typedef struct one_Text {
@@ -30,14 +32,15 @@ typedef struct Ink_Point {
 } INK_Point;
 
 typedef struct Ink_Trace {
-	std::vector<INK_Point> points;
-	Gdiplus::Color colour;
 	std::wstring tool_id;
 	std::wstring trace_id;
+	std::vector<INK_Point> points;
+	Gdiplus::Color colour;
 	DOUBLE thickness_scale = 0;
 
 	bool operator<(Ink_Trace b) { return tool_id < b.tool_id; };
 	bool operator==(Ink_Trace b) { return tool_id == b.tool_id; };
+	Ink_Trace() { tool_id = L""; trace_id = L""; }
 } INK_Trace;
 
 class ONEPage
@@ -62,4 +65,6 @@ public:
 	void LoadPage(std::wstring * Data, std::string& Name);
 	std::wstring* SavePage(std::wstring& MultipartBoundary);
 	virtual void DrawPage(void* DrawDetails);
+
+	friend class ToOneRMPage;
 };

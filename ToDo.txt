@@ -1,0 +1,21 @@
+
+
+TTTTT   OOO      DDDD    OOO
+  T    O   O     D   D  O   O
+  T    O   O     D   D  O   O
+  T    O   O     D   D  O   O
+  T    O   O     D   D  O   O
+  T     OOO      DDDD    OOO
+
+
+Sort out memory management - destructors freeing all allocated stuff
+  - Pages
+  - Docs
+
+Convert RMBlocks etc to use std::istringstream and ostringstream?
+
+Work out RM coordinate origin - is it defined?
+
+Tidy up headers
+
+New UI with doc lists

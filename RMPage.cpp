@@ -1,13 +1,14 @@
 
 #include "RMPage.h"
 
-#pragma pack(1)
+#pragma pack( push, 1)
 struct rm_frontmatter_header {
     char magic_text[32]; //         contents : reMarkable.lines file, version =
     char version_string; //        Version number, but encoded as a single UTF - 8 character.
     char ten_spaces[10]; //        contents : [0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20]
 };
 
+#pragma pack ( pop )
 
 RMPage::RMPage()
 {
@@ -36,7 +37,8 @@ void RMPage::Load(zip_file* file)
             // first read the block header, to see it's size and type
             NumRead = zip_fread(file, &BH, sizeof(BH));
             
-            buffer = (unsigned char *) malloc(BH.len_body);
+            //buffer = (unsigned char *) malloc(BH.len_body);
+            buffer = new unsigned char[BH.len_body];
             if (! buffer)
                 NumRead = 0;
 

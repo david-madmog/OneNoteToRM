@@ -30,6 +30,11 @@
 #define BTN_BUTTON_ONE 210
 #define BTN_BUTTON_ONESAVE 211
 
+#define BTN_RM_TO_ONE 212
+#define BTN_ONE_TO_RM 213
+
+#define BTN_ABOUT 214
+
 #define WM_LOGINTOMS (WM_USER + 1)
 #define WM_DONELOGINTOMS (WM_USER + 2)
 
