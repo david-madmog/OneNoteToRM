@@ -42,4 +42,5 @@ public:
     void DrawPage(void * DrawDetails);
     void AddBlock(RMBlock * Block);
     std::string m_id;
+    std::string PageTitle = "";
 };

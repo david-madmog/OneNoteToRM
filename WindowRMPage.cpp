@@ -30,6 +30,12 @@ void WindowRMPage::DrawPageInit(void* DrawDetails)
             FindMinMax((SceneLineItem*)val);
     }
 
+    sprintf_s(LogBuffer, LB_SIZE, "Min/Max (%d, %d), Anchor: (%d, %d)",
+        MinX, MinY, MaxX, MaxY
+    );
+    DoLog(typeid(*this).name(), LogBuffer, LOG_INFO);
+
+
     RECT rect;
     SetRect(&rect, 0, 0, MaxX - MinX, MaxY - MinY);
     FillRect(hDC, &rect, (HBRUSH)(COLOR_WINDOW + 1));

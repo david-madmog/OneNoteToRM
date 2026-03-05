@@ -72,7 +72,6 @@ template<class PageType> int RMDocFile<PageType>::ExtractRMsFromZip(const char* 
                         PageType* Page = new PageType(ID);
                         Pages.push_back(Page);
                         Page->Load(zip_fopen_index(archive, ZipIndex, 0));
-
                     }
                 }
                 else if (!strcmp(ext, "metadata"))
@@ -92,6 +91,14 @@ template<class PageType> int RMDocFile<PageType>::ExtractRMsFromZip(const char* 
     zip_close(archive);
     DoLog(typeid(*this).name(), "Done extract from Zip", LOG_DEBUG);
 
+    int i = 1;
+    for (auto&Page : Pages) 
+    {
+        std::ostringstream PageName;
+        PageName << Name << " - Page " << i++;
+        Page->PageTitle = PageName.str();
+    }
+
     return (int)Pages.size();
 }
 
@@ -103,6 +110,9 @@ template<class PageType> void RMDocFile<PageType>::LoadMetaData(zip * archive, i
 
     std::string meta{ Metadata.dump(2) };
 
+    if (Metadata.contains("visibleName")) {
+        Name = Metadata["visibleName"];
+    }
 
     //.metadata
     //{
@@ -145,8 +155,6 @@ template<class PageType> void RMDocFile<PageType>::LoadPagesData(zip* archive, i
         else {
             ID = C_Page["id"];
         }
-
-
         PageType* Page = new PageType(ID);
         Pages.push_back(Page);
         /*

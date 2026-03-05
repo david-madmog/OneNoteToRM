@@ -1,6 +1,9 @@
 #include "ToOneRMPage.h"
 #include "WindowRMPage.h"
 
+#define RM_TO_ONE_SCALE_FACTOR 20
+
+
 ToOneRMPage::ToOneRMPage() 
 	: RMPage()
 {
@@ -30,6 +33,9 @@ void ToOneRMPage::DrawPageInit(void* DrawDetails) {
     // Create our destination page
 //    OnePage = new WindowONEPage;
     ((GraphDoc<WindowONEPage>*)DrawDetails)->AddPage(&OnePage);
+    std::wostringstream T;
+    T << PageTitle.c_str();
+    OnePage.PageTitle = T.str();
 }
 
 void ToOneRMPage::FindMinMax(SceneLineItem* SLI)
@@ -92,18 +98,18 @@ void ToOneRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
 
     INK_Trace * Trace = new INK_Trace();
     Trace->colour = SLI->colour();
-    Trace->thickness_scale = (DOUBLE)SLI->points[0].width / 4;
+    Trace->thickness_scale = (DOUBLE)SLI->points[0].width * RM_TO_ONE_SCALE_FACTOR / 2 ;
 
     std::wostringstream tid;
-    tid << SLI->tool_id;
+    tid << L"{" << SLI->tool_id << SLI->colour().GetValue() << L"}";
     Trace->tool_id = tid.str() ;
     tid << SLI->item_id;
     Trace->trace_id = tid.str();
     for (int i = 0; i < SLI->points.size() - 1; i++) {
         INK_Point P;
-        P.X = (int)(SLI->points[i].x + Origin.X) * 10;
-        P.Y = (int)(SLI->points[i].y + Origin.Y) * 10;
-        P.F = (int)SLI->points[i].width / 4;
+        P.X = (int)(SLI->points[i].x + Origin.X) * RM_TO_ONE_SCALE_FACTOR;
+        P.Y = (int)(SLI->points[i].y + Origin.Y) * RM_TO_ONE_SCALE_FACTOR;
+        P.F = (int)SLI->points[i].width * RM_TO_ONE_SCALE_FACTOR ;
         Trace->points.push_back(P);
     }
 

@@ -55,7 +55,7 @@ const char* LogLevelName[] = {
     "*ERR"
 };
 
-const LogLevel CurrentLevel = LogLevel::LOG_DEBUG_VERBOSE;
+const LogLevel CurrentLevel = LogLevel::LOG_DEBUG;
 
 void DoLog(const char * Class, const char* Msg, LogLevel Level)
 {
@@ -458,6 +458,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                 // And save it!
                 GD->SaveDoc(Notebook, Section);
+                CurrentPage = 0;
+                InvalidateRect(hImage, NULL, TRUE);
             }
             break;
             case BTN_ONE_TO_RM:

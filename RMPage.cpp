@@ -121,7 +121,7 @@ void RMPage::Load(zip_file* file)
             }
 
             if (buffer)
-                free(buffer);
+                delete[] buffer;
         }
         zip_fclose(file);
         sprintf_s(LogBuffer, LB_SIZE, "Read %d blocks: %lld blocks in Stash", NumBlocks, Blocks.size());

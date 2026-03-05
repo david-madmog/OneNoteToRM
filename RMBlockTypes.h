@@ -229,11 +229,11 @@ private:
 
 	RM_CRDT_ID ID3;
 	UINT8 Magic1[32];
-	DOUBLE Magic2a;
-	DOUBLE Magic2b;
+	DOUBLE Magic2a = 0;
+	DOUBLE Magic2b = 0;
 	RM_CRDT_ID ID4;
-	DOUBLE Magic3a;
-	DOUBLE Magic3b;
+	DOUBLE Magic3a = 0;
+	DOUBLE Magic3b = 0;
 };
 
 

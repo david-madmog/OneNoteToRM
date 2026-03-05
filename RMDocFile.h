@@ -47,6 +47,7 @@ protected:
 
     std::vector<PageType* > Pages;
     json Metadata;
+    std::string Name;
 
     json LoadJSONData(zip_file* file, zip_uint64_t size);
 public:
