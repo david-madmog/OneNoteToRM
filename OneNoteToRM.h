@@ -22,6 +22,14 @@ extern char * LogBuffer;
 constexpr auto LB_SIZE = 10240;
 
 void DoLog(const char* Class, const char* Msg, LogLevel Level = LOG_DEBUG_VERBOSE);
+void DoLog(const char* Class, const wchar_t * Msg, LogLevel Level = LOG_DEBUG_VERBOSE);
 
-//LRESULT CALLBACK ODStaticWndProc(HWND hwnd, UINT Message, WPARAM wparam, LPARAM lparam);
+class Drawable {
+public:
+	virtual void DrawPage(void* DrawDetails, int page) {};
+};
 
+struct DrawDetailsParams {
+	HDC hDC;
+	RECT Rect;
+};

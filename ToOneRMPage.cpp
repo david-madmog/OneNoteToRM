@@ -114,6 +114,26 @@ void ToOneRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
     }
 
     OnePage.InkTraces.push_back(Trace);
+
+    Trace = new INK_Trace();
+    Trace->colour = Gdiplus::Color::Green;
+    Trace->thickness_scale = 10;
+
+    tid << L"{123432}";
+    Trace->tool_id = tid.str();
+    tid << SLI->item_id << L"-B";
+    Trace->trace_id = tid.str();
+    INK_Point P;
+    P.X = (int)(SLI->points[0].x + Origin.X) * RM_TO_ONE_SCALE_FACTOR;
+    P.Y = (int)(SLI->points[0].y + Origin.Y) * RM_TO_ONE_SCALE_FACTOR;
+    P.F = (int)SLI->points[0].width * RM_TO_ONE_SCALE_FACTOR;
+    Trace->points.push_back(P);
+    P.X = (int)(Origin.X) * RM_TO_ONE_SCALE_FACTOR;
+    P.Y = (int)(Origin.Y) * RM_TO_ONE_SCALE_FACTOR;
+    P.F = (int)SLI->points[0].width * RM_TO_ONE_SCALE_FACTOR;
+    Trace->points.push_back(P);
+    OnePage.InkTraces.push_back(Trace);
+
 }
 
 std::wstring ToOneRMPage::GetRMFont(int format_code) {
@@ -216,19 +236,19 @@ void ToOneRMPage::DrawTextItem(void* DrawDetails, RootText* RT)
 
                 WC = (WCHAR)*Message;
 
-                if (*Message == ' ') // measure string won't measure a space, so we have to expand it
-                    WC = 'X';
+                //if (*Message == ' ') // measure string won't measure a space, so we have to expand it
+                //    WC = 'X';
                 //graphics.MeasureString(&WC, 1, font, DrawPos, &form, &BoundingBox);
                 ////                            Pen GPen(Color(0,255,0), 1);
                 ////                            graphics.DrawRectangle(&GPen, BoundingBox);
 
-                //if (*Message == '\n') {
-                //    DrawPos.Y += BoundingBox.Height;
-                //    DrawPos.X = TEXT_X_START;
-                //}
-                //else {
-                //    DrawPos.X += BoundingBox.Width;
-                //}
+                if (*Message == '\n') {
+                    DrawPos.y += rootSpan.FontSize;  // Horrible approximation, as we don't really have a reference to calculate otherwise
+                    DrawPos.x = TEXT_X_START;
+                }
+                else {
+                    DrawPos.x += rootSpan.FontSize;
+                }
 
                 // now see if we beed to change format for the next char
                 for (auto& format : RT->formats)

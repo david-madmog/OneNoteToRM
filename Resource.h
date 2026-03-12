@@ -12,12 +12,13 @@
 #define IDI_SMALL                       108
 #define IDC_DOCXTORM                    109
 #define IDC_DOCXTORML                   110
+#define IDC_DOCXTORMP					111
 #define IDR_MAINFRAME                   128
 #define ID_FILE_DOIT                    32771
 #define IDM_GO                          32772
 #define IDC_STATIC                      -1
 
-#define BTN_BUTTON 201
+#define BTN_RM_PREVIEW_BUTTON 201
 #define BTN_BUTTONSAVE 202
 #define LST_LISTBOX 203
 #define MYDRAW 204
@@ -27,7 +28,7 @@
 #define BTN_BUTTON_TEST 208
 
 #define BTN_BUTTON_LOGIN 209
-#define BTN_BUTTON_ONE 210
+#define BTN_ONE_PREVIEW_BUTTON 210
 #define BTN_BUTTON_ONESAVE 211
 
 #define BTN_RM_TO_ONE 212
@@ -37,6 +38,9 @@
 
 #define WM_LOGINTOMS (WM_USER + 1)
 #define WM_DONELOGINTOMS (WM_USER + 2)
+#define WM_LOADRMDOCS (WM_USER + 3)
+#define WM_LOADONEDOCS (WM_USER + 4)
+#define WM_PREPARE_POPUP (WM_USER + 5)
 
 // Next default values for new objects
 // 

@@ -66,6 +66,12 @@
     <ClInclude Include="ToOneRMPage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="GraphAPI.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RMAPI.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="OneNoteToRM.cpp">
@@ -102,6 +108,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ToOneRMPage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GraphAPI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RMAPI.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

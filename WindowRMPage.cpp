@@ -22,7 +22,8 @@ WindowRMPage::WindowRMPage(std::string ID)
 
 void WindowRMPage::DrawPageInit(void* DrawDetails)
 {
-    HDC hDC = (HDC)DrawDetails;
+    DrawDetailsParams* DD = (DrawDetailsParams*)DrawDetails;
+    HDC hDC = DD->hDC;
 
     for (auto const& [key, val] : IndexBlocks)
     {
@@ -36,14 +37,15 @@ void WindowRMPage::DrawPageInit(void* DrawDetails)
     DoLog(typeid(*this).name(), LogBuffer, LOG_INFO);
 
 
-    RECT rect;
-    SetRect(&rect, 0, 0, MaxX - MinX, MaxY - MinY);
-    FillRect(hDC, &rect, (HBRUSH)(COLOR_WINDOW + 1));
+//    RECT rect;
+    SetRect(&DD->Rect, 0, 0, MaxX - MinX, MaxY - MinY);
+    FillRect(hDC,&DD->Rect, (HBRUSH)(COLOR_WINDOW + 1));
+
 }
 
 void WindowRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
 {
-    HDC hDC = (HDC)DrawDetails;
+    HDC hDC = ((DrawDetailsParams*)DrawDetails)->hDC;
 
     Point Origin(-MinX, -MinY);
     Graphics graphics(hDC);
@@ -106,9 +108,11 @@ void WindowRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
     else {
 //        Point* Points = (Point*)malloc(SLI->points.size() * sizeof(Point));
         Point* Points = new Point[SLI->points.size()];
-        if (Points != NULL)
-            for (int i = 0; i < SLI->points.size(); i++)
-                Points[i] = Point((int)SLI->points[i].x + Origin.X, (int)SLI->points[i].y + Origin.Y);
+        for (int i = 0; i < SLI->points.size(); i++)
+#pragma warning ( push )
+#pragma warning( disable : 6386)
+            Points[i] = Point((int)SLI->points[i].x + Origin.X, (int)SLI->points[i].y + Origin.Y);
+#pragma warning ( pop )
 
         graphics.DrawLines(&pen, Points, (int)SLI->points.size());
         delete[] Points;
@@ -180,7 +184,7 @@ void WindowRMPage::DrawTextItem(void* DrawDetails, RootText* RT)
 {
 constexpr auto TEXT_X_START = 50;
 constexpr auto TEXT_Y_START = 150;
-    HDC hDC = (HDC)DrawDetails;
+HDC hDC = ((DrawDetailsParams*)DrawDetails)->hDC;
 
     Graphics graphics(hDC);
     PointF DrawPos(TEXT_X_START, TEXT_Y_START);

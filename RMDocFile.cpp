@@ -7,11 +7,18 @@ using namespace std;
 template int RMDocFile<WindowRMPage>::ExtractRMsFromZip(const char* FileName);
 template int RMDocFile<WindowRMPage>::SaveRMsToZip(const char* FileName);
 template void RMDocFile<WindowRMPage>::DrawPage(void* DrawDetails, int Page);
+template RMDocFile<WindowRMPage>::~RMDocFile();
 
 #include "ToOneRMPage.h"
 template int RMDocFile<ToOneRMPage>::ExtractRMsFromZip(const char* FileName);
 template int RMDocFile<ToOneRMPage>::SaveRMsToZip(const char* FileName);
 template void RMDocFile<ToOneRMPage>::DrawPage(void* DrawDetails, int Page);
+template RMDocFile<ToOneRMPage>::~RMDocFile();
+
+template<class PageType> RMDocFile<PageType>::~RMDocFile() {
+    for (PageType* Page : Pages)
+        delete Page;
+}
 
 
 template<class PageType> int RMDocFile<PageType>::ExtractRMsFromZip(const char* FileName)

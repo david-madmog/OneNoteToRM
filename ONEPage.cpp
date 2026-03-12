@@ -258,9 +258,12 @@ wstring ONEPage::SaveText()
 
     xml_node bodyNode = htmlNode.append_child(L"body");
     bodyNode.append_attribute(L"data-absolute-enabled") = L"true";
-    Style.str(L"");
-    Style << L"font-family:" << TextDivs[0]->Texts[0].Font << L";font-size:" << TextDivs[0]->Texts[0].FontSize << L"pt";
-    bodyNode.append_attribute(L"style") = Style.str();
+    if (TextDivs.size()>0)
+    {
+        Style.str(L"");
+        Style << L"font-family:" << TextDivs[0]->Texts[0].Font << L";font-size:" << TextDivs[0]->Texts[0].FontSize << L"pt";
+        bodyNode.append_attribute(L"style") = Style.str();
+    }
 
     for (auto& TextDiv : TextDivs) {
         xml_node divNode = bodyNode.append_child(L"div");

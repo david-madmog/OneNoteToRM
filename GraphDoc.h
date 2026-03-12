@@ -1,6 +1,8 @@
 #pragma once
 #include "framework.h"
 #include "secrets.h"
+#include "GraphAPI.h"
+#include "OneNoteToRM.h"
 
 #pragma warning ( push )
 #pragma warning( disable : 4005 26819)
@@ -10,29 +12,25 @@
 
 using njson = nlohmann::json;
 
-template<class PageType> class GraphDoc
+template<class PageType> class GraphDoc : public Drawable
 {
 private:
-	std::wstring* SendRequestAndAwaitResponse(const wchar_t* URLPath);
-	std::wstring* PostUpdateAndAwaitResponse(const wchar_t* URLPath, const wchar_t * Body, const wchar_t* Boundary);
-	int GetLogonToken();
-	int LoadPages(wchar_t* SectionID);
+	void DeletePages(wchar_t* SectionID);
 	wchar_t* FindDocID(const std::string& NotebookName, const std::string& SectionName);
 
-	char * Refresh_Token = NULL;
-	std::wstring* Token = NULL;
-	char * LoginCode = NULL;
+	GraphAPI* API;
 
 protected:
 	std::vector<PageType* > Pages;
 
 public:
-	GraphDoc();
-	void LoginToMicrosoft(HWND hWnd);
-	void SetLoginCode(wchar_t * LoginCodeW);
+	GraphDoc(GraphAPI* pAPI);
+	~GraphDoc();
+
 	int LoadDoc(const std::string& NotebookName, const std::string& SectionName);
 	int SaveDoc(const std::string& NotebookName, const std::string& SectionName);
-	void Resize(HWND hWnd);
+	int LoadPages(wchar_t* SectionID);
+	int SaveDoc(wchar_t* SectionID);
 
 	void DrawPage(void* DrawDetails, int page);
 

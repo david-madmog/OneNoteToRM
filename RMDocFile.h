@@ -31,10 +31,9 @@
 
 *******************************************************************************/
 
-
 using json = nlohmann::json;
 
-template<class PageType> class RMDocFile
+template<class PageType> class RMDocFile : public Drawable
 {
 protected:
     void LoadMetaData(zip* archive, int index, size_t size);
@@ -52,6 +51,7 @@ protected:
     json LoadJSONData(zip_file* file, zip_uint64_t size);
 public:
     RMDocFile() { static_assert(std::is_base_of<RMPage, PageType>::value, "Doc file must be based on PageType derived from RMPage"); }
+    ~RMDocFile();
     int ExtractRMsFromZip(const char* FileName);
     int SaveRMsToZip(const char* FileName);
     void DrawPage(void* DrawDetails, int page);

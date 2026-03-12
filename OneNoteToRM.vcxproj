@@ -172,6 +172,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="GraphAPI.h" />
     <ClInclude Include="OneNoteToRM.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="GraphDoc.h" />
@@ -179,6 +180,7 @@
     <ClInclude Include="pugiconfig.hpp" />
     <ClInclude Include="pugixml.hpp" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="RMAPI.h" />
     <ClInclude Include="RMBlock.h" />
     <ClInclude Include="RMBlockTypes.h" />
     <ClInclude Include="RMPage.h" />
@@ -191,10 +193,12 @@
     <ClInclude Include="WindowRMPage.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="GraphAPI.cpp" />
     <ClCompile Include="OneNoteToRM.cpp" />
     <ClCompile Include="GraphDoc.cpp" />
     <ClCompile Include="ONEPage.cpp" />
     <ClCompile Include="pugixml.cpp" />
+    <ClCompile Include="RMAPI.cpp" />
     <ClCompile Include="RMBlock.cpp" />
     <ClCompile Include="RMBlockTypes.cpp" />
     <ClCompile Include="RMPage.cpp" />

@@ -6,13 +6,11 @@ using namespace Gdiplus;
 void WindowONEPage::DrawPage(void* DrawDetails)
 {
     RectF BoundingBox;
-    HDC hDC = (HDC)DrawDetails;
+    HDC hDC = ((DrawDetailsParams*)DrawDetails)->hDC;
     Graphics graphics(hDC);
 
-    RECT rect;
-    SetRect(&rect, 0, 0, 1000, 1000);
-    FillRect(hDC, &rect, (HBRUSH)(COLOR_WINDOW + 1));
-
+    SetRect(&((DrawDetailsParams*)DrawDetails)->Rect, 0, 0, 1000, 1000);
+    FillRect(hDC, &((DrawDetailsParams*)DrawDetails)->Rect, (HBRUSH)(COLOR_WINDOW + 1));
 
     SolidBrush  solidBrush(Color(255, 0, 0, 0));
     StringFormat form(StringFormat::GenericTypographic()); // this is needed to prevent characters from including paddinf
@@ -40,11 +38,13 @@ void WindowONEPage::DrawPage(void* DrawDetails)
         pen.SetLineJoin(LineJoinRound);
         pen.SetEndCap(LineCapRound);
 
-//        Point* Points = (Point*)malloc(Trace->points.size() * sizeof(Point));
         Point * Points = new Point[Trace->points.size()];
         if (Points != NULL)
             for (int i = 0; i < Trace->points.size(); i++)
-                Points[i] = Point((int)Trace->points[i].X/20 , (int)Trace->points[i].Y/20);
+#pragma warning ( push )
+#pragma warning( disable : 6386)
+                Points[i] = Point((int)Trace->points[i].X / 20, (int)Trace->points[i].Y / 20);
+#pragma warning ( pop )
 
         graphics.DrawLines(&pen, Points, (int)Trace->points.size());
 

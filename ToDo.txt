@@ -12,7 +12,7 @@ Work out pen width
 display of multi-line text in app
 Bullets?
 "Shader" pen not coming out with transparency
-
+Remove Secrets.h?
 
 Sort out memory management - destructors freeing all allocated stuff
   - Pages
