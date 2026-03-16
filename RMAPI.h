@@ -10,6 +10,7 @@ private:
 public:
 	static void GetDoc(std::string Name);
 	static void ListDocs(std::vector<std::wstring>&Docs);
-
+	static void SaveDoc(std::string Name);
+	static void CopyDoc(std::string Name);
 };
 

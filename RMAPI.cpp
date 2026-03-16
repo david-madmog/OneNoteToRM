@@ -13,7 +13,7 @@ using namespace std;
 string RMAPI::exec(const char* cmd) {
     array<char, 128> buffer{};
     string result;
-   unique_ptr<FILE, decltype(&_pclose)> pipe(_popen(cmd, "r"), _pclose);
+    unique_ptr<FILE, decltype(&_pclose)> pipe(_popen(cmd, "r"), _pclose);
     if (!pipe) {
         throw runtime_error("popen() failed!");
     }
@@ -32,8 +32,9 @@ void RMAPI::GetDoc(std::string Name)
     Command.append(Name);
     Command.append("\"");
 
-    sprintf_s(LogBuffer, LB_SIZE, "Document get: %s", Command.c_str());
-    DoLog("RMAPI", LogBuffer, LOG_DEBUG);
+    std::wostringstream LB;
+    LB << "Document get: " << Command.c_str();
+    DoLog("RMAPI", LB.str().c_str(), LOG_DEBUG);
 
     Result = exec(Command.c_str());
 	DoLog("RMAPI", Result.c_str(), LOG_DEBUG);
@@ -57,3 +58,52 @@ void RMAPI::ListDocs(vector<wstring>&Docs) {
     }
 
 }
+
+void RMAPI::SaveDoc(std::string Name) {
+//    std::string Zipfile = WorkingDir;
+    std::string Zipfile = "";
+    Zipfile.append(Name);
+    Zipfile.append(".rmdoc");
+    std::string TMPfile = "";
+    TMPfile.append("Output.rmdoc");
+
+    string Result = "";
+    string Command = "";
+
+    Command = "copy Output.rmdoc \"";
+    Command.append(Zipfile);
+    Command.append("\" /B /Y");
+    Result = exec(Command.c_str());
+    DoLog("RMAPI", Result.c_str(), LOG_DEBUG);
+
+
+    Command = "rmapi put \"";
+    Command.append(Zipfile);
+    Command.append("\" --force");
+
+    std::wostringstream LB;
+    LB << "Document PUT: " << Command.c_str();
+    DoLog("RMAPI", LB.str().c_str(), LOG_DEBUG);
+
+    Result = exec(Command.c_str());
+    DoLog("RMAPI", Result.c_str(), LOG_DEBUG);
+}
+
+void RMAPI::CopyDoc(std::string Name) {
+    //    std::string Zipfile = WorkingDir;
+    std::string Zipfile = "";
+    Zipfile.append(Name);
+    Zipfile.append(".rmdoc");
+    std::string TMPfile = "";
+    TMPfile.append("Output.rmdoc");
+
+    string Result = "";
+    string Command = "";
+
+    Command = "copy Output.rmdoc \"";
+    Command.append(Zipfile);
+    Command.append("\" /B /Y");
+    Result = exec(Command.c_str());
+    DoLog("RMAPI", Result.c_str(), LOG_DEBUG);
+}
+

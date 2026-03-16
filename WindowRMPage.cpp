@@ -31,7 +31,7 @@ void WindowRMPage::DrawPageInit(void* DrawDetails)
             FindMinMax((SceneLineItem*)val);
     }
 
-    sprintf_s(LogBuffer, LB_SIZE, "Min/Max (%d, %d), Anchor: (%d, %d)",
+    sprintf_s(LogBuffer, LB_SIZE, "Min/Max (%d, %d),(%d, %d)",
         MinX, MinY, MaxX, MaxY
     );
     DoLog(typeid(*this).name(), LogBuffer, LOG_INFO);
@@ -118,8 +118,7 @@ void WindowRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
         delete[] Points;
 
         //Pen GPen(Color(0, 255, 0), 1);
-        //graphics.DrawLine(&GPen, (int)SLI->points[0].x + Origin.X, (int)SLI->points[0].y + Origin.Y,
-        //    (int)Origin.X, (int)Origin.Y);
+        //graphics.DrawLine(&GPen, (int)SLI->points[0].x + Origin.X, (int)SLI->points[0].y + Origin.Y, (int)Origin.X, (int)Origin.Y);
 
     }
 }

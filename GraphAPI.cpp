@@ -99,7 +99,7 @@ std::wstring* GraphAPI::PostUpdateAndAwaitResponse(const wchar_t* URLPath, const
         std::wostringstream LB;
         LB << L"GOT data: " << RespData->substr(0, LB_SIZE - 50);
         DoLog(typeid(*this).name(), LB.str().c_str(), LOG_INFO);
-        return RespData;
+        return RespData;   //!!!CHECK WE DELETE THIS
     }
     else {
         std::wostringstream LB;
@@ -159,7 +159,7 @@ std::wstring* GraphAPI::SendRequestAndAwaitResponse(const wchar_t* URLPath) {
         std::wostringstream LB;
         LB << L"GOT data: " << RespData->substr(0, LB_SIZE - 50);
         DoLog(typeid(*this).name(), LB.str().c_str(), LOG_INFO);
-        return RespData;
+        return RespData; //!!!CHECK WE DELETE THIS
     }
     else {
         std::wostringstream LB;
@@ -344,7 +344,7 @@ int GraphAPI::GetLogonToken()
                 wcstombs_s(&Num, Refresh_Token, LB_SIZE, RT.c_str(), LB_SIZE);
                 std::wostringstream LB;
                 LB << "Got Refresh token : " << Refresh_Token;
-                DoLog(typeid(*this).name(), LB.str().c_str(), LOG_ERROR);
+                DoLog(typeid(*this).name(), LB.str().c_str(), LOG_DEBUG);
 
                 WritePrivateProfileStringA("OneNote", "RefreshToken", Refresh_Token, gszIniFileName);
             }

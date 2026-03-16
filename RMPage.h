@@ -35,6 +35,7 @@ protected:
 public:
     RMPage();
     RMPage(std::string id);
+    ~RMPage();
     bool operator== (const RMPage& b) { return m_id == b.m_id; };
     bool operator== (const std::string& b) { return m_id == b; };
     void Load(zip_file* file);
@@ -43,4 +44,6 @@ public:
     void AddBlock(RMBlock * Block);
     std::string m_id;
     std::string PageTitle = "";
+
+    friend class ToRMOnePage;
 };

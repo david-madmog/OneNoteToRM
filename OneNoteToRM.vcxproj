@@ -189,6 +189,7 @@
     <ClInclude Include="secrets.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="ToOneRMPage.h" />
+    <ClInclude Include="ToRMOnePage.h" />
     <ClInclude Include="WindowONEPage.h" />
     <ClInclude Include="WindowRMPage.h" />
   </ItemGroup>
@@ -205,6 +206,7 @@
     <ClCompile Include="RMDocFile.cpp" />
     <ClCompile Include="RMTestFileBuilder.cpp" />
     <ClCompile Include="ToOneRMPage.cpp" />
+    <ClCompile Include="ToRMOnePage.cpp" />
     <ClCompile Include="WindowONEPage.cpp" />
     <ClCompile Include="WindowRMPage.cpp" />
   </ItemGroup>

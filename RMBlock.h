@@ -247,6 +247,7 @@ protected:
 
 public:
 	RMBlock();
+	virtual ~RMBlock() {};
 	virtual bool ParseBuffer(const unsigned char* Buff, size_t ValidLen, int version) { return false; };
 	inline virtual BT_BlockType BlockType() { return BT_UNKNOWN; };
 

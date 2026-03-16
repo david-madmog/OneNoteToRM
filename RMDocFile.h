@@ -45,7 +45,6 @@ protected:
     void WriteZipData(zip* archive, const char* docID, const char* ext, void* data, size_t data_size);
 
     std::vector<PageType* > Pages;
-    json Metadata;
     std::string Name;
 
     json LoadJSONData(zip_file* file, zip_uint64_t size);
@@ -55,4 +54,7 @@ public:
     int ExtractRMsFromZip(const char* FileName);
     int SaveRMsToZip(const char* FileName);
     void DrawPage(void* DrawDetails, int page);
+    void AddPage(PageType* Page) { Pages.push_back(Page); }
+
+    json Metadata;
 };

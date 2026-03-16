@@ -58,8 +58,8 @@ public:
 	size_t PrepareWrite();
 	inline BT_BlockType BlockType() { return BT_MigrationInfo; };
 private:
-	RM_CRDT_ID migration_id = {0, 0};
-	RM_BOOL is_device = 0;
+	RM_CRDT_ID migration_id = {1, 1};
+	RM_BOOL is_device = 1;
 	RM_BOOL Unknown = 0;
 };
 
@@ -119,9 +119,9 @@ public:
 	size_t PrepareWrite();
 	inline BT_BlockType BlockType() { return BT_SceneGroupItem; };
 	inline BT_SubBlockType SubBlockType() { return SBT_GroupBlock; };
+	RM_CRDT_ID ID5 = { 0, 0 };
 private:
 	UINT8 magic = 0;
-	RM_CRDT_ID ID5 = {0, 0};
 };
 
 
@@ -220,7 +220,7 @@ public:
 	bool ParseBuffer(const unsigned char* Buff, size_t ValidLen, int version);
 	size_t PrepareWrite();
 	inline BT_BlockType BlockType() { return BT_SceneInfo; };
-
+	void SetPaperSize(int X, int Y) { paper_size[0] = X; paper_size[1] = Y; }
 private:
 	rm_LWW_ID currentLayer{ {0, 0}, {0, 1} };
 	rm_LWW_Bool BackgroundVisible = { {0, 0}, 1 };
@@ -228,7 +228,7 @@ private:
 	UINT32 paper_size[2] = { 1,1 };
 
 	RM_CRDT_ID ID3;
-	UINT8 Magic1[32];
+	UINT8 Magic1[32] = {};
 	DOUBLE Magic2a = 0;
 	DOUBLE Magic2b = 0;
 	RM_CRDT_ID ID4;

@@ -16,8 +16,8 @@ template void RMDocFile<ToOneRMPage>::DrawPage(void* DrawDetails, int Page);
 template RMDocFile<ToOneRMPage>::~RMDocFile();
 
 template<class PageType> RMDocFile<PageType>::~RMDocFile() {
-    for (PageType* Page : Pages)
-        delete Page;
+    //for (PageType* Page : Pages)
+    //    delete Page;
 }
 
 

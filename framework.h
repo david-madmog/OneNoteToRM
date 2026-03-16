@@ -39,3 +39,8 @@
 #include <array>
 
 #pragma warning( pop )
+
+
+#define RM_TO_ONE_XY_SCALE_FACTOR 20
+#define RM_TO_ONE_THICK_FACTOR 10
+#define RM_TO_ONE_LINE_FACTOR 20

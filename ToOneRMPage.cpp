@@ -1,8 +1,6 @@
 #include "ToOneRMPage.h"
 #include "WindowRMPage.h"
 
-#define RM_TO_ONE_SCALE_FACTOR 20
-
 
 ToOneRMPage::ToOneRMPage() 
 	: RMPage()
@@ -98,8 +96,8 @@ void ToOneRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
 
     INK_Trace * Trace = new INK_Trace();
     Trace->colour = SLI->colour();
-    Trace->thickness_scale = (DOUBLE)SLI->points[0].width * RM_TO_ONE_SCALE_FACTOR / 2 ;
-
+    Trace->thickness_scale = (DOUBLE)SLI->points[0].width * RM_TO_ONE_THICK_FACTOR ;
+//    Trace->thickness_scale = SLI->thickness_scale * RM_TO_ONE_THICK_FACTOR ;
     std::wostringstream tid;
     tid << L"{" << SLI->tool_id << SLI->colour().GetValue() << L"}";
     Trace->tool_id = tid.str() ;
@@ -107,14 +105,15 @@ void ToOneRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
     Trace->trace_id = tid.str();
     for (int i = 0; i < SLI->points.size() - 1; i++) {
         INK_Point P;
-        P.X = (int)(SLI->points[i].x + Origin.X) * RM_TO_ONE_SCALE_FACTOR;
-        P.Y = (int)(SLI->points[i].y + Origin.Y) * RM_TO_ONE_SCALE_FACTOR;
-        P.F = (int)SLI->points[i].width * RM_TO_ONE_SCALE_FACTOR ;
+        P.X = (int)(SLI->points[i].x + Origin.X) * RM_TO_ONE_XY_SCALE_FACTOR;
+        P.Y = (int)(SLI->points[i].y + Origin.Y) * RM_TO_ONE_XY_SCALE_FACTOR;
+        P.F = (int)SLI->points[i].width * RM_TO_ONE_LINE_FACTOR ;
         Trace->points.push_back(P);
     }
 
     OnePage.InkTraces.push_back(Trace);
 
+#if FALSE
     Trace = new INK_Trace();
     Trace->colour = Gdiplus::Color::Green;
     Trace->thickness_scale = 10;
@@ -133,7 +132,7 @@ void ToOneRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
     P.F = (int)SLI->points[0].width * RM_TO_ONE_SCALE_FACTOR;
     Trace->points.push_back(P);
     OnePage.InkTraces.push_back(Trace);
-
+#endif
 }
 
 std::wstring ToOneRMPage::GetRMFont(int format_code) {

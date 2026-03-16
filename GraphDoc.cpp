@@ -13,10 +13,19 @@
 template GraphDoc<WindowONEPage>::GraphDoc(GraphAPI* API);
 template GraphDoc<WindowONEPage>::~GraphDoc();
 template int GraphDoc<WindowONEPage>::LoadPages(wchar_t* SectionID);
-template int GraphDoc<WindowONEPage>::LoadDoc(const std::string& NotebookName, const std::string& SectionName);
-template int GraphDoc<WindowONEPage>::SaveDoc(const std::string& NotebookName, const std::string& SectionName);
+//template int GraphDoc<WindowONEPage>::LoadDoc(const std::string& NotebookName, const std::string& SectionName);
+//template int GraphDoc<WindowONEPage>::SaveDoc(const std::string& NotebookName, const std::string& SectionName);
 template int GraphDoc<WindowONEPage>::SaveDoc(wchar_t* SectionID);
 template void GraphDoc<WindowONEPage>::DrawPage(void* DrawDetails, int Page);
+
+#include "ToRMONEPage.h"
+template GraphDoc<ToRMOnePage>::GraphDoc(GraphAPI* API);
+template GraphDoc<ToRMOnePage>::~GraphDoc();
+template int GraphDoc<ToRMOnePage>::LoadPages(wchar_t* SectionID);
+//template int GraphDoc<ToRMOnePage>::LoadDoc(const std::string& NotebookName, const std::string& SectionName);
+//template int GraphDoc<ToRMOnePage>::SaveDoc(const std::string& NotebookName, const std::string& SectionName);
+//template int GraphDoc<ToRMOnePage>::SaveDoc(wchar_t* SectionID);
+template void GraphDoc<ToRMOnePage>::DrawPage(void* DrawDetails, int Page);
 
 
 template<class PageType> GraphDoc<PageType>::GraphDoc(GraphAPI* pAPI) {
@@ -24,8 +33,8 @@ template<class PageType> GraphDoc<PageType>::GraphDoc(GraphAPI* pAPI) {
 }
 
 template<class PageType> GraphDoc<PageType>::~GraphDoc() {
-    for (PageType* Page : Pages)
-        delete Page;
+//    for (PageType* Page : Pages)
+//        delete Page;
 }
 
 

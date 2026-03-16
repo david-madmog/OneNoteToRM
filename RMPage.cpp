@@ -18,6 +18,12 @@ RMPage::RMPage(std::string ID) {
     m_id = ID;
 }
 
+RMPage::~RMPage() {
+    for (auto& Block : Blocks)
+        delete Block;
+}
+
+
 void RMPage::Load(zip_file* file)
 {
     zip_int64_t NumRead;

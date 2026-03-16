@@ -6,6 +6,7 @@
 #include "RMDocFile.h"
 #include "WindowRMPage.h"
 #include "ToOneRMPage.h"
+#include "ToRMOnePage.h"
 #include "WindowONEPage.h"
 #include "RMTestFileBuilder.h"
 #include "GraphDoc.h"
@@ -30,6 +31,7 @@ WCHAR szPreviewWindowClass[MAX_LOADSTRING];            // the main window class 
 RMDocFile<WindowRMPage>* ZF;
 RMDocFile<ToOneRMPage>* TOZF;
 GraphDoc<WindowONEPage>* GD;
+GraphDoc<ToRMOnePage>* TOGD;
 GraphAPI* gAPI;
 int NumPages;
 int CurrentPage;
@@ -416,8 +418,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
 
                 SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting  RM LOAD..."));
-                if (ZF) 
-                    delete ZF;
+                //if (ZF) 
+                //    delete ZF;
                 ZF = new RMDocFile<WindowRMPage>();
 
                 std::string Zipfile = WorkingDir;
@@ -449,26 +451,40 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
 
                 delete[] WorkingDir;
+                delete[] RMFile;
+                delete[] sRMFile;
             }
                 break;
             case BTN_BUTTONSAVE:
             {
-                char* WorkingDir = (char*)malloc(LB_SIZE);
-                GetPrivateProfileStringA("RMFILE", "SaveDoc", "", WorkingDir, LB_SIZE, gszIniFileName);
+                wchar_t* RMFile = new wchar_t[LB_SIZE];
+                int CurSel = ListBox_GetCurSel(hRMList);
+                ListBox_GetText(hRMList, CurSel, RMFile);
+                char* sRMFile = new char[LB_SIZE];
+                size_t convertedChars = 0;
+                wcstombs_s(&convertedChars, sRMFile, LB_SIZE, RMFile, _TRUNCATE);
+
+                char* WorkingDir = new char[LB_SIZE];
+                GetPrivateProfileStringA("RMFILE", "WorkingDir", "", WorkingDir, LB_SIZE, gszIniFileName);
 
                 SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting  RM SAVE..."));
-                if (ZF)
-                    NumPages = ZF->SaveRMsToZip(WorkingDir);
 
-                //Result = exec("copy Output.rmdoc \"Conversion test.rmdoc\" /B /Y");
-                //DoLog("MAIN", Result.c_str(), LOG_INFO);
+//                std::string Zipfile = WorkingDir;
+//                Zipfile.append(sRMFile);
+//                Zipfile.append(".rmdoc");
+                std::string TMPfile = WorkingDir;
+                TMPfile.append("Output.rmdoc");
+                if (ZF)
+                    NumPages = ZF->SaveRMsToZip(TMPfile.c_str());
 
                 if (IsDlgButtonChecked(hWnd, CHK_RELOAD))
                 {
-                //    Result = exec("rmapi put \"Conversion test.rmdoc\" --force");
-                //    DoLog("MAIN", Result.c_str(), LOG_INFO);
+                    RMAPI::SaveDoc(sRMFile);
                 }
-                free(WorkingDir);
+
+                delete[] WorkingDir;
+                delete[] RMFile;
+                delete[] sRMFile;
             }
                 break;
             case CHK_RELOAD:
@@ -481,10 +497,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             case BTN_BUTTON_TEST:
                 SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting TEST..."));
+                if (ZF)
+                    delete ZF;
+
                 ZF = new RMTestFileBuilder<WindowRMPage>;
                 NumPages = ((RMTestFileBuilder<WindowRMPage>*)ZF)->Build();
                 CurrentPage = 0;
-                //InvalidateRect(hImage, NULL, TRUE);
+
+                if (hPreview)
+                {
+                    // Window already exists...
+                    ShowWindow(hPreview, SW_NORMAL);
+                    InvalidateRect(hPreview, NULL, TRUE);
+                }
+                else {
+                    hPreview = CreateWindowW(szPreviewWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL,
+                        CW_USEDEFAULT, 0, 500, 650, hWnd, nullptr, hInst, nullptr);
+                    if (!hPreview)
+                    {
+                        int err = GetLastError();
+                        sprintf_s(LogBuffer, LB_SIZE, "Creating perview error 0x%X", err);
+                        DoLog("MAIN", LogBuffer, LOG_ERROR);
+                    }
+                    else
+                    {
+                        PostMessage(hPreview, WM_PREPARE_POPUP, (WPARAM)ZF, NULL);
+                        ShowWindow(hPreview, SW_NORMAL);
+                        UpdateWindow(hPreview);
+                    }
+                }
+
                 break;
             case BTN_ONE_PREVIEW_BUTTON:
             {
@@ -544,19 +586,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
             }
 			break;
-            case BTN_BUTTON_ONESAVE:
-            {
-                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting ONENOTE SAVE..."));
-
-                char* Setting = new char[LB_SIZE];
-                GetPrivateProfileStringA("OneNote", "Notebook", "", Setting, LB_SIZE, gszIniFileName);
-                const std::string Notebook{ Setting };
-                GetPrivateProfileStringA("OneNote", "Section", "", Setting, LB_SIZE, gszIniFileName);
-                const std::string Section{ Setting };
-                if (GD)
-                    GD->SaveDoc(Notebook, Section);
-            }
-            break;
             case BTN_RM_TO_ONE:
             {
                 SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting RM TO ONE..."));
@@ -578,6 +607,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
 
                 SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting RM LOAD..."));
+                if (TOZF)
+                    delete TOZF;
                 TOZF = new RMDocFile<ToOneRMPage>();
                 std::string Zipfile = WorkingDir;
                 Zipfile.append(sRMFile);
@@ -587,6 +618,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 if (!gAPI)
                     gAPI = new GraphAPI();
 
+                if (GD)
+                    delete GD;
                 GD = new GraphDoc<WindowONEPage>(gAPI);
 
                 // Now do the conversion...
@@ -601,19 +634,63 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     GD->SaveDoc(ONEFileID);
                     CurrentPage = 0;
                 }
+
+                delete[] WorkingDir;
+                delete[] RMFile;
+                delete[] sRMFile;
             }
             break;
             case BTN_ONE_TO_RM:
             {
-                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting ONE TO RM..."));
+                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting RM TO ONE..."));
 
-                char* Setting = new char[LB_SIZE];
-                GetPrivateProfileStringA("OneNote", "Notebook", "", Setting, LB_SIZE, gszIniFileName);
-                const std::string Notebook{ Setting };
-                GetPrivateProfileStringA("OneNote", "Section", "", Setting, LB_SIZE, gszIniFileName);
-                const std::string Section{ Setting };
-                if (GD)
-                    GD->SaveDoc(Notebook, Section);
+                // First, load the ONE page
+                int CurSel = ListBox_GetCurSel(hONEList);
+                wchar_t* ONEFileID = (wchar_t*)SendMessage(hONEList, LB_GETITEMDATA, CurSel, NULL);
+                if (!gAPI)
+                    gAPI = new GraphAPI();
+
+                if (TOGD)
+                    delete TOGD;
+                TOGD = new GraphDoc<ToRMOnePage>(gAPI);
+                NumPages = TOGD->LoadPages(ONEFileID);
+
+//                if (ZF)
+//                    delete ZF;
+                ZF = new RMDocFile<WindowRMPage>();
+
+                // Now convert...
+                for (int i = 0; i < NumPages; i++)
+                    TOGD->DrawPage((void*)ZF, i);
+
+                // And save the RM file
+                wchar_t* RMFile = new wchar_t[LB_SIZE];
+                CurSel = ListBox_GetCurSel(hRMList);
+                ListBox_GetText(hRMList, CurSel, RMFile);
+                char* sRMFile = new char[LB_SIZE];
+                size_t convertedChars = 0;
+                wcstombs_s(&convertedChars, sRMFile, LB_SIZE, RMFile, _TRUNCATE);
+
+                char* WorkingDir = new char[LB_SIZE];
+                GetPrivateProfileStringA("RMFILE", "WorkingDir", "", WorkingDir, LB_SIZE, gszIniFileName);
+
+                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting  RM SAVE..."));
+                std::string TMPfile = WorkingDir;
+                TMPfile.append("Output.rmdoc");
+                if (ZF)
+                    NumPages = ZF->SaveRMsToZip(TMPfile.c_str());
+
+                if (IsDlgButtonChecked(hWnd, CHK_RELOAD))
+                {
+                    RMAPI::SaveDoc(sRMFile);
+                }
+                else {
+                    RMAPI::CopyDoc(sRMFile);
+                }
+
+                delete[] WorkingDir;
+                delete[] RMFile;
+                delete[] sRMFile;
             }
             break;
             default:
@@ -647,17 +724,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             wchar_t* SID = new wchar_t[1023];
             wcscpy_s(SID, 1023, Section.ID.c_str());
             SendMessage(hONEList, LB_SETITEMDATA, Index, (LPARAM)SID);
+            //delete[] SID;   We need to delete this memory when we empty the list box, it's needed until then
         }
     }
         break;
-    //case WM_PAINT:
-    //    {
-    //        PAINTSTRUCT ps;
-    //        HDC hdc = BeginPaint(hWnd, &ps);
-    //        // TODO: Add any drawing code that uses hdc here...
-    //        EndPaint(hWnd, &ps);
-    //    }
-    //    break;
     case WM_SIZE:
         LayoutWindow(hWnd);
         break;

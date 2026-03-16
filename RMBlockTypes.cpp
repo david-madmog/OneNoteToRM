@@ -5,6 +5,9 @@
 #include "RMBlockTypes.h"
 #include "OneNoteToRM.h"
 
+#pragma pack( push, 1)
+
+
 bool MigrationInfo::ParseBuffer(const unsigned char* Buff, size_t ValidLen, int version)
 {
 	DoLog(typeid(*this).name(), "Migration Info...", LOG_DEBUG_VERBOSE);
@@ -361,14 +364,22 @@ bool SceneLineItem::ParseBuffer(const unsigned char* Buff, size_t ValidLen, int 
 	//		# XXX unused
 	if (Buff_Ptr < Buff + ValidLen)
 	{
+		bool bT7 = false;
+		bool bHC = false;
 		Buff_Ptr = ReadTaggedData(&timestamp, Buff_Ptr, 6);
 		if (Buff_Ptr < Buff + ValidLen)
+		{
 			Buff_Ptr = ReadTaggedDataOptional(&Tag7, Buff_Ptr, 7);
+			bT7 = true;
+		}
 		if (Buff_Ptr < Buff + ValidLen)
+		{
 			Buff_Ptr = ReadTaggedDataOptional(&HighlightColour, Buff_Ptr, 8);
+			bHC = true;
+		}
 
-		sprintf_s(LogBuffer, LB_SIZE, "Line Item: Tag7: (%d, %d), Tag8:%X Colour %d", 
-			Tag7.part1, Tag7.part2, HighlightColour, color_id);
+		sprintf_s(LogBuffer, LB_SIZE, "Line Item: ToolID: %d ColorID: %d thickness_scale: %lf starting Length: %f Tag7: %c(%d, %d), Tag8 %c:%X", 
+			tool_id, color_id, thickness_scale, starting_length, bT7?'Y':'N', Tag7.part1, Tag7.part2, bHC ? 'Y' : 'N', HighlightColour);
 		DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG_VERBOSE);
 	}
 
@@ -384,7 +395,16 @@ size_t SceneLineItem::PrepareWrite()
 
 	size_t LinesLen = LineItemPoint::point_serialized_size(2) * points.size();
 	size_t SceneItemWithoutLinesLen = 2 * sizeof(UINT32) + sizeof(DOUBLE) + sizeof(FLOAT) + 4 * SIZE_OF_TAG + SIZE_OF_SUBBLOCK
-		+ timestamp.SizeOfT() + Tag7.SizeOfT() + sizeof(UINT32) + SIZE_OF_TAG + 1 /* +1 is for tag above 8*/;
+		+ timestamp.SizeOfT()
+		//		+ Tag7.SizeOfT()
+		//		+ sizeof(UINT32) + SIZE_OF_TAG + 1 /* +1 is for tag above 8*/;
+		;
+
+	if (Tag7 != RM_CRDT_ID{ 255, 255 })
+		SceneItemWithoutLinesLen += Tag7.SizeOfT();
+	if (HighlightColour != 0xFFFFFFFF) 
+		SceneItemWithoutLinesLen += sizeof(UINT32) + SIZE_OF_TAG + 1 /* +1 is for tag above 8*/;
+
 
 	WriteBuffLen = sizeof(rm_BlockHead) + this->SizeOfSceneItemDetails() + LinesLen + SceneItemWithoutLinesLen;
 
@@ -406,8 +426,10 @@ size_t SceneLineItem::PrepareWrite()
 	}
 	
 	Local_Buff = WriteTaggedData(&timestamp, Local_Buff, 6);
-	Local_Buff = WriteTaggedData(&Tag7, Local_Buff, 7);
-	Local_Buff = WriteTaggedData(&HighlightColour, Local_Buff, 8);
+	if (Tag7 != RM_CRDT_ID{ 255, 255 })
+		Local_Buff = WriteTaggedData(&Tag7, Local_Buff, 7);
+	if (HighlightColour != 0xFFFFFFFF)
+		Local_Buff = WriteTaggedData(&HighlightColour, Local_Buff, 8);
 
 	assert((char*)Local_Buff == (char*)WriteBuff + WriteBuffLen);
 	return WriteBuffLen;
@@ -768,4 +790,6 @@ size_t SceneInfo::PrepareWrite()
 	assert((char*)Local_Buff == (char*)WriteBuff + WriteBuffLen);
 	return WriteBuffLen;
 }
+
+#pragma pack( pop )
 

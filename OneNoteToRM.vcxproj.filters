@@ -72,6 +72,9 @@
     <ClInclude Include="RMAPI.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ToRMOnePage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="OneNoteToRM.cpp">
@@ -114,6 +117,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="RMAPI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ToRMOnePage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
