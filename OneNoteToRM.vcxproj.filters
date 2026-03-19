@@ -42,16 +42,10 @@
     <ClInclude Include="WindowRMPage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="RMTestFileBuilder.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ONEPage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="WindowONEPage.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="secrets.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="GraphDoc.h">
@@ -75,6 +69,9 @@
     <ClInclude Include="ToRMOnePage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ConversionConstants.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="OneNoteToRM.cpp">
@@ -93,9 +90,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="WindowRMPage.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="RMTestFileBuilder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ONEPage.cpp">

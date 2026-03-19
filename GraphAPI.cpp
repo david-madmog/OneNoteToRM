@@ -1,4 +1,6 @@
+#include "framework.h"
 #include "GraphAPI.h"
+#include "resource.h"
 
 #pragma warning ( push )
 #pragma warning( disable : 26439 26495)
@@ -13,13 +15,22 @@
 #include <webview2.h>
 #pragma warning ( pop )
 
+#include "OneNoteToRM.h"
+
+#pragma warning ( push )
+#pragma warning( disable : 4005 26819)
+#define JSON_DIAGNOSTICS 1
+#include <nlohmann/json.hpp>
+#pragma warning ( pop )
+
+
 using namespace utility;                    // Common utilities like string conversions
 using namespace web;                        // Common features like URIs.
 using namespace web::http;                  // Common HTTP functionality
 using namespace web::http::client;          // HTTP client features
 using namespace concurrency::streams;       // Asynchronous streams
 
-//using json = nlohmann::json;
+using njson = nlohmann::json;
 
 static wil::com_ptr<ICoreWebView2Controller> webviewController;
 static wil::com_ptr<ICoreWebView2> webview;
@@ -262,7 +273,7 @@ int GraphAPI::GetLogonToken()
     bool bRefresh = false;
     if (strlen(Refresh_Token) > 1)
         bRefresh = true;
-    else if (!LoginCode) {
+    else if (LoginCode.empty()) {
         // We have neither - give up
         return -1;
     }
@@ -430,10 +441,11 @@ void GraphAPI::DeletePage(const wchar_t* URLPath)
 
 
 void GraphAPI::SetLoginCode(wchar_t* LoginCodeW) {
-    size_t i;
-    size_t Size = std::wcslen(LoginCodeW) + 1;
-    LoginCode = (char*)malloc(Size);
-    wcstombs_s(&i, LoginCode, Size, LoginCodeW, Size - 1);
+    //size_t i;
+    //size_t Size = std::wcslen(LoginCodeW) + 1;
+    //LoginCode = (char*)malloc(Size);
+    //wcstombs_s(&i, LoginCode, Size, LoginCodeW, Size - 1);
+    LoginCode = ws2s(LoginCodeW);
 }
 
 bool GraphAPI::EnsureConnected(void) 

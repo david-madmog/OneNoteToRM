@@ -1,6 +1,7 @@
+#include "framework.h"
 #include "WindowONEPage.h"
+#include "OneNoteToRM.h"
 
-#include <gdiplus.h>
 using namespace Gdiplus;
 
 void WindowONEPage::DrawPage(void* DrawDetails)

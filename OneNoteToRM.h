@@ -1,11 +1,17 @@
 #pragma once
 #include <windows.h>
-#include <objidl.h>
-#include <gdiplus.h>
-#include "framework.h"
-#include "resource.h"
-#include "zip.h"
-#pragma comment (lib,"Gdiplus.lib")
+#include <string>
+
+/*******************************************************************************
+
+	OneNoteToRM.h
+
+	Header for conversion of OneNote format into ReMarkable file blocks
+
+	(C) David Poirier 2026
+
+********************************************************************************/
+
 
 enum LogLevel {
 	LOG_DEBUG_VERBOSE = 0,
@@ -17,6 +23,10 @@ enum LogLevel {
 
 extern HWND hLoginPopup;
 extern char gszIniFileName[];
+
+std::wstring s2ws(const std::string& str);
+std::string ws2s(const std::wstring& wstr);
+
 
 extern char * LogBuffer;
 constexpr auto LB_SIZE = 10240;

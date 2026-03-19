@@ -1,5 +1,7 @@
+#include "framework.h"
 #include "ToRMOnePage.h"
 #include "RMDocFile.h"
+#include "ConversionConstants.h"
 
 #pragma warning ( push )
 #pragma warning( disable : 4005 26819)
@@ -37,14 +39,58 @@ void ToRMOnePage::DrawPage(void* DrawDetails)
 	RMPage.AddBlock(PI);
 
 	SceneInfo* SI = new SceneInfo;
-	SI->SetPaperSize(1404, 1872);
+	SI->SetPaperSize(PAGE_SIZE_X, PAGE_SIZE_Y);
 	RMPage.AddBlock(SI);
 
-	SceneTree* ST = new SceneTree;
-	ST->node_id = { 0, 11 };
-	ST->tree_id = { 0, 11 };
-	ST->parent_id = { 0, 1 };
-	RMPage.AddBlock(ST);
+	SceneTree* ST1 = new SceneTree;
+	ST1->node_id = { 0, 0 };
+	ST1->tree_id = { 2, 20 };
+	ST1->parent_id = { 0, 11 };
+	RMPage.AddBlock(ST1);
+
+	int ItemId = 30;
+	for (auto TextDiv : TextDivs)
+	{
+		RootText* RT = new RootText;
+		RT->pos_x = TextDiv->Left - RM_X_OFFSET;
+		RT->pos_y = TextDiv->Top;
+
+		for (auto TextSpan: TextDiv->Texts)
+		{
+			rm_CRDT_SEQ_ITEM<RM_STRING> RMT;
+			RMT.deleted_length = 0;
+			RMT.item_id.part1 = 2;
+			RMT.item_id.part2 = ItemId;
+			std::string * S = new std::string (ws2s(TextSpan.Text));
+			RMT.value = (char *) S->c_str();
+			RT->texts.push_back(RMT);
+
+			RootTextFormat RTF;
+			RTF.charID.part1 = 2;
+			RTF.charID.part2 = ItemId;
+			RTF.format_code = 1; //!!!
+//	  BASIC = 0
+//    PLAIN = 1
+//    HEADING = 2
+//    BOLD = 3
+//    BULLET = 4
+//    BULLET2 = 5
+//    CHECKBOX = 6
+//    CHECKBOX_CHECKED = 7
+			RT->formats.push_back(RTF);
+
+			ItemId += (int) S->size();
+		}
+
+		RMPage.AddBlock(RT);
+
+	}
+
+	SceneTree* ST2 = new SceneTree;
+	ST2->node_id = { 0, 11 };
+	ST2->tree_id = { 0, 11 };
+	ST2->parent_id = { 0, 1 };
+	RMPage.AddBlock(ST2);
 
 	TreeNode* TN1 = new TreeNode;
 	TN1->node_id = { 0,1 };
@@ -81,7 +127,7 @@ void ToRMOnePage::DrawPage(void* DrawDetails)
 			SceneLineItem::LineItemPoint* P1 = new SceneLineItem::LineItemPoint;
 			P1->width = Point.F / (RM_TO_ONE_LINE_FACTOR * (int)InkTrace->thickness_scale);
 			P1->pressure = 255;
-			P1->x = (FLOAT) Point.X / RM_TO_ONE_XY_SCALE_FACTOR;
+			P1->x = (FLOAT) (Point.X / RM_TO_ONE_XY_SCALE_FACTOR) - RM_X_OFFSET;
 			P1->y = (FLOAT) Point.Y / RM_TO_ONE_XY_SCALE_FACTOR;
 			LI->points.push_back(*P1);
 		}

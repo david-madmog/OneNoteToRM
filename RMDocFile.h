@@ -13,7 +13,7 @@
 
 /*******************************************************************************
 
-    RMDocFile.H
+    RMDocFile.h
 
     Header for generic ReMarkable file format - i.e. a .rmdoc such as that retrieved
     from rmapi.

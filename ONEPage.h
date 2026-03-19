@@ -1,15 +1,27 @@
 #pragma once
 #include <string>
-#include "framework.h"
-#include "OneNoteToRM.h"
-#include <format>
-#include <iostream>
-#include <wtypes.h>
-#include <tchar.h>
-#include "GraphDoc.h"
-
+#include <vector>
+#include <gdiplus.h>
 #include "pugixml.hpp"
 
+/*******************************************************************************
+
+	OnePage.h
+
+	Header for Generic OneNote Page.
+	Contains functions for parsing received page XML and HTML to more useful structures
+	Intent is for this class to be subclassed, with three virtual functions being
+	overridden for context specific rendering.
+
+	Uses PUGI XML for parsing, processing and reconstructing docs
+
+	see https://learn.microsoft.com/en-us/graph/integrate-with-onenote for API
+		description.
+	see https://pugixml.org/docs/manual.html#overview for documentation on PUGIXML
+
+	(C) David Poirier 2026
+
+********************************************************************************/
 
 
 typedef struct one_TextSpan {

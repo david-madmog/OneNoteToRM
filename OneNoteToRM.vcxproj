@@ -172,6 +172,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="ConversionConstants.h" />
     <ClInclude Include="GraphAPI.h" />
     <ClInclude Include="OneNoteToRM.h" />
     <ClInclude Include="framework.h" />
@@ -185,8 +186,6 @@
     <ClInclude Include="RMBlockTypes.h" />
     <ClInclude Include="RMPage.h" />
     <ClInclude Include="RMDocFile.h" />
-    <ClInclude Include="RMTestFileBuilder.h" />
-    <ClInclude Include="secrets.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="ToOneRMPage.h" />
     <ClInclude Include="ToRMOnePage.h" />
@@ -204,7 +203,6 @@
     <ClCompile Include="RMBlockTypes.cpp" />
     <ClCompile Include="RMPage.cpp" />
     <ClCompile Include="RMDocFile.cpp" />
-    <ClCompile Include="RMTestFileBuilder.cpp" />
     <ClCompile Include="ToOneRMPage.cpp" />
     <ClCompile Include="ToRMOnePage.cpp" />
     <ClCompile Include="WindowONEPage.cpp" />

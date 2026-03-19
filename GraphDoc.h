@@ -1,16 +1,22 @@
 #pragma once
-#include "framework.h"
-#include "secrets.h"
+#include <string>
+#include <vector>
 #include "GraphAPI.h"
 #include "OneNoteToRM.h"
 
-#pragma warning ( push )
-#pragma warning( disable : 4005 26819)
-#define JSON_DIAGNOSTICS 1
-#include <nlohmann/json.hpp>
-#pragma warning ( pop )
+/*******************************************************************************
 
-using njson = nlohmann::json;
+	GraphDoc.h
+
+	Header for base class implementing OneNote graph document.
+	Includes functions specific to loading and saving OneNote pages and is intended to 
+		be subclassed with something that can render the page - e.g. to draw to a Windows
+		DC or to render into some other format
+
+	(C) David Poirier 2026
+
+********************************************************************************/
+
 
 template<class PageType> class GraphDoc : public Drawable
 {

@@ -1,3 +1,5 @@
+#include "framework.h"
+#include "OneNoteToRM.h"
 
 #include "RMPage.h"
 
@@ -21,6 +23,7 @@ RMPage::RMPage(std::string ID) {
 RMPage::~RMPage() {
     for (auto& Block : Blocks)
         delete Block;
+    Blocks.clear();
 }
 
 

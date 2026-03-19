@@ -1,4 +1,9 @@
+#include "framework.h"
+#include "OneNoteToRM.h"
+#include "GraphDoc.h"
 #include "ONEPage.h"
+#include <filesystem>
+
 
 using namespace std;
 using namespace pugi;

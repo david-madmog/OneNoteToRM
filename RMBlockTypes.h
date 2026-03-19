@@ -1,10 +1,11 @@
 #pragma once
 #include <vector>
+#include <gdiplus.h>
 #include "RMBlock.h"
 
 /*******************************************************************************
 
-	RMBlockTypes.H
+	RMBlockTypes.h
 
 	Header for generic ReMarkable file format blocks
 
@@ -54,6 +55,7 @@ drawn on the page.
 
 class MigrationInfo : public RMBlock {
 public:
+	~MigrationInfo() {};
 	bool ParseBuffer(const unsigned char* Buff, size_t ValidLen, int version);
 	size_t PrepareWrite();
 	inline BT_BlockType BlockType() { return BT_MigrationInfo; };
@@ -66,6 +68,7 @@ private:
 class SceneTree : public RMBlock {
 public:
 	SceneTree();
+	~SceneTree() {};
 	bool ParseBuffer(const unsigned char* Buff, size_t ValidLen, int version);
 	size_t PrepareWrite();
 	inline BT_BlockType BlockType() { return BT_SceneTree; };
@@ -78,6 +81,7 @@ private:
 
 class TreeNode : public RMBlock {
 public: 
+	~TreeNode() {};
 	bool ParseBuffer(const unsigned char* Buff, size_t ValidLen, int version);
 	size_t PrepareWrite();
 	inline BT_BlockType BlockType() { return BT_TreeNode; };
@@ -94,6 +98,7 @@ private:
 
 class SceneTombstoneItem : public RMBlock {
 public:
+	~SceneTombstoneItem() {};
 	bool ParseBuffer(const unsigned char* Buff, size_t ValidLen, int version);
 	size_t PrepareWrite();
 	inline BT_BlockType BlockType() { return BT_SceneTombstoneItem; };
@@ -101,6 +106,7 @@ public:
 
 class SceneGlyphItem : public RMSceneItemBlock {
 public:
+	~SceneGlyphItem() {};
 	bool ParseBuffer(const unsigned char* Buff, size_t ValidLen, int version);
 	size_t PrepareWrite();
 	inline BT_BlockType BlockType() { return BT_SceneGlyphItem; };
@@ -115,6 +121,7 @@ private:
 
 class SceneGroupItem : public RMSceneItemBlock {
 public:
+	~SceneGroupItem() {};
 	bool ParseBuffer(const unsigned char* Buff, size_t ValidLen, int version);
 	size_t PrepareWrite();
 	inline BT_BlockType BlockType() { return BT_SceneGroupItem; };
@@ -127,6 +134,7 @@ private:
 
 class SceneLineItem : public RMSceneItemBlock {
 public:
+	~SceneLineItem() {};
 	bool ParseBuffer(const unsigned char* Buff, size_t ValidLen, int version);
 	size_t PrepareWrite();
 	inline BT_BlockType BlockType() { return BT_SceneLineItem; };
@@ -161,6 +169,7 @@ private:
 
 class SceneTextItem : public RMSceneItemBlock {
 public:
+	~SceneTextItem() {};
 	bool ParseBuffer(const unsigned char* Buff, size_t ValidLen, int version);
 	size_t PrepareWrite();
 	inline BT_BlockType BlockType() { return BT_SceneTextItem; };
@@ -180,20 +189,22 @@ struct RootTextFormat {
 
 class RootText : public RMBlock {
 public:
+	~RootText() {};
 	bool ParseBuffer(const unsigned char* Buff, size_t ValidLen, int version);
 	size_t PrepareWrite();
 	inline BT_BlockType BlockType() { return BT_RootText; };
 	std::vector<struct rm_CRDT_SEQ_ITEM<RM_STRING>> texts;
 	std::vector<struct RootTextFormat> formats;
-
-private:
 	DOUBLE pos_x = 0;
 	DOUBLE pos_y = 0;
+
+private:
 	FLOAT width = 0;
 };
 
 class AuthorIds : public RMBlock {
 public:
+	~AuthorIds() {};
 	bool ParseBuffer(const unsigned char* Buff, size_t ValidLen, int version);
 	size_t PrepareWrite();
 	inline BT_BlockType BlockType() { return BT_AuthorIds; };
@@ -204,6 +215,7 @@ private:
 
 class PageInfo : public RMBlock {
 public:
+	~PageInfo() {};
 	bool ParseBuffer(const unsigned char* Buff, size_t ValidLen, int version);
 	size_t PrepareWrite();
 	inline BT_BlockType BlockType() { return BT_PageInfo; };
@@ -217,6 +229,7 @@ private:
 
 class SceneInfo : public RMBlock {
 public:
+	~SceneInfo() {};
 	bool ParseBuffer(const unsigned char* Buff, size_t ValidLen, int version);
 	size_t PrepareWrite();
 	inline BT_BlockType BlockType() { return BT_SceneInfo; };

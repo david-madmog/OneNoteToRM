@@ -1,6 +1,7 @@
+#include "framework.h"
 #include "ToOneRMPage.h"
 #include "WindowRMPage.h"
-
+#include "GraphDoc.h"
 
 ToOneRMPage::ToOneRMPage() 
 	: RMPage()
@@ -19,6 +20,15 @@ ToOneRMPage::ToOneRMPage(std::string id)
     MinX = 0;
     MinY = 0;
 }
+
+ToOneRMPage::~ToOneRMPage()
+{
+    for (auto& Block : Blocks)
+        delete Block;
+    Blocks.clear();
+}
+
+
 
 void ToOneRMPage::DrawPageInit(void* DrawDetails) {
 

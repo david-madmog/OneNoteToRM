@@ -1,6 +1,12 @@
-// header.h : include file for standard system include files,
-// or project specific include files
-//
+/*******************************************************************************
+
+	Header.h
+
+	Standard include set for all .cpp modules
+
+	(C) David Poirier 2026
+
+********************************************************************************/
 
 #pragma once
 
@@ -9,38 +15,43 @@
 #pragma warning ( push )
 #pragma warning( disable : 26495 )
 
-
 #include "targetver.h"
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 // Windows Header Files
 #include <windows.h>
 
 // C RunTime Header Files
-#include <stdlib.h>
+
+#include <algorithm>
+#include <array>
+#include <assert.h>
+#include <codecvt>
+#include <cstdio>
+#include <format>
+#include <fstream>
+#include <iostream>
+#include <locale>
 #include <malloc.h>
+#include <map>
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <memory.h>
+#include <memory>
+#include <sstream>
+#include <stdexcept>
+#include <stdlib.h>
+#include <string>
 #include <tchar.h>
+#include <thread>
 #include <type_traits>
 #include <typeinfo>
 #include <vector>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <assert.h>
-#include <string>
-#include <format>
 #include <wtypes.h>
-#include <map>
-#include <thread>
 
-#include <cstdio>
-#include <memory>
-#include <stdexcept>
-#include <array>
+//#include <afxwin.h>   // must come first
+#include <Unknwn.h>
+#include <objidl.h>
+#include <gdiplus.h>
+#pragma comment (lib,"Gdiplus.lib")
 
 #pragma warning( pop )
-
-
-#define RM_TO_ONE_XY_SCALE_FACTOR 20
-#define RM_TO_ONE_THICK_FACTOR 10
-#define RM_TO_ONE_LINE_FACTOR 20

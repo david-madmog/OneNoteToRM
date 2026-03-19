@@ -1,3 +1,4 @@
+#include "framework.h"
 #include "GraphDoc.h"
 #include "OneNoteToRM.h"
 
@@ -5,6 +6,16 @@
 #pragma warning( disable : 26439 26495)
 #include <cpprest/asyncrt_utils.h>
 #pragma warning ( pop )
+
+
+#pragma warning ( push )
+#pragma warning( disable : 4005 26819)
+#define JSON_DIAGNOSTICS 1
+#include <nlohmann/json.hpp>
+#pragma warning ( pop )
+
+using njson = nlohmann::json;
+
 
 
 

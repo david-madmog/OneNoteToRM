@@ -1,12 +1,6 @@
+#include "framework.h"
 #include "RMAPI.h"
 #include "OneNoteToRM.h"
-#include <windows.h>
-#include <string>
-#include <sstream>
-#include <format>
-#include <iostream>
-#include <wtypes.h>
-#include <tchar.h>
 
 using namespace std;
 
@@ -28,7 +22,9 @@ void RMAPI::GetDoc(std::string Name)
 	string Result = "";
     string Command = "";
 
+    std::ranges::replace(Name, '\\', '/'); 
     Command = "rmapi get \"";
+
     Command.append(Name);
     Command.append("\"");
 
@@ -51,16 +47,20 @@ void RMAPI::ListDocs(vector<wstring>&Docs) {
     wstring s;
     while (getline(wresult, s)) {
         // something like : [f] \General topics
+        // or               [f] \\dir\file
         if (s[1] == 'f') {
             s.erase(0, 5);
+            if (s[0] == '\\')
+                s.erase(0, 1);
             Docs.push_back(s);
         }
     }
-
 }
 
 void RMAPI::SaveDoc(std::string Name) {
-//    std::string Zipfile = WorkingDir;
+    // trash\T4
+    
+    //    std::string Zipfile = WorkingDir;
     std::string Zipfile = "";
     Zipfile.append(Name);
     Zipfile.append(".rmdoc");
@@ -76,10 +76,12 @@ void RMAPI::SaveDoc(std::string Name) {
     Result = exec(Command.c_str());
     DoLog("RMAPI", Result.c_str(), LOG_DEBUG);
 
-
+    // put T4.rmdoc /trash --force
     Command = "rmapi put \"";
     Command.append(Zipfile);
-    Command.append("\" --force");
+    Command.append("\" ");
+    //Command.append(path);
+    Command.append(" --force");
 
     std::wostringstream LB;
     LB << "Document PUT: " << Command.c_str();

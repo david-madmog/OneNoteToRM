@@ -1,5 +1,19 @@
 #pragma once
 #include "RMPage.h"
+
+/*******************************************************************************
+
+    WindowRMPage.h
+
+    Header for display of an RMPage
+
+    This is a subclass of RMPage. It uses the RMPage subclass to load the page,
+        and then renders it to the DC passed in as part of the DrawDetails
+
+    (C) David Poirier 2026
+
+*******************************************************************************/
+
 class WindowRMPage :
     public RMPage
 {
@@ -16,6 +30,6 @@ private:
 public:
     WindowRMPage() ;
     WindowRMPage(std::string id) ;
-
+    ~WindowRMPage();
 };
 

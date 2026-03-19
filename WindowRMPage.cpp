@@ -1,4 +1,6 @@
+#include "framework.h"
 #include "WindowRMPage.h"
+#include "OneNoteToRM.h"
 
 using namespace Gdiplus;
 
@@ -19,6 +21,14 @@ WindowRMPage::WindowRMPage(std::string ID)
     MinX = 0;
     MinY = 0;
 }
+
+WindowRMPage::~WindowRMPage()
+{
+    for (auto& Block : Blocks)
+        delete Block;
+    Blocks.clear();
+}
+
 
 void WindowRMPage::DrawPageInit(void* DrawDetails)
 {

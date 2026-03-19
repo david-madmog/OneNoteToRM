@@ -1,5 +1,19 @@
 #pragma once
-#include "framework.h"
+#include <string>
+#include <vector>
+
+/*******************************************************************************
+
+	RMAPI.h
+
+	Header for wrapping RM API calls for getting, putting and listing RM docs
+	Basically just shells out to RMAPI executable do do the work
+
+	see https://github.com/ddvk/rmapi for download and documentation on RMAPI
+
+	(C) David Poirier 2026
+
+********************************************************************************/
 
 
 class RMAPI

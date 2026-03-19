@@ -1,7 +1,4 @@
-#define _USE_MATH_DEFINES
-#include <math.h>
-#include <typeinfo>
-#include <assert.h>
+#include "framework.h"
 #include "RMBlockTypes.h"
 #include "OneNoteToRM.h"
 

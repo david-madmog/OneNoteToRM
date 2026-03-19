@@ -1,4 +1,7 @@
+#include "framework.h"
+
 #pragma comment(lib, "rpcrt4.lib")  // UuidCreate - Minimum supported OS Win 2000
+
 #include "RMDocFile.h"
 using namespace std;
 
@@ -16,8 +19,9 @@ template void RMDocFile<ToOneRMPage>::DrawPage(void* DrawDetails, int Page);
 template RMDocFile<ToOneRMPage>::~RMDocFile();
 
 template<class PageType> RMDocFile<PageType>::~RMDocFile() {
-    //for (PageType* Page : Pages)
-    //    delete Page;
+    for (PageType* Page : Pages)
+        delete Page;
+    Pages.clear();
 }
 
 

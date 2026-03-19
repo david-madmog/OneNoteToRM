@@ -3,11 +3,9 @@
 #include <stdexcept>
 #include <wtypes.h>
 
-#include "OneNoteToRM.h"
-
 /*******************************************************************************
 
-	RMBlock.H
+	RMBlock.h
 
 	Header for generic ReMarkable file format blocks
 

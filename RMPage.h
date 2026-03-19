@@ -1,12 +1,13 @@
 #pragma once
-#include "framework.h"
-#include "OneNoteToRM.h"
 #include "RMBlock.h"
 #include "RMBlockTypes.h"
+#include <zip.h>
+#include <vector>
+#include <map>
 
 /*******************************************************************************
 
-    RMPage.H
+    RMPage.h
 
     Header for generic ReMarkable file format Pages
     Intent is for this class to be subclassed, with three virtual functions being 
@@ -35,7 +36,7 @@ protected:
 public:
     RMPage();
     RMPage(std::string id);
-    ~RMPage();
+    virtual ~RMPage();
     bool operator== (const RMPage& b) { return m_id == b.m_id; };
     bool operator== (const std::string& b) { return m_id == b; };
     void Load(zip_file* file);

@@ -8,17 +8,18 @@ TTTTT   OOO      DDDD    OOO
   T     OOO      DDDD    OOO
 
 
-Work out pen width
+TEXT on ONE->RM - why is line breaking?
+Work out pen width - more fiddling
 display of multi-line text in app
+Get/Save Subfolders in RMAPI
 Bullets?
 "Shader" pen not coming out with transparency
-Remove Secrets.h?
+tidy up logging to use wistringstream throughout 
 
 Sort out memory management - destructors freeing all allocated stuff
   - Pages
   - Docs
 
-Convert RMBlocks etc to use std::istringstream and ostringstream?
 Work out RM coordinate origin - is it defined?
 Tidy up headers
-New UI with doc lists
+UI - remove save, remove "Download" check box
