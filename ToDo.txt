@@ -21,5 +21,4 @@ Sort out memory management - destructors freeing all allocated stuff
   - Docs
 
 Work out RM coordinate origin - is it defined?
-Tidy up headers
 UI - remove save, remove "Download" check box
