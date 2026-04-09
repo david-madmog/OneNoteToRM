@@ -34,8 +34,9 @@ template<class PageType> int RMDocFile<PageType>::ExtractRMsFromZip(const char* 
     {
         zip_error_t Zerr;
         zip_error_init_with_code(&Zerr, err);
-        sprintf_s(LogBuffer, LB_SIZE, "Unable to open rmdoc: error code %d (%s)", err, zip_error_strerror(&Zerr));
-        DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
+        std::wostringstream LB;
+        LB << L"Unable to open rmdoc: error code " << err << L": " << zip_error_strerror(&Zerr);
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
         zip_error_fini(&Zerr);
         return 0;
     }
@@ -90,11 +91,20 @@ template<class PageType> int RMDocFile<PageType>::ExtractRMsFromZip(const char* 
                 else if (!strcmp(ext, "content"))
                     LoadPagesData(archive, ZipIndex, fileInfo.size);
                 else {
-                    sprintf_s(LogBuffer, LB_SIZE, "Unrecognised file type in Zip: %s", ext);
-                    DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
+                    std::wostringstream LB;
+                    LB << L"Unrecognised file type in Zip: " << ext ;
+                    DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
                 }
             }
 
+        }
+        else {
+            zip_error_t * Zerr = zip_get_error(archive);
+//            zip_error_init_with_code(&Zerr, archive->);
+            std::wostringstream LB;
+            LB << L"Unable to read zip for file index " << ZipIndex << L": " << zip_error_strerror(Zerr);
+            DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
+ //           zip_error_fini(&Zerr);
         }
     }
 
@@ -116,13 +126,14 @@ template<class PageType> int RMDocFile<PageType>::ExtractRMsFromZip(const char* 
 
 template<class PageType> void RMDocFile<PageType>::LoadMetaData(zip * archive, int index, size_t size) {
     Metadata = LoadJSONData(zip_fopen_index(archive, index, 0), size);
-    sprintf_s(LogBuffer, LB_SIZE, "Metadata: Doc Name '%s'", Metadata["visibleName"].get<std::string>().c_str());
-    DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG);
 
-    std::string meta{ Metadata.dump(2) };
+    //std::string meta{ Metadata.dump(2) };
 
     if (Metadata.contains("visibleName")) {
         Name = Metadata["visibleName"];
+        std::wostringstream LB;
+        LB << L"Metadata: Doc Name:" << Name.c_str();
+        DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
     }
 
     //.metadata
@@ -154,8 +165,9 @@ template<class PageType> void RMDocFile<PageType>::LoadPagesData(zip* archive, i
     else if (Content.contains("pages")) {
         C_Pages = Content["pages"];
     }
-    sprintf_s(LogBuffer, LB_SIZE, "Content: %zd pages listed", C_Pages.size());
-    DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG);
+    std::wostringstream LB;
+    LB << L"Content:" << C_Pages.size() << L" pages listed";
+    DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
 
     // Now create a page object for each one...
     for (json C_Page : C_Pages) {
@@ -340,8 +352,9 @@ template<class PageType> int RMDocFile<PageType>::SaveRMsToZip(const char* FileN
     {
         zip_error_t Zerr;
         zip_error_init_with_code(&Zerr, err);
-        sprintf_s(LogBuffer, LB_SIZE, "Unable to open rmdoc: error code %d (%s)", err, zip_error_strerror(&Zerr));
-        DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
+        std::wostringstream LB;
+        LB << L"Unable to open rmdoc: error code " << err << L": " << zip_error_strerror(&Zerr);
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
         zip_error_fini(&Zerr);
         return 0;
     }
@@ -361,8 +374,9 @@ template<class PageType> int RMDocFile<PageType>::SaveRMsToZip(const char* FileN
     if (zip_close(archive))
     {
         Zerr = * zip_get_error(archive);
-        sprintf_s(LogBuffer, LB_SIZE, "Unable to write rmdoc: error code %d (%s)", Zerr.zip_err, zip_error_strerror(&Zerr));
-        DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
+        std::wostringstream LB;
+        LB << L"Unable to open rmdoc: error code " << Zerr.zip_err << L": " << zip_error_strerror(&Zerr);
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
     }
     DoLog(typeid(*this).name(), "Done Write to Zip", LOG_DEBUG);
 
@@ -439,8 +453,9 @@ template<class PageType> void RMDocFile<PageType>::WriteZipData(zip* archive, co
     if (source) {
         if (zip_file_add(archive, FileName, source, ZIP_FL_ENC_UTF_8) == -1) {
             zip_error_t Zerr = *zip_get_error(archive);
-            sprintf_s(LogBuffer, LB_SIZE, "Unable to write rmdoc: error code %d (%s)", Zerr.zip_err, zip_error_strerror(&Zerr));
-            DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
+            std::wostringstream LB;
+            LB << L"Unable to open rmdoc: error code " << Zerr.zip_err << L": " << zip_error_strerror(&Zerr);
+            DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
             zip_source_free(source);
         }
     }
@@ -453,6 +468,11 @@ template<class PageType> void RMDocFile<PageType>::DrawPage(void* DrawDetails, i
     {
         RMPage* P = Pages[Page];
         P->DrawPage(DrawDetails);
+
+#if 0
+        std::wstring str = P->DumpTree();
+        OutputDebugString(str.c_str());
+#endif
     }
 }
 

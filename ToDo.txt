@@ -8,17 +8,14 @@ TTTTT   OOO      DDDD    OOO
   T     OOO      DDDD    OOO
 
 
-TEXT on ONE->RM - why is line breaking?
 Work out pen width - more fiddling
-display of multi-line text in app
-Get/Save Subfolders in RMAPI
-Bullets?
-"Shader" pen not coming out with transparency
-tidy up logging to use wistringstream throughout 
+Work out how to get calligraphy pen working in OneNote
+Text formatting and Bullets?
+"Shader" pen not coming out with transparency on ONENote
 
-Sort out memory management - destructors freeing all allocated stuff
+Check again memory management - destructors freeing all allocated stuff
   - Pages
   - Docs
 
-Work out RM coordinate origin - is it defined?
-UI - remove save, remove "Download" check box
+Change RMAPI to use temp directory
+Build installer

@@ -156,6 +156,7 @@ public:
 
 	std::vector<LineItemPoint> points;
 	Gdiplus::Color colour();
+	void SetColor(Gdiplus::Color InkColour);
 	UINT32 tool_id = 0;
 	DOUBLE thickness_scale = 0;
 private:
@@ -183,6 +184,8 @@ struct RootTextFormat {
 	RM_CRDT_ID charID = { 0, 0 };
 	RM_CRDT_ID timestamp = {0, 0};
 	UINT8 format_code = 0;
+	UINT8 code2 = 0;
+	UINT32 code3 = 0;
 	size_t SizeOf() { return charID.SizeOf() + timestamp.SizeOf() + 2 * sizeof(UINT8) + SIZE_OF_SUBBLOCK; }
 	size_t SizeOfT(int index = 0) { return charID.SizeOf() + timestamp.SizeOfT() + 2 * sizeof(UINT8) + SIZE_OF_SUBBLOCK + (index > 7 ? 1 : 0); }
 };
@@ -197,9 +200,9 @@ public:
 	std::vector<struct RootTextFormat> formats;
 	DOUBLE pos_x = 0;
 	DOUBLE pos_y = 0;
+	FLOAT width = 0;
 
 private:
-	FLOAT width = 0;
 };
 
 class AuthorIds : public RMBlock {
@@ -234,6 +237,7 @@ public:
 	size_t PrepareWrite();
 	inline BT_BlockType BlockType() { return BT_SceneInfo; };
 	void SetPaperSize(int X, int Y) { paper_size[0] = X; paper_size[1] = Y; }
+	void GetPaperSize(unsigned int& X, unsigned int&Y) { X = paper_size[0]; Y = paper_size[1]; }
 private:
 	rm_LWW_ID currentLayer{ {0, 0}, {0, 1} };
 	rm_LWW_Bool BackgroundVisible = { {0, 0}, 1 };

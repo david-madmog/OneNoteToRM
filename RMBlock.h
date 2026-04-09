@@ -95,6 +95,16 @@ typedef struct rm_CRDT_ID {
 	{
 		return std::tie(LHS.part1, LHS.part2) == std::tie(RHS.part1, RHS.part2);
 	}
+	friend std::wostream& operator<<(std::wostream& os, const rm_CRDT_ID RHS)
+	{
+		os << L"{" << RHS.part1 << L"," << RHS.part2 << L"}";
+		return os;
+	}
+	friend std::ostream& operator<<(std::ostream& os, const rm_CRDT_ID RHS)
+	{
+		os << "{" << RHS.part1 << "," << RHS.part2 << "}";
+		return os;
+	}
 public:
 	size_t SizeOf() const {
 		if (part2 < 0)
@@ -110,7 +120,7 @@ public:
 	size_t SizeOfT(int index = 0) const { return SizeOf() + (index > 7 ? 2 : 1); }
 } RM_CRDT_ID;
 
-std::wostream& operator<< (std::wostream& stream, const RM_CRDT_ID& RHS);
+//std::wostream& operator<< (std::wostream& stream, const RM_CRDT_ID& RHS);
 
 static const size_t SIZE_OF_TAG = sizeof(UINT8);
 static const size_t SIZE_OF_SUBBLOCK = sizeof(UINT32) + SIZE_OF_TAG;
@@ -200,6 +210,7 @@ protected:
 	static void* WriteTaggedData(DOUBLE* data, void* Buff_Ptr, int index);
 
 	static void* ReadTaggedDataOptional(UINT32* data, void* Buff_Ptr, int index);
+	static void* ReadTaggedDataOptional(UINT8* data, void* Buff_Ptr, int index);
 	static void* ReadTaggedDataOptional(RM_CRDT_ID* data, void* Buff_Ptr, int index);
 
 	static void* ReadIntPair(UINT32* Ints, void* Buff_Ptr, int index);

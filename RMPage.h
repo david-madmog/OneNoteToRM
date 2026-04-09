@@ -46,5 +46,7 @@ public:
     std::string m_id;
     std::string PageTitle = "";
 
+    std::wstring DumpTree();
+
     friend class ToRMOnePage;
 };

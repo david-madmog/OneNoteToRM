@@ -29,9 +29,8 @@ private:
     void FindMinMax(SceneLineItem* SLI);
     int GetRMFontSize(int format_code);
     std::wstring GetRMFont(int format_code);
-    
-    int MinX, MaxX, MinY, MaxY;
-
+    UINT32 paper_size[2] = { 100, 100 };
+    Gdiplus::Rect LineExt = { 0, 0, 100, 100 };
     WindowONEPage OnePage;
 
 public:

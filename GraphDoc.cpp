@@ -71,8 +71,9 @@ template<class PageType> int GraphDoc<PageType>::LoadPages(wchar_t * SectionID) 
         respJson = njson::parse(*RespData);
     }
     catch (njson::parse_error ex) {
-        sprintf_s(LogBuffer, LB_SIZE, "JSON Parse Error: %s", ex.what());
-        DoLog(typeid(*this).name(), LogBuffer, LOG_INFO);
+        std::wostringstream LB;
+        LB << L"JSON Parse Error: " << ex.what();
+        DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
         return 0;
     }
 
@@ -118,8 +119,9 @@ template<class PageType> void GraphDoc<PageType>::DeletePages(wchar_t* SectionID
         respJson = njson::parse(*RespData);
     }
     catch (njson::parse_error ex) {
-        sprintf_s(LogBuffer, LB_SIZE, "JSON Parse Error: %s", ex.what());
-        DoLog(typeid(*this).name(), LogBuffer, LOG_INFO);
+        std::wostringstream LB;
+        LB << L"JSON Parse Error: " << ex.what();
+        DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
         return;
     }
 
@@ -152,8 +154,9 @@ template<class PageType> wchar_t * GraphDoc<PageType>::FindDocID(const std::stri
         respJson = njson::parse(*RespData);
     }
     catch (njson::parse_error ex) {
-        sprintf_s(LogBuffer, LB_SIZE, "JSON Parse Error: %s", ex.what());
-        DoLog(typeid(*this).name(), LogBuffer, LOG_INFO);
+        std::wostringstream LB;
+        LB << L"JSON Parse Error: " << ex.what();
+        DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
         return 0;
     }
 
@@ -236,8 +239,9 @@ template<class PageType> int GraphDoc<PageType>::SaveDoc(const std::string& Note
                     respJson = njson::parse(*RespData);
                 }
                 catch (njson::parse_error ex) {
-                    sprintf_s(LogBuffer, LB_SIZE, "JSON Parse Error: %s", ex.what());
-                    DoLog(typeid(*this).name(), LogBuffer, LOG_INFO);
+                    std::wostringstream LB;
+                    LB << L"JSON Parse Error: " << ex.what();
+                    DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
                     return 0;
                 }
             }
@@ -278,8 +282,9 @@ template<class PageType> int GraphDoc<PageType>::SaveDoc(wchar_t* SectionID)
                 respJson = njson::parse(*RespData);
             }
             catch (njson::parse_error ex) {
-                sprintf_s(LogBuffer, LB_SIZE, "JSON Parse Error: %s", ex.what());
-                DoLog(typeid(*this).name(), LogBuffer, LOG_INFO);
+                std::wostringstream LB;
+                LB << L"JSON Parse Error: " << ex.what();
+                DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
                 return 0;
             }
         }

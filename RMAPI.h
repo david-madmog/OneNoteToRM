@@ -20,11 +20,12 @@ class RMAPI
 {
 private:
 	static std::string exec(const char* cmd); 
+	static int filecopy(std::string from, std::string to);
 
 public:
 	static void GetDoc(std::string Name);
 	static void ListDocs(std::vector<std::wstring>&Docs);
-	static void SaveDoc(std::string Name);
+	static void SaveDoc(std::string Name, std::string path);
 	static void CopyDoc(std::string Name);
 };
 

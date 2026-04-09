@@ -57,8 +57,9 @@ void RMPage::Load(zip_file* file)
 //            NumRead = zip_fread(file, buffer, 1024);
             if (NumRead != BH.len_body && NumRead > 0)
             {
-                sprintf_s(LogBuffer, LB_SIZE, "Couldn't read the amount we wanted: Read %d wanted %d", (int)NumRead, BH.len_body);
-                DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
+                std::wostringstream LB;
+                LB << L"Couldn't read the amount we wanted: Read " << NumRead << L" wanted " << BH.len_body;
+                DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
             }
 
 
@@ -104,8 +105,9 @@ void RMPage::Load(zip_file* file)
                     NewBlock = new SceneInfo();
                     break;
                 default:
-                    sprintf_s(LogBuffer, LB_SIZE, "**** Unknown Type %d len %d", BH.BlockType, BH.len_body);
-                    DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
+                    std::wostringstream LB;
+                    LB << L"Unknown block type " <<  BH.BlockType;
+                    DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
                     break;
                 }
 
@@ -117,13 +119,13 @@ void RMPage::Load(zip_file* file)
                         if (bUseful) {
                             AddBlock(NewBlock);
                         } else {
-                            sprintf_s(LogBuffer, LB_SIZE, "Useless block: ignoring");
-                            DoLog(typeid(*this).name(), LogBuffer, LOG_INFO);
+                            DoLog(typeid(*this).name(), "Useless block: ignoring", LOG_INFO);
                         }
                     }
                     catch (incorrect_tag &e) {
-                        sprintf_s(LogBuffer, LB_SIZE, "INCORRECT_TAG: [%s]", e.what());
-                        DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
+                        std::wostringstream LB;
+                        LB << L"Incorrect tag: " << e.what() << L" parsing block type " << typeid(*NewBlock).name();
+                        DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
                     }
                 }
 
@@ -133,10 +135,16 @@ void RMPage::Load(zip_file* file)
                 delete[] buffer;
         }
         zip_fclose(file);
-        sprintf_s(LogBuffer, LB_SIZE, "Read %d blocks: %lld blocks in Stash", NumBlocks, Blocks.size());
-        DoLog(typeid(*this).name(), LogBuffer, LOG_INFO);
+        std::wostringstream LB;
+        LB << L"Read " << NumBlocks << L"blocks: " << Blocks.size() << L" blocks in Array";
+        DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
     }
+    else {
+        std::wostringstream LB;
+        LB << L"Couldn't read the Zip File";
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
 
+    }
 }
 
 void* RMPage::Write(size_t *BuffSize)
@@ -166,8 +174,9 @@ void* RMPage::Write(size_t *BuffSize)
             Buff_Ptr = Block->WriteBlock(Buff_Ptr);
         }
         catch (std::logic_error ex) {
-            sprintf_s(LogBuffer, LB_SIZE, "Logic Error writing block of type %s: %s", typeid(*Block).name(), ex.what());
-            DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
+            std::wostringstream LB;
+            LB << L"Logic Error writing block of type " << typeid(*Block).name() << L" :" << ex.what();
+            DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
         }
     }
 
@@ -175,16 +184,35 @@ void* RMPage::Write(size_t *BuffSize)
 }
 
 void RMPage::AddBlock(RMBlock * Block) {
+    if (!Block)
+        return;
     Blocks.push_back(Block);
 
+    RM_CRDT_ID key;
+
     if (Block->BlockType() == BT_SceneTree)
-        IndexBlocks[((SceneTree*)Block)->node_id] = Block;
+        key = ((SceneTree*)Block)->tree_id;
+    //    key = ((SceneTree*)Block)->node_id;
     else if (Block->BlockType() == BT_TreeNode)
-        IndexBlocks[((TreeNode*)Block)->node_id] = Block;
+        key = ((TreeNode*)Block)->node_id;
     else if (dynamic_cast<RMSceneItemBlock*>(Block))
-        IndexBlocks[((RMSceneItemBlock*)Block)->item_id] = Block;
+        key = ((RMSceneItemBlock*)Block)->item_id;
     else if (Block->BlockType() == BT_RootText)
-        IndexBlocks[((RootText*)Block)->texts[0].item_id] = Block;
+        key = ((RootText*)Block)->texts[0].item_id;
+
+    if (key != RM_CRDT_ID(0, 0))
+    {
+        if (IndexBlocks.count(key))
+        {
+            RMBlock * X = IndexBlocks[key];
+            // Key exists already...
+            std::wostringstream LB;
+            LB << L"Key already exists. Key:" << key << L" Adding type " << Block->BlockType() << L", Existing type " << IndexBlocks[key]->BlockType();
+            DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
+
+        }
+        IndexBlocks[key] = Block;
+    }
 
 }
 
@@ -196,8 +224,9 @@ void RMPage::DrawPage(void * DrawDetails) {
     {
         if (typeid(*val) == typeid(RootText))
         {
-            sprintf_s(LogBuffer, LB_SIZE, "Drawing Text Block ID (%d, %d)", key.part1, key.part2);
-            DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG_VERBOSE);
+            std::wostringstream LB;
+            LB << L"Drawing Text Block ID " << key ;
+            DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG_VERBOSE);
             DrawTextItem(DrawDetails, (RootText*)val);
         }
     }
@@ -206,8 +235,9 @@ void RMPage::DrawPage(void * DrawDetails) {
     {
         if (typeid(*val) == typeid(SceneLineItem))
         {
-            sprintf_s(LogBuffer, LB_SIZE, "Drawing Line Block ID (%d, %d)", key.part1, key.part2);
-            DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG_VERBOSE);
+            std::wostringstream LB;
+            LB << L"Drawing Line Block ID " << key;
+            DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG_VERBOSE);
             DrawLineItem(DrawDetails, (SceneLineItem*)val);
         }
     }
@@ -228,3 +258,35 @@ void RMPage::DrawTextItem(void* DrawDetails, RootText* RT)
     ; //Do nothing in base class
 }
 
+
+
+std::wstring RMPage::DumpTree()
+{
+    std::wostringstream dump;
+
+    for (auto const& [key, Block] : IndexBlocks)
+    {
+        dump << L"I:" << key;
+        if (Block->BlockType() == BT_SceneTree)
+            dump << L"SceneTree - TreeID:" << ((SceneTree*)Block)->tree_id << L" ParentID:" << ((SceneTree*)Block)->parent_id;
+        else if (Block->BlockType() == BT_TreeNode)
+            dump << L"TreeNode  - AnchorID:" << ((TreeNode*)Block)->anchor_id.value;
+        else if (Block->BlockType() == BT_SceneGroupItem)
+            dump << L"SceneItem - GroupItem ParentID:" << ((RMSceneItemBlock*)Block)->parent_id << L" ID5:" << ((SceneGroupItem*)Block)->ID5 ;
+        else if (dynamic_cast<RMSceneItemBlock*>(Block))
+            dump << L"SceneItem - SubblockType: " << ((RMSceneItemBlock*)Block)->SubBlockType() << L" ParentID:" << ((RMSceneItemBlock*)Block)->parent_id;
+        else if (Block->BlockType() == BT_RootText)
+            dump << L"RootText ";
+
+        dump << std::endl;
+    }
+    for (auto const& [key, Point] : Anchors)
+    {
+        dump << L"A:" << key << L" [" << Point.x << L"," << Point.y << L"]" << std::endl;
+    }
+
+    std::map<RM_CRDT_ID, POINT> Anchors;
+
+
+    return dump.str();
+}

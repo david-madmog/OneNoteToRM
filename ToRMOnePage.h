@@ -21,10 +21,13 @@
 class ToRMOnePage : public ONEPage
 {
 private:
-	WindowRMPage RMPage;
+	WindowRMPage * RMPage;
 	void LoadMetaData(RMDocFile<WindowRMPage> * DocFile);
+    UINT8  DetermineRMFormatCode(ONE_TextSpan TextSpan);
+    UINT32 DetermineRMColor(Gdiplus::Color InkColour);
 
 public:
+    ToRMOnePage();
 	void DrawPage(void* DrawDetails);
 };
 

@@ -61,13 +61,12 @@ bool SceneTree::ParseBuffer(const unsigned char* Buff, size_t ValidLen, int vers
 	//¬¬ So, if node Id is blank, we should use tree ID as the node ID
 	if (node_id == RM_CRDT_ID{0, 0}) {
 		DoLog(typeid(*this).name(), "Blank Node", LOG_DEBUG_VERBOSE);
-		node_id = tree_id;
+//		node_id = tree_id;
 	}
 
-	sprintf_s(LogBuffer, LB_SIZE, "Layer Def (Scene Tree): Tree ID (%d, %d) Node ID (%d, %d) Parent ID(%d, %d)...",
-		tree_id.part1, tree_id.part2, node_id.part1, node_id.part2, parent_id.part1, parent_id.part2
-	);
-	DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG_VERBOSE);
+	std::wostringstream LB;
+	LB << L"Layer Def (Scene Tree): Tree ID " << tree_id << L" Node ID " << node_id << L" Parent ID " << parent_id;
+	DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG_VERBOSE);
 	return true;
 
 };
@@ -113,10 +112,9 @@ bool TreeNode::ParseBuffer(const unsigned char* Buff, size_t ValidLen, int versi
 	if (Buff_Ptr < Buff + ValidLen)
 		Buff_Ptr = ReadTaggedData(&anchor_origin_x, Buff_Ptr, 10);
 
-	sprintf_s(LogBuffer, LB_SIZE, "Layer Names (Tree Node): Node ID (%d, %d) [%s] Anchor ID(%d, %d)...",
-		node_id.part1, node_id.part2, label.value, anchor_id.value.part1, anchor_id.value.part2
-	);
-	DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG_VERBOSE);
+	std::wostringstream LB;
+	LB << L"Layer Names (Tree Node): Node ID " << node_id << L"\"" << label.value << L"\" Anchor ID " << anchor_id.value;
+	DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG_VERBOSE);
 	return true;
 
 };
@@ -286,7 +284,32 @@ int SceneLineItem::LineItemPoint::point_serialized_size(int version)
 		throw std::domain_error("Unrecognised file version");
 }
 
+//BALLPOINT_1 = 2
+//BALLPOINT_2 = 15
+//CALIGRAPHY = 21
+//ERASER = 6
+//ERASER_AREA = 8
+//FINELINER_1 = 4
+//FINELINER_2 = 17
+//HIGHLIGHTER_1 = 5
+//HIGHLIGHTER_2 = 18
+//MARKER_1 = 3
+//MARKER_2 = 16
+//MECHANICAL_PENCIL_1 = 7
+//MECHANICAL_PENCIL_2 = 13
+//PAINTBRUSH_1 = 0
+//PAINTBRUSH_2 = 12
+//PENCIL_1 = 1
+//PENCIL_2 = 14
+//SHADER = 23
+
+
 Gdiplus::Color SceneLineItem::colour() {
+	if (tool_id == 23) // SHADER
+	{ 
+		return Gdiplus::Color(127, 127, 127, 127);
+	}
+
 	switch (color_id)
 	{
 	case 0:		//BLACK = 0
@@ -322,9 +345,58 @@ Gdiplus::Color SceneLineItem::colour() {
 	case 13:		//YELLOW_2
 		return Gdiplus::Color(192, 192, 0);
 	}
-	return 0;
+	std::wostringstream LB;
+	LB << L"Unknown Colour:" << color_id ;
+	DoLog(typeid(*this).name(), LB.str(), LOG_WARNING);
+	return Gdiplus::Color(163, 73, 164);
+//	return 0;
 }
 
+void SceneLineItem::SetColor(Gdiplus::Color InkColour) {
+	BYTE A = InkColour.GetA();
+	BYTE R = InkColour.GetR();
+	BYTE G = InkColour.GetG();
+	BYTE B = InkColour.GetB();
+
+	if (R < 64 && G < 64 && B < 64)
+		color_id = 0; // BLACK
+	else if (R < 192 && G < 192 && B < 192 && R - G < 64 && R - B < 64) {
+		// Grey
+		color_id = 1;
+		if (A < 192)
+			tool_id = 23; // shader
+		//GRAY_OVERLAP = 8	Gdiplus::Color(192, 192, 192);
+	}
+	else if (R > 192 && G > 192 && B > 192 && R - G < 64 && R - B < 64)
+		// white
+		color_id = 2;
+	else if (R > 192 && G > 192 && B < 64)
+		color_id = 3; // yellow
+	else if (R < 64 && G > 192 && B < 192)
+		color_id = 4; // green
+	else if (R > 192 && G < 192 && G > 64 && B < 192 && B > 64)
+		color_id = 5; // pink
+	else if (R < 64 && G < 64 && B > 192)
+		color_id = 6; // blue
+	else if (R > 192 && G < 64 && B < 64)
+		color_id = 7; // red
+	else if (A < 192)
+	{
+		color_id = 9;
+		tool_id = 5; // Highlighter
+		HighlightColour = (InkColour.GetValue() & 0x00FFFFFF) | 0xFF000000;
+//		HighlightColour = (InkColour.GetValue() & 0x00FFFFFF) | 0x7F000000;
+	}
+	//case 10:		//GREEN_2
+	//	return Gdiplus::Color(0, 192, 0);
+	//case 11:		//CYAN
+	//	return Gdiplus::Color(0, 255, 255);
+	//case 12:		//MAGENTA
+	//	return Gdiplus::Color(255, 0, 255);
+	//case 13:		//YELLOW_2
+	//	return Gdiplus::Color(192, 192, 0);
+
+}
 
 bool SceneLineItem::ParseBuffer(const unsigned char* Buff, size_t ValidLen, int version) {
 	int numPoints = 0;
@@ -375,13 +447,15 @@ bool SceneLineItem::ParseBuffer(const unsigned char* Buff, size_t ValidLen, int 
 			bHC = true;
 		}
 
-		sprintf_s(LogBuffer, LB_SIZE, "Line Item: ToolID: %d ColorID: %d thickness_scale: %lf starting Length: %f Tag7: %c(%d, %d), Tag8 %c:%X", 
-			tool_id, color_id, thickness_scale, starting_length, bT7?'Y':'N', Tag7.part1, Tag7.part2, bHC ? 'Y' : 'N', HighlightColour);
-		DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG_VERBOSE);
+		std::wostringstream LB;
+		LB << L"Line Item: ToolID:" << tool_id << L" ColorID:" << color_id << L" thickness scale:" << thickness_scale;
+		LB << L" starting length:" << starting_length << L" Tag7:" << bT7 << Tag7 << L" Tag8:" << bHC << std::hex << std::uppercase << HighlightColour;
+		DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG_VERBOSE);
 	}
 
-	sprintf_s(LogBuffer, LB_SIZE, "Line Item v%d (%d points)...", version, numPoints);
-	DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG_VERBOSE);
+	std::wostringstream LB;
+	LB << L"Line Item v" << version << L" (" << numPoints << L" points)...";
+	DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG_VERBOSE);
 
 	return (numPoints > 0);
 };
@@ -408,8 +482,8 @@ size_t SceneLineItem::PrepareWrite()
 	WriteBuff = malloc(WriteBuffLen);
 	void* Local_Buff = WriteBlockHead(WriteBuff, WriteBuffLen - sizeof(rm_BlockHead), 2);
 
-	sprintf_s(LogBuffer, LB_SIZE, "Line Item (buffer size %d)...", (int)(WriteBuffLen - sizeof(rm_BlockHead)));
-	DoLog(typeid(*this).name(), LogBuffer, LOG_WARNING);
+	//sprintf_s(LogBuffer, LB_SIZE, "Line Item (buffer size %d)...", (int)(WriteBuffLen - sizeof(rm_BlockHead)));
+	//DoLog(typeid(*this).name(), LogBuffer, LOG_WARNING);
 
 	Local_Buff = WriteSceneItemDetails(Local_Buff, LinesLen + SceneItemWithoutLinesLen);
 	Local_Buff = WriteTaggedData(&tool_id, Local_Buff, 1);
@@ -488,11 +562,12 @@ bool RootText::ParseBuffer(const unsigned char* Buff, size_t ValidLen, int versi
 		struct rm_CRDT_SEQ_ITEM<RM_STRING> text;
 		Buff_Ptr = ReadTextItem(&(text), Buff_Ptr);
 		texts.push_back(text);
-		sprintf_s(LogBuffer, LB_SIZE, "...Text ID (%d, %d) Left (%d, %d) Right (%d, %d) :%s",
-			text.item_id.part1, text.item_id.part2, text.left_id.part1, text.left_id.part2, 
-			text.right_id.part1,text.right_id.part2, text.value
-		);
-		DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG_VERBOSE);
+
+		std::wostringstream LB;
+		LB << L"...Text ID " << text.item_id << L" :";
+		if (text.value)
+			LB << text.value;
+		DoLog(typeid(*this).name(), LB.str(), LOG_WARNING);
 	}
 //
 //		# Formatting
@@ -501,14 +576,13 @@ bool RootText::ParseBuffer(const unsigned char* Buff, size_t ValidLen, int versi
 	Buff_Ptr = ReadVarUINT(&NumSubBlocks, Buff_Ptr);
 	for (int i = 0; i < NumSubBlocks; i++) {
 		struct RootTextFormat format;
-		UINT8 c;
+//		UINT8 c;
 		Buff_Ptr = Read(&format.charID, Buff_Ptr);
 		Buff_Ptr = ReadTaggedData(&format.timestamp, Buff_Ptr, 1);
 		Buff_Ptr = ReadSubblock(Buff_Ptr, 2);
-		Buff_Ptr = Read(&c, Buff_Ptr);
-		//	# XXX not sure what this is format ?
-					//	assert c == 17
-		Buff_Ptr = Read(&format.format_code, Buff_Ptr);
+//		Buff_Ptr = Read(&c, Buff_Ptr);
+//		Buff_Ptr = Read(&format.format_code, Buff_Ptr);
+		Buff_Ptr = ReadTaggedData(&format.format_code, Buff_Ptr, 1);
 					//	try :
 					//	format_type = si.ParagraphStyle(format_code)
 					//	except ValueError :
@@ -520,12 +594,14 @@ bool RootText::ParseBuffer(const unsigned char* Buff, size_t ValidLen, int versi
 					//		)
 					//	format_type = si.ParagraphStyle.PLAIN  # fallback
 				//		)
-				// 
+		Buff_Ptr = ReadTaggedDataOptional(&format.code2, Buff_Ptr, 2);
+		Buff_Ptr = ReadTaggedDataOptional(&format.code3, Buff_Ptr, 3);
+
+				//    21 02 34 03 00 00 00
 		formats.push_back(format);
-		sprintf_s(LogBuffer, LB_SIZE, "...FORMAT ID (%d, %d) Code %d",
-			format.charID.part1, format.charID.part2, format.format_code
-		);
-		DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG_VERBOSE);
+		std::wostringstream LB;
+		LB << L"...FORMAT ID " << format.charID << L" Code " << format.format_code << L" (2:" << format.code2 << L", 3:" << format.code3 << L")";
+		DoLog(typeid(*this).name(), LB.str(), LOG_WARNING);
 	}
 //
 //		# Last section
@@ -609,8 +685,9 @@ bool AuthorIds::ParseBuffer(const unsigned char* Buff, size_t ValidLen, int vers
 
 	int numSubBlocks;
 	Buff_Ptr = ReadVarUINT(&numSubBlocks, Buff_Ptr);
-	sprintf_s(LogBuffer, LB_SIZE, "Author ID's (%d)...", numSubBlocks);
-	DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG_VERBOSE);
+	std::wostringstream LB;
+	LB << L"Author ID's (" << numSubBlocks << L")..." ;
+	DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG_VERBOSE);
 
 	for (int i = 0; i < numSubBlocks; i++) {
 		Buff_Ptr = ReadSubblock(Buff_Ptr, 0);

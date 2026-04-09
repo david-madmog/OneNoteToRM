@@ -3,10 +3,10 @@
 #include "OneNoteToRM.h"
 
 
-std::wostream& operator<< (std::wostream& stream, const RM_CRDT_ID& RHS) {
-	stream << L"{" << RHS.part1 << L"-" << RHS.part2 << L"}";
-	return stream;
-}
+//std::wostream& operator<< (std::wostream& stream, const RM_CRDT_ID& RHS) {
+//	stream << L"{" << RHS.part1 << L"-" << RHS.part2 << L"}";
+//	return stream;
+//}
 
 RMBlock::RMBlock() {
 }
@@ -97,14 +97,9 @@ void* RMBlock::ReadString(RM_STRING* data, void* Buff_Ptr, int index) {
 
 	Buff_Ptr = ReadVarUINT(&string_length, Buff_Ptr);
 	Buff_Ptr = Read(&is_ascii, Buff_Ptr);
-	//# XXX not sure if this is right meaning ?
 
 	if (! is_ascii)
-	{
-		char LogBuff[1024];
-		sprintf_s(LogBuff, "String type not ASCII");
-		throw std::range_error::range_error(LogBuff);
-	}	
+		throw std::range_error::range_error("String type not ASCII");
 	
 	//assert string_length + 2 <= block_info.size
 	*data = new char[string_length+1];
@@ -289,6 +284,20 @@ void* RMBlock::ReadTaggedDataOptional(UINT32* data, void* Buff_Ptr, int index) {
 	return Buff_Ptr;
 }
 
+void* RMBlock::ReadTaggedDataOptional(UINT8* data, void* Buff_Ptr, int index) {
+
+	try {
+		Buff_Ptr = ReadTaggedData(data, Buff_Ptr, index);
+	}
+	catch (incorrect_tag)
+	{
+		// OK - in this case it's fine, we just didn't have the thing we thought
+		*data = 0;
+	}
+
+	return Buff_Ptr;
+}
+
 void* RMBlock::ReadTaggedDataOptional(RM_CRDT_ID* data, void* Buff_Ptr, int index) {
 
 	try {
@@ -361,11 +370,7 @@ void* RMBlock::WriteBlock(void* Buff)
 {
 	// So, the subclass should have nicely prepared the buffer in WriteBuff for length WriteBuffLen
 	if (!WriteBuff)
-	{
-		char LogBuff[1024];
-		sprintf_s(LogBuff, "Write Not Prepared");
-		throw std::logic_error(LogBuff);
-	}
+		throw std::logic_error("Write Not Prepared");
 
 	memcpy(Buff, WriteBuff, WriteBuffLen);
 	Buff = (void*)((char*)Buff + WriteBuffLen);
@@ -676,15 +681,15 @@ void* RMSceneItemBlock::ReadSceneItemDetails(const unsigned char* Buff, size_t V
 
 	if (deleted_length > 0)
 	{
-		sprintf_s(LogBuffer, LB_SIZE, "Scene Item (deleted %d)...", deleted_length);
-		DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG_VERBOSE);
+		std::wostringstream LB;
+		LB << L"Scene Item (deleted " << deleted_length << L")...";
+		DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG_VERBOSE);
 	}
 	else
 	{
-		sprintf_s(LogBuffer, LB_SIZE, "Scene Item: Parent (%d, %d) ID (%d, %d) Left (%d, %d) Right (%d, %d) Deleted Len %d...",
-			parent_id.part1, parent_id.part2, item_id.part1, item_id.part2, left_id.part1, left_id.part2, right_id.part1, right_id.part2, deleted_length
-		);
-		DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG_VERBOSE);
+		std::wostringstream LB;
+		LB << L"Scene Item: Parent " << parent_id << L" ID " << item_id;
+		DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG_VERBOSE);
 	}
 
 	return Buff_Ptr;

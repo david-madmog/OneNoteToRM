@@ -6,19 +6,11 @@
 ToOneRMPage::ToOneRMPage() 
 	: RMPage()
 {
-    MaxX = 100;
-    MaxY = 100;
-    MinX = 0;
-    MinY = 0;
 }
 
 ToOneRMPage::ToOneRMPage(std::string id)
 	: RMPage(id)
 {
-    MaxX = 100;
-    MaxY = 100;
-    MinX = 0;
-    MinY = 0;
 }
 
 ToOneRMPage::~ToOneRMPage()
@@ -34,6 +26,15 @@ void ToOneRMPage::DrawPageInit(void* DrawDetails) {
 
     for (auto const& [key, val] : IndexBlocks)
     {
+        if (typeid(*val) == typeid(SceneInfo))
+        {
+            ((SceneInfo*)val)->GetPaperSize(paper_size[0], paper_size[1]);
+            if (paper_size[0] < 100)
+                paper_size[0] = PAGE_SIZE_X;
+            if (paper_size[1] < 100)
+                paper_size[1] = PAGE_SIZE_Y;
+        }
+
         if (typeid(*val) == typeid(SceneLineItem))
             FindMinMax((SceneLineItem*)val);
     }
@@ -50,10 +51,10 @@ void ToOneRMPage::FindMinMax(SceneLineItem* SLI)
 {
     for (auto const& point : SLI->points)
     {
-        MaxX = max(MaxX, int(point.x));
-        MinX = min(MinX, int(point.x));
-        MaxY = max(MaxY, int(point.y));
-        MinY = min(MinY, int(point.y));
+        LineExt.X = min(LineExt.X, int(point.x));
+        LineExt.Width = max(LineExt.Width, int(point.x) - LineExt.X);
+        LineExt.Y = min(LineExt.Y, int(point.y));
+        LineExt.Height = max(LineExt.Height, int(point.y) - LineExt.Y);
     }
 }
 
@@ -61,7 +62,7 @@ void ToOneRMPage::FindMinMax(SceneLineItem* SLI)
 void ToOneRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
 {
 
-    INK_Point Origin(-MinX, -MinY, 100);
+    INK_Point Origin((paper_size[0] / 2) + LineExt.X, LINES_Y_START, 100);
 
     if (SLI->points.empty())
         return;
@@ -69,8 +70,16 @@ void ToOneRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
     // find my anchor:
     RMBlock* Parent = IndexBlocks[SLI->parent_id]; // this should be a tree node, or could be a group item, in which case recurse
     if (Parent) {
-        while (typeid(*Parent) == typeid(SceneGroupItem)) {
-            Parent = IndexBlocks[((SceneGroupItem*)Parent)->parent_id];
+        while (typeid(*Parent) == typeid(SceneGroupItem) || typeid(*Parent) == typeid(SceneTree)) {
+            if (typeid(*Parent) == typeid(SceneGroupItem))
+            {
+                Parent = IndexBlocks[((SceneGroupItem*)Parent)->parent_id];
+            }
+            else
+            {
+                Parent = IndexBlocks[((SceneTree*)Parent)->parent_id];
+            }
+
         }
 
         if (typeid(*Parent) == typeid(TreeNode)) {
@@ -78,7 +87,7 @@ void ToOneRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
             RM_CRDT_ID Anchor = ((TreeNode*)Parent)->anchor_id.value;
             if (Anchor == RM_CRDT_ID{ 0, 0 } || Anchor == RM_CRDT_ID{ 0, -1 } || Anchor == RM_CRDT_ID{ 0, -2 })
             {
-                ; // Null anchor - all good: draw from page origin
+                Origin.X = (int)((TreeNode*)Parent)->anchor_origin_x.value - LineExt.X; // Null anchor - all good: draw from page origin
             }
             else if (Anchors.count(Anchor)) {
                 // So, this line's origin is the finishing point of that item
@@ -86,22 +95,21 @@ void ToOneRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
                 Origin = INK_Point(AnchorNode.x, AnchorNode.y, 100);
             }
             else {
-                sprintf_s(LogBuffer, LB_SIZE, "Line Item's Parent's Anchor not found, Parent: (%d, %d), Anchor: (%d, %d)",
-                    ((TreeNode*)Parent)->node_id.part1, ((TreeNode*)Parent)->node_id.part2, Anchor.part1, Anchor.part2
-                );
-                DoLog(typeid(*this).name(), LogBuffer, LOG_WARNING);
+                std::wostringstream LB;
+                LB << L"Line Item's Parent's Anchor not found, Parent: " << ((TreeNode*)Parent)->node_id << L", Anchor: " << Anchor;
+                DoLog(typeid(*this).name(), LB.str(), LOG_WARNING);
             }
         }
         else {
-            sprintf_s(LogBuffer, LB_SIZE, "Line Item's Parent is Not TreeNode: %s", typeid(*Parent).name());
-            DoLog(typeid(*this).name(), LogBuffer, LOG_WARNING);
+            std::wostringstream LB;
+            LB << L"Line Item's Parent is not TreeNode: " << typeid(*Parent).name();
+            DoLog(typeid(*this).name(), LB.str(), LOG_WARNING);
         }
     }
     else {
-        sprintf_s(LogBuffer, LB_SIZE, "Line Item's Parent's is NULL, Parent: (%d, %d)",
-            SLI->parent_id.part1, SLI->parent_id.part2
-        );
-        DoLog(typeid(*this).name(), LogBuffer, LOG_WARNING);
+        std::wostringstream LB;
+        LB << L"Line Item's Parent is NULL, Parent: " << SLI->parent_id;
+        DoLog(typeid(*this).name(), LB.str(), LOG_WARNING);
     }
 
     INK_Trace * Trace = new INK_Trace();
@@ -117,7 +125,8 @@ void ToOneRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
         INK_Point P;
         P.X = (int)(SLI->points[i].x + Origin.X) * RM_TO_ONE_XY_SCALE_FACTOR;
         P.Y = (int)(SLI->points[i].y + Origin.Y) * RM_TO_ONE_XY_SCALE_FACTOR;
-        P.F = (int)SLI->points[i].width * RM_TO_ONE_LINE_FACTOR ;
+        P.F = (int)SLI->points[i].width * RM_TO_ONE_LINE_FACTOR;
+//        P.F = (int)SLI->points[i].pressure * RM_TO_ONE_PRESSURE_FACTOR;
         Trace->points.push_back(P);
     }
 
@@ -166,6 +175,8 @@ std::wstring ToOneRMPage::GetRMFont(int format_code) {
     //    CHECKBOX_CHECKED = 7
     if (format_code == 2)
         return L"Book Antiqua";
+    else if (format_code == 3)
+        return L"Arial Bold";
     else
         return L"Arial";
 }
@@ -180,10 +191,10 @@ int ToOneRMPage::GetRMFontSize(int format_code) {
     case 2:
         return 64;
         break;
-    case 3:
+    case 4:
         return 32;
     case 0:
-    case 4:
+    case 3:
     case 5:
     case 6:
     case 7:
@@ -197,10 +208,7 @@ int ToOneRMPage::GetRMFontSize(int format_code) {
 
 void ToOneRMPage::DrawTextItem(void* DrawDetails, RootText* RT)
 {
-    constexpr auto TEXT_X_START = 50;
-    constexpr auto TEXT_Y_START = 150;
-
-    POINT DrawPos(TEXT_X_START, TEXT_Y_START);
+    POINT DrawPos((LONG)RT->pos_x + RM_X_OFFSET, (LONG)RT->pos_y);
     WCHAR WC;
 
     ONE_Text * Text = new ONE_Text;
@@ -210,10 +218,9 @@ void ToOneRMPage::DrawTextItem(void* DrawDetails, RootText* RT)
 
     for (auto& format : RT->formats)
     {
-        sprintf_s(LogBuffer, LB_SIZE, "FONT: Formats are at (%d, %d): %d",
-            format.charID.part1, format.charID.part2, format.format_code
-        );
-        DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG_VERBOSE);
+        std::wostringstream LB;
+        LB << L"FONT: Formats are at " << format.charID << L" :" << format.format_code;
+        DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG_VERBOSE);
         if (format.charID == RM_CRDT_ID{ 0, 0 }) {
             rootSpan.Font = GetRMFont(format.format_code);
             rootSpan.FontSize = GetRMFontSize(format.format_code);
@@ -253,7 +260,7 @@ void ToOneRMPage::DrawTextItem(void* DrawDetails, RootText* RT)
 
                 if (*Message == '\n') {
                     DrawPos.y += rootSpan.FontSize;  // Horrible approximation, as we don't really have a reference to calculate otherwise
-                    DrawPos.x = TEXT_X_START;
+                    DrawPos.x = (LONG)RT->pos_x + RM_X_OFFSET;
                 }
                 else {
                     DrawPos.x += rootSpan.FontSize;
@@ -265,8 +272,9 @@ void ToOneRMPage::DrawTextItem(void* DrawDetails, RootText* RT)
                     if (format.charID == AnchorID) {
                         rootSpan.Font = GetRMFont(format.format_code);
                         rootSpan.FontSize = GetRMFontSize(format.format_code);
-                        sprintf_s(LogBuffer, LB_SIZE, "FONT: changing to code %d", format.format_code);
-                        DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG_VERBOSE);
+                        std::wostringstream LB;
+                        LB << L"FONT: changing to code " << format.format_code;
+                        DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG_VERBOSE);
                         break;
                     }
                 }

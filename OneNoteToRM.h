@@ -24,15 +24,17 @@ enum LogLevel {
 extern HWND hLoginPopup;
 extern char gszIniFileName[];
 
+std::wstring s2ws(const std::unique_ptr<char> str);
 std::wstring s2ws(const std::string& str);
+std::string ws2s(const std::unique_ptr<wchar_t> str) ;
 std::string ws2s(const std::wstring& wstr);
 
-
-extern char * LogBuffer;
+//extern char * LogBuffer;
 constexpr auto LB_SIZE = 10240;
 
 void DoLog(const char* Class, const char* Msg, LogLevel Level = LOG_DEBUG_VERBOSE);
-void DoLog(const char* Class, const wchar_t * Msg, LogLevel Level = LOG_DEBUG_VERBOSE);
+void DoLog(const char* Class, const wchar_t* Msg, LogLevel Level = LOG_DEBUG_VERBOSE);
+void DoLog(const char* Class, const std::wstring& Msg, LogLevel Level = LOG_DEBUG_VERBOSE);
 
 class Drawable {
 public:

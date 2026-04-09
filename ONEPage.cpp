@@ -133,8 +133,9 @@ void ONEPage::ParseInkNode(xml_node InkNode) {
     xml_node TraceGroup = InkNode.child(L"inkml:traceGroup");
     xml_node Definitions = InkNode.child(L"inkml:definitions");
     if (Definitions.type() == node_null) {
-        sprintf_s(LogBuffer, LB_SIZE, "Can't find inkml:definitions");
-        DoLog(typeid(*this).name(), LogBuffer, LOG_ERROR);
+        std::wostringstream LB;
+        LB << L"Can't find inkml:definitions" ;
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
         return;
     }
 
@@ -191,9 +192,9 @@ void ONEPage::ParseInkNode(xml_node InkNode) {
 
 
 void ONEPage::LoadPage(wstring * Data, string& Name ) {
-	sprintf_s(LogBuffer, LB_SIZE, "Creating Page: %s", Name.c_str());
-	DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG);
-
+    std::wostringstream LB;
+    LB << L"Creating Page: " << Name.c_str();
+    DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
 
     // So, we assume it's a multipart message - lets split it into sections
     // First, find the first CR, which gives us the MIME boundary delimiter
@@ -225,8 +226,9 @@ void ONEPage::LoadPage(wstring * Data, string& Name ) {
                 ParseInkNode(InkNode);
         } else
         {
-            sprintf_s(LogBuffer, LB_SIZE, "Parse segment result status: %s ", result.description());
-            DoLog(typeid(*this).name(), LogBuffer, LOG_DEBUG);
+            std::wostringstream LB;
+            LB << L"Parse segment result status: " << result.description();
+            DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
         }
     }
 }
@@ -358,6 +360,7 @@ wstring ONEPage::SaveInk()
     for (auto& brush : brushes) {
         xml_node brushNode = definitionsNode.append_child(L"inkml:brush");
         brushNode.append_attribute(L"xml:id") = brush->tool_id;
+        std::wstring RMToolID = brush->tool_id.substr(1, 2);
         CreateChildWithAttrs(brushNode, L"inkml:brushProperty", 3, L"name", L"width", L"value", to_wstring((int)brush->thickness_scale).c_str(), L"units", L"himetric");
         CreateChildWithAttrs(brushNode, L"inkml:brushProperty", 3, L"name", L"height", L"value", to_wstring((int)brush->thickness_scale).c_str(), L"units", L"himetric");
         wostringstream colour;
@@ -371,7 +374,10 @@ wstring ONEPage::SaveInk()
             CreateChildWithAttrs(brushNode, L"inkml:brushProperty", 2, L"name", L"rasterOp", L"value", L"copyPen");
             CreateChildWithAttrs(brushNode, L"inkml:brushProperty", 2, L"name", L"ignorePressure", L"value", L"false");
         } else {
-            CreateChildWithAttrs(brushNode, L"inkml:brushProperty", 2, L"name", L"tip", L"value", L"rectangle");
+            if (RMToolID == L"23")
+                CreateChildWithAttrs(brushNode, L"inkml:brushProperty", 2, L"name", L"tip", L"value", L"ellipse");
+            else    
+                CreateChildWithAttrs(brushNode, L"inkml:brushProperty", 2, L"name", L"tip", L"value", L"rectangle");
             CreateChildWithAttrs(brushNode, L"inkml:brushProperty", 2, L"name", L"rasterOp", L"value", L"maskPen");
             CreateChildWithAttrs(brushNode, L"inkml:brushProperty", 2, L"name", L"ignorePressure", L"value", L"true");
         }

@@ -56,13 +56,13 @@ std::wstring* GraphAPI::PostUpdateAndAwaitResponse(const wchar_t* URLPath, const
     if (!Token) {
         std::wostringstream LB;
         LB << L"Failed to get Auth Token";
-        DoLog(typeid(*this).name(), LB.str().c_str(), LOG_ERROR);
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
         return nullptr;
     }
 
     std::wostringstream LB;
     LB << L"Sending graph data: " << URLPath;
-    DoLog(typeid(*this).name(), LB.str().c_str(), LOG_DEBUG);
+    DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
 
     // Create http_client to send the request.
     http_client client(GraphRoot);
@@ -100,7 +100,7 @@ std::wstring* GraphAPI::PostUpdateAndAwaitResponse(const wchar_t* URLPath, const
     {
         std::wostringstream LB;
         LB << L"Cannot receive data: " << ex.what();
-        DoLog(typeid(*this).name(), LB.str().c_str(), LOG_ERROR);
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
         return nullptr;
     }
     if (response.status_code() == status_codes::OK || response.status_code() == status_codes::Created)
@@ -109,13 +109,13 @@ std::wstring* GraphAPI::PostUpdateAndAwaitResponse(const wchar_t* URLPath, const
         utility::string_t* RespData = new utility::string_t(RespDataTask.get());
         std::wostringstream LB;
         LB << L"GOT data: " << RespData->substr(0, LB_SIZE - 50);
-        DoLog(typeid(*this).name(), LB.str().c_str(), LOG_INFO);
+        DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
         return RespData;   //!!!CHECK WE DELETE THIS
     }
     else {
         std::wostringstream LB;
         LB << L"Cannot receive data: " << response.reason_phrase();
-        DoLog(typeid(*this).name(), LB.str().c_str(), LOG_ERROR);
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
     }
     return nullptr;
 }
@@ -125,13 +125,13 @@ std::wstring* GraphAPI::SendRequestAndAwaitResponse(const wchar_t* URLPath) {
     if (!Token) {
         std::wostringstream LB;
         LB << L"Failed to get Auth Token";
-        DoLog(typeid(*this).name(), LB.str().c_str(), LOG_ERROR);
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
         return nullptr;
     }
 
     std::wostringstream LB;
     LB << L"Sending graph data: " << URLPath;
-    DoLog(typeid(*this).name(), LB.str().c_str(), LOG_DEBUG);
+    DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
 
     // Create http_client to send the request.
     http_client client(GraphRoot);
@@ -159,7 +159,7 @@ std::wstring* GraphAPI::SendRequestAndAwaitResponse(const wchar_t* URLPath) {
     {
         std::wostringstream LB;
         LB << L"Cannot receive data: " << ex.what();
-        DoLog(typeid(*this).name(), LB.str().c_str(), LOG_ERROR);
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
         return nullptr;
     }
 
@@ -169,13 +169,13 @@ std::wstring* GraphAPI::SendRequestAndAwaitResponse(const wchar_t* URLPath) {
         utility::string_t* RespData = new utility::string_t(RespDataTask.get());
         std::wostringstream LB;
         LB << L"GOT data: " << RespData->substr(0, LB_SIZE - 50);
-        DoLog(typeid(*this).name(), LB.str().c_str(), LOG_INFO);
+        DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
         return RespData; //!!!CHECK WE DELETE THIS
     }
     else {
         std::wostringstream LB;
         LB << L"Cannot receive data: " << response.reason_phrase();
-        DoLog(typeid(*this).name(), LB.str().c_str(), LOG_ERROR);
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
     }
     return nullptr;
 }
@@ -246,12 +246,12 @@ void GraphAPI::LoginToMicrosoft(HWND hWnd)
 
                                     std::wostringstream LB;
                                     LB << L"Got there! : " << redirectURI.query();
-                                    DoLog("WEBVIEW", LB.str().c_str(), LOG_ERROR);
+                                    DoLog("WEBVIEW", LB.str(), LOG_ERROR);
                                 }
                                 else {
                                     std::wostringstream LB;
                                     LB << L"Nav starting: " << redirectURI.host() << redirectURI.path();
-                                    DoLog("WEBVIEW", LB.str().c_str(), LOG_ERROR);
+                                    DoLog("WEBVIEW", LB.str(), LOG_ERROR);
                                 }
 
 
@@ -315,7 +315,7 @@ int GraphAPI::GetLogonToken()
     {
         std::wostringstream LB;
         LB << L"Cannot receive data: " << ex.what();
-        DoLog(typeid(*this).name(), LB.str().c_str(), LOG_ERROR);
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
         return -1;
     }
 
@@ -337,13 +337,13 @@ int GraphAPI::GetLogonToken()
                 Token->insert(0, L"Bearer ");
                 std::wostringstream LB;
                 LB << L"Got Logon token:=" << Token;
-                DoLog(typeid(*this).name(), LB.str().c_str(), LOG_DEBUG);
+                DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
             }
             else
             {
                 std::wostringstream LB;
                 LB << "Logon response doesn't contain token: " << RespData.serialize();
-                DoLog(typeid(*this).name(), LB.str().c_str(), LOG_ERROR);
+                DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
                 return -1;
             }
 
@@ -351,11 +351,12 @@ int GraphAPI::GetLogonToken()
             {
                 std::wstring RT{ std::wstring(RespData[L"refresh_token"].as_string()) };
                 Refresh_Token = new char[LB_SIZE];
+//                RefreshToken = ws2s(RT);
                 size_t Num;
                 wcstombs_s(&Num, Refresh_Token, LB_SIZE, RT.c_str(), LB_SIZE);
                 std::wostringstream LB;
                 LB << "Got Refresh token : " << Refresh_Token;
-                DoLog(typeid(*this).name(), LB.str().c_str(), LOG_DEBUG);
+                DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
 
                 WritePrivateProfileStringA("OneNote", "RefreshToken", Refresh_Token, gszIniFileName);
             }
@@ -367,14 +368,14 @@ int GraphAPI::GetLogonToken()
 
             std::wostringstream LB;
             LB << "Logon response unexpected type: " << RespData;
-            DoLog(typeid(*this).name(), LB.str().c_str(), LOG_ERROR);
+            DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
             return -1;
         }
     }
     else {
         std::wostringstream LB;
         LB << "Cannot receive data: " << response.reason_phrase();
-        DoLog(typeid(*this).name(), LB.str().c_str(), LOG_ERROR);
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
         return -1;
 
     }
@@ -386,13 +387,13 @@ void GraphAPI::DeletePage(const wchar_t* URLPath)
     if (!Token) {
         std::wostringstream LB;
         LB << L"Failed to get Auth Token";
-        DoLog(typeid(*this).name(), LB.str().c_str(), LOG_ERROR);
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
         return ;
     }
 
     std::wostringstream LB;
     LB << L"Requesting page delete: " << URLPath;
-    DoLog(typeid(*this).name(), LB.str().c_str(), LOG_DEBUG);
+    DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
 
     // Create http_client to send the request.
     http_client client(GraphRoot);
@@ -420,7 +421,7 @@ void GraphAPI::DeletePage(const wchar_t* URLPath)
     {
         std::wostringstream LB;
         LB << L"Cannot receive data: " << ex.what();
-        DoLog(typeid(*this).name(), LB.str().c_str(), LOG_ERROR);
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
         return;
     }
 
@@ -428,12 +429,12 @@ void GraphAPI::DeletePage(const wchar_t* URLPath)
     {
         std::wostringstream LB;
         LB << L"GOT Successful delete response";
-        DoLog(typeid(*this).name(), LB.str().c_str(), LOG_INFO);
+        DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
     }
     else {
         std::wostringstream LB;
         LB << L"Cannot Delete Page: " << response.reason_phrase();
-        DoLog(typeid(*this).name(), LB.str().c_str(), LOG_ERROR);
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
     }
     return;
 
@@ -481,8 +482,9 @@ void GraphAPI::ListSections(std::vector<ONE_Section>& Sections) {
         respJson = njson::parse(*RespData);
     }
     catch (njson::parse_error ex) {
-        sprintf_s(LogBuffer, LB_SIZE, "JSON Parse Error: %s", ex.what());
-        DoLog(typeid(*this).name(), LogBuffer, LOG_INFO);
+        std::wostringstream LB;
+        LB << L"JSON Parse Error: " << ex.what();
+        DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
         return;
     }
 
