@@ -52,8 +52,8 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
 void RM_Preview(HWND hWnd);
 void ONE_Preview(HWND hWnd);
-void RM_to_ONE(HWND hWnd);
-void ONE_to_RM(HWND hWnd);
+void RM_to_ONE(HWND hWnd, bool Notebook);
+void ONE_to_RM(HWND hWnd, bool Notebook);
 
 
 // Window controls... create and lay out
@@ -66,6 +66,8 @@ HWND RMPreview;
 HWND ONEPreview;
 HWND hRMToOne;
 HWND hONEToRM;
+HWND hRMToOneNotebook;
+HWND hONEToRMNotebook;
 HWND RMRefresh;
 HWND ONERefresh;
 
@@ -112,7 +114,7 @@ const char* LogLevelName[] = {
     "*ERR"
 };
 
-const LogLevel CurrentLevel = LogLevel::LOG_WARNING;
+const LogLevel CurrentLevel = LogLevel::LOG_INFO;
 const LogLevel ConsoleLevel = LogLevel::LOG_DEBUG;
 
 void DoLog(const char* Class, const std::wstring& Msg, LogLevel Level)
@@ -137,8 +139,8 @@ void DoLog(const char* Class, const wchar_t* Msg, LogLevel Level)
             buff << L"[" << timeString << L"][" << LogLevelName[Level] << L"][" << Class << L"]:" << Msg;
             if (Level >= CurrentLevel)
             {
-                LRESULT NewItem = SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)buff.str().c_str());
-                SendMessage(hListBox, LB_SETTOPINDEX, NewItem, NULL);
+                int NewItem = ListBox_AddString(hListBox, buff.str().c_str());
+                ListBox_SetTopIndex(hListBox, NewItem);
             }
 
             buff << std::endl;
@@ -314,8 +316,10 @@ void LayoutWindow(HWND hWnd)
 
     SetWindowPos(hRMList, NULL, hPad, hPad, (4 * ColW - hPad), (3 * RowH - hPad), SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
     SetWindowPos(hONEList, NULL, (5 * ColW + hPad), hPad, (4 * ColW - hPad), (3 * RowH - hPad), SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
-    SetWindowPos(hRMToOne, NULL, (9 * ColW)/2 + hPad - 15, RowH + hPad, 30, 30, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
-    SetWindowPos(hONEToRM, NULL, (9 * ColW)/2 + hPad - 15, RowH + 2 * hPad + 30, 30, 30, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
+    SetWindowPos(hRMToOne, NULL, (9 * ColW) / 2 + hPad - 40, RowH + hPad - 35, 80, 35, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
+    SetWindowPos(hONEToRM, NULL, (9 * ColW) / 2 + hPad - 40, RowH + 2 * hPad, 80, 35, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
+    SetWindowPos(hRMToOneNotebook, NULL, (9 * ColW) / 2 + hPad - 40, RowH + 3 * hPad + 35, 80, 35, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
+    SetWindowPos(hONEToRMNotebook, NULL, (9 * ColW) / 2 + hPad - 40, RowH + 4 * hPad + 70, 80, 35, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
     SetWindowPos(RMPreview, NULL, hPad, (3 * RowH + hPad), 120, 30, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
     SetWindowPos(RMRefresh, NULL, 2 * hPad + 120, (3 * RowH + hPad), 120, 30, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
 
@@ -368,15 +372,25 @@ void LoadControls(HWND hWnd) {
     //    hWnd, (HMENU)CHK_RELOAD, GetModuleHandle(NULL), NULL);
 #endif
 
-    hRMToOne= CreateWindow(_T("button"), _T("→"),
-        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-        55, 45, 30, 30,
+    hRMToOne = CreateWindow(_T("button"), _T("Overwrite\r→"),
+        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON | BS_MULTILINE,
+        55, 45, 120, 50,
         hWnd, (HMENU)BTN_RM_TO_ONE, GetModuleHandle(NULL), NULL);
 
-    hONEToRM = CreateWindow(_T("button"), _T("←"),
-        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-        175, 45, 30, 30,
+    hONEToRM = CreateWindow(_T("button"), _T("Overwrite\r←"),
+        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON | BS_MULTILINE,
+        175, 45, 120, 50,
         hWnd, (HMENU)BTN_ONE_TO_RM, GetModuleHandle(NULL), NULL);
+
+    hRMToOneNotebook = CreateWindow(_T("button"), _T("Use Name\r→"),
+        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON | BS_MULTILINE,
+        55, 45, 120, 50,
+        hWnd, (HMENU)BTN_RM_TO_ONE_NB, GetModuleHandle(NULL), NULL);
+
+    hONEToRMNotebook = CreateWindow(_T("button"), _T("Use Name\r←"),
+        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON | BS_MULTILINE,
+        175, 45, 120, 50,
+        hWnd, (HMENU)BTN_ONE_TO_RM_NB, GetModuleHandle(NULL), NULL);
 
 
 
@@ -402,7 +416,7 @@ void LoadControls(HWND hWnd) {
         10, 120, 500, 500,
         hWnd, (HMENU)LST_LISTBOX,
         hInst, 0);
-    SendMessage(hListBox, LB_SETHORIZONTALEXTENT, 1000, 0);
+    ListBox_SetHorizontalExtent(hListBox, 1000);
 
     LayoutWindow(hWnd);
 }
@@ -438,7 +452,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 DestroyWindow(hWnd);
                 break;
             case BTN_RM_PREVIEW_BUTTON:
-                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting RM Load..."));
                 RM_Preview(hWnd);
                 break;
             case BTN_RM_REFRESH:
@@ -467,21 +480,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
 #endif
             case BTN_ONE_PREVIEW_BUTTON:
-                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting ONENOTE Load..."));
                 ONE_Preview(hWnd);
     			break;
             case BTN_ONE_REFRESH:
                 PostMessage(hWnd, WM_LOADONEDOCS, NULL, NULL);
                 break;
             case BTN_RM_TO_ONE:
-                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting RM to ONE..."));
-                WorkerThread = new std::thread(RM_to_ONE, hWnd);
-//                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("... Done"));
+                DoLog("MAIN", L"Starting RM to ONE...(Section overwrite)", LOG_INFO);
+                WorkerThread = new std::thread(RM_to_ONE, hWnd, false);
                 break;
             case BTN_ONE_TO_RM:
-                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting ONE to RM..."));
-                WorkerThread = new std::thread(ONE_to_RM, hWnd);
-//                SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("... Done"));
+                DoLog("MAIN", L"Starting ONE to RM...(File Overwrite)", LOG_INFO);
+                WorkerThread = new std::thread(ONE_to_RM, hWnd, false);
+                break;
+            case BTN_RM_TO_ONE_NB:
+                DoLog("MAIN", L"Starting RM to ONE...", LOG_INFO);
+                WorkerThread = new std::thread(RM_to_ONE, hWnd, true);
+                break;
+            case BTN_ONE_TO_RM_NB:
+                DoLog("MAIN", L"Starting ONE to RM...", LOG_INFO);
+                WorkerThread = new std::thread(ONE_to_RM, hWnd, true);
                 break;
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
@@ -503,6 +521,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
         ListBox_ResetContent(hONEList);
         std::vector<ONE_Section> Sections;
+        std::vector<std::wstring> Notebooks;
         if (!gAPI)
             gAPI = new GraphAPI();
         gAPI->EnsureConnected();
@@ -510,12 +529,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         gAPI->ListSections(Sections);
         for (auto& Section : Sections) {
             std::wstring Name = Section.Notebook;
+            Notebooks.push_back(Name);
             Name.append(L" - ");
             Name.append(Section.Section);
             LRESULT Index = ListBox_AddString(hONEList, Name.c_str());
             wchar_t * SID(new wchar_t[1023]);
             wcscpy_s(SID, 1023, Section.ID.c_str());
-            SendMessage(hONEList, LB_SETITEMDATA, Index, (LPARAM)SID);
+            ListBox_SetItemData(hONEList, Index, SID);
             //delete[] SID;   We need to delete this memory when we empty the list box, it's needed until then
         }
     }
@@ -559,26 +579,26 @@ LRESULT CALLBACK PopupWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
     switch (message)
     {
     case WM_CREATE:
-        DoLog("POPUP", "WM_CREATE", LOG_INFO);
+        DoLog("POPUP", "WM_CREATE", LOG_DEBUG_VERBOSE);
         break;
     case WM_NCCREATE:
-        DoLog("POPUP", "WM_NCCREATE", LOG_INFO);
+        DoLog("POPUP", "WM_NCCREATE", LOG_DEBUG_VERBOSE);
         break;
     case WM_LOGINTOMS:
-        DoLog("POPUP", "WM_LOGINTOMS", LOG_INFO);
+        DoLog("POPUP", "WM_LOGINTOMS", LOG_DEBUG_VERBOSE);
         if (!gAPI)
             gAPI = new GraphAPI();
         gAPI->LoginToMicrosoft(hWnd);
         SetTimer(hWnd, WM_LOGINTOMS, 3000, (TIMERPROC)NULL);
         break;
     case WM_TIMER:
-        DoLog("POPUP", "WM_TIMER", LOG_INFO);
+        DoLog("POPUP", "WM_TIMER", LOG_DEBUG_VERBOSE);
         KillTimer(hWnd, WM_LOGINTOMS);
         if (gAPI)
             gAPI->ResizeLogonWindow(hWnd);
         break;
     case WM_DONELOGINTOMS:
-        DoLog("POPUP", "WM_DONELOGINTOMS", LOG_INFO);
+        DoLog("POPUP", "WM_DONELOGINTOMS", LOG_DEBUG_VERBOSE);
         gAPI->SetLoginCode((wchar_t*)lParam);
         DestroyWindow(hWnd);
         break;
@@ -638,7 +658,7 @@ LRESULT CALLBACK PreviewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
     switch (message)
     {
     case WM_CREATE:
-        DoLog("PREVIEW", "WM_CREATE", LOG_INFO);
+        DoLog("PREVIEW", "WM_CREATE", LOG_DEBUG_VERBOSE);
 
         // Create a normal DC and a memory DC for the entire 
         // screen. The normal DC provides a snapshot of the 
@@ -1005,12 +1025,15 @@ LRESULT CALLBACK PreviewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 template <class PageType>
 void RM_Load(RMDocFile<PageType> * ZF, HWND hWnd)
 {
-    SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting RM Load..."));
-
     std::unique_ptr<wchar_t> RMFile(new wchar_t[LB_SIZE]);
     int CurSel = ListBox_GetCurSel(hRMList);
     ListBox_GetText(hRMList, CurSel, RMFile.get());
     std::string sRMFile = ws2s(RMFile.get());
+
+    std::wstring Msg = L"Starting RM Load: ";
+    Msg.append(RMFile.get());
+    Msg.append(L"...");
+    DoLog("MAIN", Msg, LOG_INFO);
 
     std::unique_ptr<char> WorkingDir(new char[LB_SIZE]);
     GetPrivateProfileStringA("RMFILE", "WorkingDir", "", WorkingDir.get(), LB_SIZE, gszIniFileName);
@@ -1029,16 +1052,36 @@ void RM_Load(RMDocFile<PageType> * ZF, HWND hWnd)
 }
 
 template <class PageType>
-void ONE_Load(GraphDoc<PageType>* GD, HWND hWnd) {
+bool ONE_Load(GraphDoc<PageType>* GD, HWND hWnd) {
     int CurSel = ListBox_GetCurSel(hONEList);
-    wchar_t* ONEFileID = (wchar_t*)SendMessage(hONEList, LB_GETITEMDATA, CurSel, NULL);
+    wchar_t* ONEFileID = (wchar_t*)ListBox_GetItemData(hONEList, CurSel);
+
+    if (ONEFileID == NULL) {
+        // must be a "create according to RM name" - so we can't load it
+        DoLog("ONE_LOAD", "Can't Load generic ONE doc", LOG_WARNING);
+        return false;
+    }
+
+    std::wstring Msg = L"Starting ONE Load: ";
+    std::unique_ptr<wchar_t> Section(new wchar_t[LB_SIZE]);
+    ListBox_GetText(hONEList, CurSel, (LPARAM)Section.get());
+    std::string SectionName(ws2s(Section.get()));
+    size_t sep = SectionName.find_first_of(" - ");
+    SectionName = SectionName.substr(sep + 3);
+
+    Msg.append(Section.get());
+    Msg.append(L"...");
+    DoLog("MAIN", Msg, LOG_INFO);
+
+    GD->Name = SectionName;
+
     if (!gAPI)
         gAPI = new GraphAPI();
 
     NumPages = GD->LoadPages(ONEFileID);
     if (NumPages == -1) {
         // No Auth! Logon!
-        SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("No Auth, starting popup"));
+        DoLog("MAIN", L"No Auth, starting popup", LOG_INFO);
         hLoginPopup = CreateWindowW(szPopupWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL,
             CW_USEDEFAULT, 0, 500, 650, hWnd, nullptr, hInst, nullptr);
 
@@ -1056,6 +1099,7 @@ void ONE_Load(GraphDoc<PageType>* GD, HWND hWnd) {
 
     }
     CurrentPage = 0;
+    return true;
 
 }
 
@@ -1099,34 +1143,35 @@ void ONE_Preview(HWND hWnd)
         delete GD;
     GD = new GraphDoc<WindowONEPage>(gAPI);
 
-    ONE_Load(GD, hWnd);
-
-    if (hPreview)
+    if (ONE_Load(GD, hWnd))
     {
-        // Window already exists...
-        ShowWindow(hPreview, SW_NORMAL);
-        InvalidateRect(hPreview, NULL, TRUE);
-    }
-    else {
-        hPreview = CreateWindowW(szPreviewWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-            CW_USEDEFAULT, 0, 500, 650, hWnd, nullptr, hInst, nullptr);
-        if (!hPreview)
+        if (hPreview)
         {
-            int err = GetLastError();
-            std::wostringstream LB;
-            LB << L"Creating Preview Error: 0x" << std::hex << std::uppercase << err;
-            DoLog("MAIN", LB.str(), LOG_ERROR);
-        }
-        else
-        {
-            PostMessage(hPreview, WM_PREPARE_POPUP, (WPARAM)GD, NULL);
+            // Window already exists...
             ShowWindow(hPreview, SW_NORMAL);
-            UpdateWindow(hPreview);
+            InvalidateRect(hPreview, NULL, TRUE);
+        }
+        else {
+            hPreview = CreateWindowW(szPreviewWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+                CW_USEDEFAULT, 0, 500, 650, hWnd, nullptr, hInst, nullptr);
+            if (!hPreview)
+            {
+                int err = GetLastError();
+                std::wostringstream LB;
+                LB << L"Creating Preview Error: 0x" << std::hex << std::uppercase << err;
+                DoLog("MAIN", LB.str(), LOG_ERROR);
+            }
+            else
+            {
+                PostMessage(hPreview, WM_PREPARE_POPUP, (WPARAM)GD, NULL);
+                ShowWindow(hPreview, SW_NORMAL);
+                UpdateWindow(hPreview);
+            }
         }
     }
 }
 
-void RM_to_ONE(HWND hWnd)
+void RM_to_ONE(HWND hWnd, bool Notebook)
 {
     // First, load the RM page
     if (TOZF)
@@ -1146,19 +1191,46 @@ void RM_to_ONE(HWND hWnd)
         TOZF->DrawPage((void*)GD, i);
 
     // And save it!
-    SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting ONE Save..."));
+    std::wstring Msg = L"Starting ONE Save: ";
+
     int CurSel = ListBox_GetCurSel(hONEList);
     if (CurSel != -1)
     {
-        wchar_t* ONEFileID = (wchar_t*)SendMessage(hONEList, LB_GETITEMDATA, CurSel, NULL);
-        GD->SaveDoc(ONEFileID);
+        if (Notebook) {
+            // Not an existing section, so find or create based on Name of RM Doc
+            std::unique_ptr<wchar_t> Notebook(new wchar_t[LB_SIZE]);
+            ListBox_GetText(hONEList, CurSel, (LPARAM)Notebook.get());
+            std::string Section = TOZF->Name;
+            std::string NotebookName = ws2s(Notebook.get()); 
+            size_t sep = NotebookName.find_first_of(" - ");
+            NotebookName = NotebookName.substr(0, sep);
+            Msg.append(s2ws(NotebookName));
+            Msg.append(L" - ");
+            Msg.append(s2ws(Section));
+            Msg.append(L"...");
+            DoLog("MAIN", Msg, LOG_INFO);
+            GD->SaveDoc(NotebookName, Section);
+        }
+        else {
+            wchar_t* ONEFileID = (wchar_t*)ListBox_GetItemData(hONEList, CurSel);
+            std::unique_ptr<wchar_t> Notebook(new wchar_t[LB_SIZE]);
+            ListBox_GetText(hONEList, CurSel, (LPARAM)Notebook.get());
+            Msg.append(Notebook.get());
+            Msg.append(L"...");
+            DoLog("MAIN", Msg, LOG_INFO);
+            if (ONEFileID)
+                GD->SaveDoc(ONEFileID);
+        }
         CurrentPage = 0;
     }
+    else {
+        DoLog("MAIN", L"Can't convert - no destination selected", LOG_ERROR);
+    }
     
-    SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("... Done"));
+    DoLog("MAIN", L"... Done", LOG_INFO);
 }
 
-void ONE_to_RM(HWND hWnd)
+void ONE_to_RM(HWND hWnd, bool Notebook)
 {
     // First, load the ONE page
     if (!gAPI)
@@ -1178,22 +1250,33 @@ void ONE_to_RM(HWND hWnd)
     for (int i = 0; i < NumPages; i++)
         TOGD->DrawPage((void*)ZF, i);
 
-    // And save the RM file
-    std::unique_ptr<wchar_t> RMFile(new wchar_t[LB_SIZE]);
-    int CurSel = ListBox_GetCurSel(hRMList);
-    ListBox_GetText(hRMList, CurSel, RMFile.get());
-    std::string sRMFile = ws2s(RMFile.get());
+    // And save the RM file#
+    std::string sRMFile;
+    if (Notebook) {
+        sRMFile = TOGD->Name;
+    }
+    else
+    {
+        std::unique_ptr<wchar_t> RMFile(new wchar_t[LB_SIZE]);
+        int CurSel = ListBox_GetCurSel(hRMList);
+        ListBox_GetText(hRMList, CurSel, RMFile.get());
+        sRMFile = ws2s(RMFile.get());
+    }
 
     std::unique_ptr<char> WorkingDir(new char[LB_SIZE]);
     GetPrivateProfileStringA("RMFILE", "WorkingDir", "", WorkingDir.get(), LB_SIZE, gszIniFileName);
-
-    SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("Starting  RM Save..."));
+    
+    std::wstring Msg = L"Starting RM Save: ";
+    Msg.append(s2ws(sRMFile));
+    Msg.append(L"...");
+    DoLog("MAIN", Msg, LOG_INFO);
     std::string TMPfile = WorkingDir.get();
     TMPfile.append("Output.rmdoc");
     if (ZF)
         NumPages = ZF->SaveRMsToZip(TMPfile.c_str());
 
     RMAPI::SaveDoc(sRMFile, WorkingDir.get());
-    SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)_T("... Done"));
+
+    DoLog("MAIN",L"... Done", LOG_INFO);
 }
 

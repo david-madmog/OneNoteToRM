@@ -3,6 +3,9 @@
 #include "WindowRMPage.h"
 #include "GraphDoc.h"
 
+#define SHOW_LINE_ANCHORS 0
+
+
 ToOneRMPage::ToOneRMPage() 
 	: RMPage()
 {
@@ -24,7 +27,7 @@ ToOneRMPage::~ToOneRMPage()
 
 void ToOneRMPage::DrawPageInit(void* DrawDetails) {
 
-    for (auto const& [key, val] : IndexBlocks)
+    for (auto& val : Blocks)
     {
         if (typeid(*val) == typeid(SceneInfo))
         {
@@ -40,7 +43,6 @@ void ToOneRMPage::DrawPageInit(void* DrawDetails) {
     }
 
     // Create our destination page
-//    OnePage = new WindowONEPage;
     ((GraphDoc<WindowONEPage>*)DrawDetails)->AddPage(&OnePage);
     std::wostringstream T;
     T << PageTitle.c_str();
@@ -62,7 +64,8 @@ void ToOneRMPage::FindMinMax(SceneLineItem* SLI)
 void ToOneRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
 {
 
-    INK_Point Origin((paper_size[0] / 2) + LineExt.X, LINES_Y_START, 100);
+//    INK_Point Origin((paper_size[0] / 2) + LineExt.X, LINES_Y_START, 100);
+    INK_Point Origin(-LineExt.X, -LineExt.Y, 100);
 
     if (SLI->points.empty())
         return;
@@ -132,7 +135,7 @@ void ToOneRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
 
     OnePage.InkTraces.push_back(Trace);
 
-#if FALSE
+#if SHOW_LINE_ANCHORS
     Trace = new INK_Trace();
     Trace->colour = Gdiplus::Color::Green;
     Trace->thickness_scale = 10;
@@ -142,13 +145,13 @@ void ToOneRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
     tid << SLI->item_id << L"-B";
     Trace->trace_id = tid.str();
     INK_Point P;
-    P.X = (int)(SLI->points[0].x + Origin.X) * RM_TO_ONE_SCALE_FACTOR;
-    P.Y = (int)(SLI->points[0].y + Origin.Y) * RM_TO_ONE_SCALE_FACTOR;
-    P.F = (int)SLI->points[0].width * RM_TO_ONE_SCALE_FACTOR;
+    P.X = (int)(SLI->points[0].x + Origin.X) * RM_TO_ONE_XY_SCALE_FACTOR;
+    P.Y = (int)(SLI->points[0].y + Origin.Y) * RM_TO_ONE_XY_SCALE_FACTOR;
+    P.F = (int)SLI->points[0].width * RM_TO_ONE_LINE_FACTOR;
     Trace->points.push_back(P);
-    P.X = (int)(Origin.X) * RM_TO_ONE_SCALE_FACTOR;
-    P.Y = (int)(Origin.Y) * RM_TO_ONE_SCALE_FACTOR;
-    P.F = (int)SLI->points[0].width * RM_TO_ONE_SCALE_FACTOR;
+    P.X = (int)(Origin.X) * RM_TO_ONE_XY_SCALE_FACTOR;
+    P.Y = (int)(Origin.Y) * RM_TO_ONE_XY_SCALE_FACTOR;
+    P.F = (int)SLI->points[0].width * RM_TO_ONE_LINE_FACTOR;
     Trace->points.push_back(P);
     OnePage.InkTraces.push_back(Trace);
 #endif
@@ -182,34 +185,18 @@ std::wstring ToOneRMPage::GetRMFont(int format_code) {
 }
 
 int ToOneRMPage::GetRMFontSize(int format_code) {
-
-    switch (format_code)
-    {
-    case 1:
+    if (format_code == 2)
+        return 48;
+    else
         return 32;
-        break;
-    case 2:
-        return 64;
-        break;
-    case 4:
-        return 32;
-    case 0:
-    case 3:
-    case 5:
-    case 6:
-    case 7:
-    default:
-        return 16;
-    }
-    return 16;
 }
 
 
 
 void ToOneRMPage::DrawTextItem(void* DrawDetails, RootText* RT)
 {
-    POINT DrawPos((LONG)RT->pos_x + RM_X_OFFSET, (LONG)RT->pos_y);
-    WCHAR WC;
+    POINT DrawPos((LONG)RT->pos_x + RM_X_OFFSET, (LONG)RT->pos_y + TEXT_Y_START);
+//    WCHAR WC;
 
     ONE_Text * Text = new ONE_Text;
     ONE_TextSpan rootSpan;
@@ -231,34 +218,28 @@ void ToOneRMPage::DrawTextItem(void* DrawDetails, RootText* RT)
     Text->Top = DrawPos.y;
 
     for (auto& text : RT->texts) {
+        ONE_TextSpan span = ONE_TextSpan();
+        span.Text = L"";
+
         if (text.value)
         {
-            ONE_TextSpan span = ONE_TextSpan();
-            span.Text = L"";
+            RM_CRDT_ID AnchorID = text.item_id;
 
             span.Font = rootSpan.Font;
             span.FontSize = rootSpan.FontSize;
 
-            std::wostringstream buff;
-            buff << text.value;
-            span.Text.append(buff.str());
-            Text->Texts.push_back(span);
-             
             char* Message = text.value;
-            RM_CRDT_ID AnchorID = text.item_id;
-
-            // We need to go through one char at a time to calculate the anchor points and apply formats
+            // We need to go through one char at a time to apply formats
             while (*Message) {
-
-                WC = (WCHAR)*Message;
-
-                //if (*Message == ' ') // measure string won't measure a space, so we have to expand it
-                //    WC = 'X';
-                //graphics.MeasureString(&WC, 1, font, DrawPos, &form, &BoundingBox);
-                ////                            Pen GPen(Color(0,255,0), 1);
-                ////                            graphics.DrawRectangle(&GPen, BoundingBox);
-
+                span.Text.append(1, (const wchar_t)*Message);
                 if (*Message == '\n') {
+                    // New line starts a new run
+                    Text->Texts.push_back(span);
+                    span.Text = L"";
+                    //TR.AnchorID = CharAnchorID;
+                    // Subsequent root text chunk runs will have code 0 unless/until overridden by an explicit code
+                    span.Font = GetRMFont(0);
+                    span.FontSize = GetRMFontSize(0);
                     DrawPos.y += rootSpan.FontSize;  // Horrible approximation, as we don't really have a reference to calculate otherwise
                     DrawPos.x = (LONG)RT->pos_x + RM_X_OFFSET;
                 }
@@ -266,12 +247,13 @@ void ToOneRMPage::DrawTextItem(void* DrawDetails, RootText* RT)
                     DrawPos.x += rootSpan.FontSize;
                 }
 
-                // now see if we beed to change format for the next char
+                // now see if we need to change format for the current Run
                 for (auto& format : RT->formats)
                 {
                     if (format.charID == AnchorID) {
-                        rootSpan.Font = GetRMFont(format.format_code);
-                        rootSpan.FontSize = GetRMFontSize(format.format_code);
+                        span.Font = GetRMFont(format.format_code);
+                        span.FontSize = GetRMFontSize(format.format_code);
+                        //        format_code = format.format_code;
                         std::wostringstream LB;
                         LB << L"FONT: changing to code " << format.format_code;
                         DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG_VERBOSE);
@@ -279,13 +261,14 @@ void ToOneRMPage::DrawTextItem(void* DrawDetails, RootText* RT)
                     }
                 }
 
-                POINT BR = { (int)DrawPos.x, (int)DrawPos.y };
+                POINT BR = {(int)DrawPos.x, (int)DrawPos.y };
                 Anchors[AnchorID] = BR;
                 AnchorID.part2++;
-
                 Message++;
             }
         }
+        if (span.Text.length() > 0)
+            Text->Texts.push_back(span);
     }
 
     OnePage.TextDivs.push_back(Text);

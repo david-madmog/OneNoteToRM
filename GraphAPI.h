@@ -70,7 +70,6 @@ public:
 
 	void ListSections(std::vector<ONE_Section>& Sections);
 
-
 	bool EnsureConnected(void);
 	void ResizeLogonWindow(HWND hWnd);
 	void LoginToMicrosoft(HWND hWnd);

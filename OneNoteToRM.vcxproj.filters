@@ -132,6 +132,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
+    <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <Media Include="OneNoteToRM.ini" />

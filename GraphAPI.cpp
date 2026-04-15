@@ -81,13 +81,19 @@ std::wstring* GraphAPI::PostUpdateAndAwaitResponse(const wchar_t* URLPath, const
     request.set_body(Body);
     request.headers().set_content_length(wcslen(Body));
 
-    utility::string_t ContentType(web::http::details::mime_types::multipart_form_data);
-    ContentType.append(L"; boundary=");
-    ContentType.append(Boundary);
-    //utility::string_t ContentType(L"application/xhtml+xml");
+    if (Boundary)
+    {
+        utility::string_t ContentType(web::http::details::mime_types::multipart_form_data);
+        ContentType.append(L"; boundary=");
+        ContentType.append(Boundary);
+        //utility::string_t ContentType(L"application/xhtml+xml");
+        request.headers().set_content_type(ContentType);
+    }
+    else {
+        utility::string_t ContentType(web::http::details::mime_types::application_json);
+        request.headers().set_content_type(ContentType);
+    }
 
-
-    request.headers().set_content_type(ContentType);
     request.set_request_uri(URI.to_uri());
 
     pplx::task<http_response> requestTask = client.request(request);
@@ -109,7 +115,7 @@ std::wstring* GraphAPI::PostUpdateAndAwaitResponse(const wchar_t* URLPath, const
         utility::string_t* RespData = new utility::string_t(RespDataTask.get());
         std::wostringstream LB;
         LB << L"GOT data: " << RespData->substr(0, LB_SIZE - 50);
-        DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
+        DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
         return RespData;   //!!!CHECK WE DELETE THIS
     }
     else {
@@ -169,7 +175,7 @@ std::wstring* GraphAPI::SendRequestAndAwaitResponse(const wchar_t* URLPath) {
         utility::string_t* RespData = new utility::string_t(RespDataTask.get());
         std::wostringstream LB;
         LB << L"GOT data: " << RespData->substr(0, LB_SIZE - 50);
-        DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
+        DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
         return RespData; //!!!CHECK WE DELETE THIS
     }
     else {
@@ -429,7 +435,7 @@ void GraphAPI::DeletePage(const wchar_t* URLPath)
     {
         std::wostringstream LB;
         LB << L"GOT Successful delete response";
-        DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
+        DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
     }
     else {
         std::wostringstream LB;
@@ -484,7 +490,7 @@ void GraphAPI::ListSections(std::vector<ONE_Section>& Sections) {
     catch (njson::parse_error ex) {
         std::wostringstream LB;
         LB << L"JSON Parse Error: " << ex.what();
-        DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
         return;
     }
 

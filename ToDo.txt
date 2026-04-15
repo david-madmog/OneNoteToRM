@@ -10,12 +10,10 @@ TTTTT   OOO      DDDD    OOO
 
 Work out pen width - more fiddling
 Work out how to get calligraphy pen working in OneNote
-Text formatting and Bullets?
+Text formatting and Bullets in OneNote - seems to have gone off?
+Positioning of sections in ON
 "Shader" pen not coming out with transparency on ONENote
-
-Check again memory management - destructors freeing all allocated stuff
-  - Pages
-  - Docs
 
 Change RMAPI to use temp directory
 Build installer
+Readme

@@ -33,8 +33,10 @@
 
 #define BTN_RM_TO_ONE 212
 #define BTN_ONE_TO_RM 213
+#define BTN_RM_TO_ONE_NB 214
+#define BTN_ONE_TO_RM_NB 215
 
-#define BTN_ABOUT 214
+#define BTN_ABOUT 2220
 
 #define WM_LOGINTOMS (WM_USER + 1)
 #define WM_DONELOGINTOMS (WM_USER + 2)

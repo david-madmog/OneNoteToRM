@@ -119,13 +119,13 @@ void RMPage::Load(zip_file* file)
                         if (bUseful) {
                             AddBlock(NewBlock);
                         } else {
-                            DoLog(typeid(*this).name(), "Useless block: ignoring", LOG_INFO);
+                            DoLog(typeid(*this).name(), "Useless block: ignoring", LOG_DEBUG);
                         }
                     }
                     catch (incorrect_tag &e) {
                         std::wostringstream LB;
                         LB << L"Incorrect tag: " << e.what() << L" parsing block type " << typeid(*NewBlock).name();
-                        DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
+                        DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
                     }
                 }
 
@@ -137,7 +137,7 @@ void RMPage::Load(zip_file* file)
         zip_fclose(file);
         std::wostringstream LB;
         LB << L"Read " << NumBlocks << L"blocks: " << Blocks.size() << L" blocks in Array";
-        DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
+        DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
     }
     else {
         std::wostringstream LB;
@@ -198,7 +198,8 @@ void RMPage::AddBlock(RMBlock * Block) {
     else if (dynamic_cast<RMSceneItemBlock*>(Block))
         key = ((RMSceneItemBlock*)Block)->item_id;
     else if (Block->BlockType() == BT_RootText)
-        key = ((RootText*)Block)->texts[0].item_id;
+        if (((RootText*)Block)->texts.size() > 0)
+            key = ((RootText*)Block)->texts[0].item_id;
 
     if (key != RM_CRDT_ID(0, 0))
     {

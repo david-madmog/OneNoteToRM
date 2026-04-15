@@ -278,11 +278,16 @@ wstring ONEPage::SaveText()
         Style << L"position:absolute;left:" << TextDiv->Left << L"px;top:" << TextDiv->Top << L"px;width:720px";
         divNode.append_attribute(L"style") = Style.str();
         for (auto span : TextDiv->Texts) {
-            xml_node SpanNode = divNode.append_child(L"p").append_child(L"span");
-            SpanNode.append_child(pugi::node_pcdata).set_value(span.Text);
-            Style.str(L"");
-            Style << L"font-family:" << span.Font << L";font-size:" << span.FontSize << L"pt";
-            SpanNode.append_attribute(L"style") = Style.str();
+            // If it's an empty newline para, insert a "br"
+            if (span.Text == L"\n") {
+                xml_node brNode = divNode.append_child(L"br");
+            } else {
+                xml_node SpanNode = divNode.append_child(L"p").append_child(L"span");
+                SpanNode.append_child(pugi::node_pcdata).set_value(span.Text); // add a space on the end so spans with just newline work
+                Style.str(L"");
+                Style << L"font-family:" << span.Font << L";font-size:" << span.FontSize << L"pt";
+                SpanNode.append_attribute(L"style") = Style.str();
+            }
         }
     }
 

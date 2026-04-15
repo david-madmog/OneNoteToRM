@@ -116,7 +116,8 @@ template<class PageType> int RMDocFile<PageType>::ExtractRMsFromZip(const char* 
     for (auto&Page : Pages) 
     {
         std::ostringstream PageName;
-        PageName << Name << " - Page " << i++;
+//        PageName << Name << " - Page " << i++;
+        PageName << "Page " << i++;
         Page->PageTitle = PageName.str();
     }
 

@@ -3,7 +3,7 @@
 #include "OneNoteToRM.h"
 #include "ConversionConstants.h"
 
-#define SHOW_LINE_ANCHORS 1
+#define SHOW_LINE_ANCHORS 0
 
 using namespace Gdiplus;
 
@@ -30,7 +30,6 @@ void WindowRMPage::DrawPageInit(void* DrawDetails)
     DrawDetailsParams* DD = (DrawDetailsParams*)DrawDetails;
     HDC hDC = DD->hDC;
 
-//    for (auto const& [key, val] : IndexBlocks)
     for (auto & val : Blocks)
     {
         if (typeid(*val) == typeid(SceneInfo))
@@ -51,8 +50,8 @@ void WindowRMPage::DrawPageInit(void* DrawDetails)
         << LineExt.X << L"," << LineExt.Y << L") " << LineExt.Width << L"x" << LineExt.Height;
     DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
 
-//    RECT rect;
     SetRect(&DD->Rect, 0, 0, paper_size[0], paper_size[1]);
+//    SetRect(&DD->Rect, 0, 0, LineExt.Width, LineExt.Height);
     FillRect(hDC,&DD->Rect, (HBRUSH)(COLOR_WINDOW + 1));
 
 }
@@ -61,7 +60,8 @@ void WindowRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
 {
     HDC hDC = ((DrawDetailsParams*)DrawDetails)->hDC;
 
-    Point Origin((paper_size[0]/2) + LineExt.X, LINES_Y_START);
+//    Point Origin((paper_size[0] / 2) + LineExt.X, LINES_Y_START);
+    Point Origin(-LineExt.X, -LineExt.Y);
     Graphics graphics(hDC);
 
     if (SLI->points.empty())
@@ -88,6 +88,8 @@ void WindowRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
             if (Anchor == RM_CRDT_ID{ 0, 0 } || Anchor == RM_CRDT_ID{ 0, -1 } || Anchor == RM_CRDT_ID{ 0, -2 })
             {
                 Origin.X = (int)((TreeNode*)Parent)->anchor_origin_x.value - LineExt.X; // Null anchor - all good: draw from page origin
+//                Origin.X = (int)((TreeNode*)Parent)->anchor_origin_x.value + RM_X_OFFSET; // Null anchor - all good: draw from page origin
+                Origin.Y = LINES_Y_START - LineExt.Y;
             }
             else if (Anchors.count(Anchor)) {
                 // So, this line's origin is the finishing point of that item
@@ -98,6 +100,7 @@ void WindowRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
                 std::wostringstream LB;
                 LB << L"Line Item's Parent's Anchor not found, Parent: " << ((TreeNode*)Parent)->node_id << L", Anchor: " << Anchor;
                 DoLog(typeid(*this).name(), LB.str(), LOG_WARNING);
+                
             }
         }
         else {
@@ -120,8 +123,8 @@ void WindowRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
     {
         for (int i = 0; i < SLI->points.size() - 1; i++) {
             pen.SetWidth((REAL)(SLI->points[i].width / 4.0));
-            graphics.DrawLine(&pen, (int)SLI->points[i].x + Origin.X, (int)SLI->points[i].y + Origin.Y,
-                (int)SLI->points[i + 1].x + Origin.X, (int)SLI->points[i + 1].y + Origin.Y);
+            graphics.DrawLine(&pen, (int)(SLI->points[i].x * X_SCALE) + Origin.X, (int)(SLI->points[i].y * Y_SCALE) + Origin.Y,
+                (int)(SLI->points[i + 1].x * X_SCALE) + Origin.X, (int)(SLI->points[i + 1].y * Y_SCALE) + Origin.Y);
 
         }
     }
@@ -131,7 +134,7 @@ void WindowRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
         for (int i = 0; i < SLI->points.size(); i++)
 #pragma warning ( push )
 #pragma warning( disable : 6386)
-            Points[i] = Point((int)SLI->points[i].x + Origin.X, (int)SLI->points[i].y + Origin.Y);
+            Points[i] = Point((int)(SLI->points[i].x * X_SCALE) + Origin.X, (int)(SLI->points[i].y * Y_SCALE) + Origin.Y);
 #pragma warning ( pop )
 
         graphics.DrawLines(&pen, Points, (int)SLI->points.size());
@@ -140,16 +143,19 @@ void WindowRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
 
 #if SHOW_LINE_ANCHORS
     Pen GPen(Color(0, 255, 0), 1);
-    graphics.DrawLine(&GPen, (int)SLI->points[0].x + Origin.X, (int)SLI->points[0].y + Origin.Y, (int)Origin.X, (int)Origin.Y);
+    graphics.DrawLine(&GPen, (int)(SLI->points[0].x * X_SCALE) + Origin.X, (int)(SLI->points[0].y * Y_SCALE) + Origin.Y, (int)Origin.X, (int)Origin.Y);
 
-    std::wostringstream NI;
-    NI << ((TreeNode*)Parent)->node_id << L" via " << SLI->parent_id;
-    FontFamily fontFamily(L"Arial"); 
-    Font *font = new Font(&fontFamily, 10, FontStyleRegular, UnitPixel);
-    SolidBrush  solidBrush(Color(255, 0, 127, 0));
-    StringFormat form(StringFormat::GenericTypographic()); // this is needed to prevent characters from including padding
-    graphics.DrawString(NI.str().c_str(), (int)NI.str().size(), font,
-        PointF(SLI->points[0].x + Origin.X, SLI->points[0].y + Origin.Y), &form, &solidBrush);
+    if (Parent)
+    {
+        std::wostringstream NI;
+        NI << ((TreeNode*)Parent)->node_id << L" via " << SLI->parent_id;
+        FontFamily fontFamily(L"Arial");
+        Font* font = new Font(&fontFamily, 10, FontStyleRegular, UnitPixel);
+        SolidBrush  solidBrush(Color(255, 0, 127, 0));
+        StringFormat form(StringFormat::GenericTypographic()); // this is needed to prevent characters from including padding
+        graphics.DrawString(NI.str().c_str(), (int)NI.str().size(), font,
+            PointF((REAL)(SLI->points[0].x * X_SCALE) + Origin.X, (REAL)(SLI->points[0].y * Y_SCALE) + Origin.Y), &form, &solidBrush);
+    }
 #endif
 }
 
@@ -163,46 +169,37 @@ Font* WindowRMPage::GetRMFont(int format_code) {
     //    si.ParagraphStyle.HEADING : 150,
     //    si.ParagraphStyle.CHECKBOX : 35,
     //    si.ParagraphStyle.CHECKBOX_CHECKED : 35,
-
-    //BASIC = 0
-    //    PLAIN = 1
-    //    HEADING = 2
-    //    BOLD = 3
-    //    BULLET = 4
-    //    BULLET2 = 5
-    //    CHECKBOX = 6
-    //    CHECKBOX_CHECKED = 7
     Font* font;
 
     switch (format_code)
     {
-    case 1:
+    case 1: // PLAIN = 1
     {
         FontFamily fontFamily(L"Arial");
-        font = new Font(&fontFamily, 32, FontStyleRegular, UnitPixel);
+        font = new Font(&fontFamily, 24, FontStyleRegular, UnitPixel);
         break;
     }
-    case 2:
+    case 2: //    HEADING = 2
     {
         FontFamily fontFamily(L"Book Antiqua");
-        font = new Font(&fontFamily, 64, FontStyleRegular, UnitPixel);
+        font = new Font(&fontFamily, 48, FontStyleRegular, UnitPixel);
         break;
     }
-    case 3:
+    case 3:  //    BOLD = 3
     {
         FontFamily fontFamily(L"Arial");
-        font = new Font(&fontFamily, 32, FontStyleBold, UnitPixel);
+        font = new Font(&fontFamily, 24, FontStyleBold, UnitPixel);
         break;
     }
-    case 0:
-    case 4:
-    case 5:
-    case 6:
-    case 7:
+    case 0: //BASIC = 0
+    case 4://    BULLET = 4
+    case 5://    BULLET2 = 5
+    case 6://    CHECKBOX = 6
+    case 7://    CHECKBOX_CHECKED = 7
     default:
     {
         FontFamily fontFamily(L"Arial");
-        font = new Font(&fontFamily, 16, FontStyleRegular, UnitPixel);
+        font = new Font(&fontFamily, 24, FontStyleRegular, UnitPixel);
     }
     }
 
@@ -214,18 +211,10 @@ void WindowRMPage::DrawTextItem(void* DrawDetails, RootText* RT)
     struct TextRun
     {
         std::wstring Text;
-        int format_code;
+        int format_code = 0;
         RM_CRDT_ID AnchorID;
     };
     std::vector<TextRun> TextRuns;
-
-    HDC hDC = ((DrawDetailsParams*)DrawDetails)->hDC;
-
-    Graphics graphics(hDC);
-    //    PointF DrawPos(TEXT_X_START, TEXT_Y_START);
-    PointF DrawPos((REAL)RT->pos_x + RM_X_OFFSET, (REAL)RT->pos_y);
-    RectF BoundingBox;
-    //WCHAR WC;
 
     Font* font = NULL;
     int format_code = 0;
@@ -242,7 +231,7 @@ void WindowRMPage::DrawTextItem(void* DrawDetails, RootText* RT)
     }
 
     for (auto& text : RT->texts) {
-       TextRun TR;
+        TextRun TR;
         TR.format_code = format_code;
         TR.Text = L"";
         if (text.value)
@@ -254,6 +243,14 @@ void WindowRMPage::DrawTextItem(void* DrawDetails, RootText* RT)
             // We need to go through one char at a time to apply formats
             while (*Message) {
                 TR.Text.append(1, (const wchar_t)*Message);
+                if (*Message == '\n') {
+                    // New line starts a new run
+                    TextRuns.push_back(TR);
+                    TR.Text = L"";
+                    TR.AnchorID = CharAnchorID;
+                    // Subsequent root text chunbk runs will have code 0 unless/until overridden by an explicit code
+                    TR.format_code = 0;
+                }
                 // now see if we need to change format for the current Run
                 for (auto& format : RT->formats)
                 {
@@ -265,18 +262,41 @@ void WindowRMPage::DrawTextItem(void* DrawDetails, RootText* RT)
                         DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG_VERBOSE);
                         break;
                     }
-                    if (*Message == '\n') {
-                        // New line starts a new run
-                        TextRuns.push_back(TR);
-                        TR.Text = L"";
-                    }
                 }
                 CharAnchorID.part2++;
                 Message++;
             }
         }
-        TextRuns.push_back(TR);
+        if (TR.Text.length() > 0)
+            TextRuns.push_back(TR);
     }
+
+    // Second pass to add in bullets
+    for (auto& TextRun : TextRuns)
+    {
+        switch (TextRun.format_code) {
+        case 4:
+        case 5:
+            TextRun.Text =  L"• " + TextRun.Text;   // Bullet
+            break;
+        case 6:
+            TextRun.Text = (wchar_t)0x25A1 + L" " + TextRun.Text; //9633
+            break;
+        case 7:
+            TextRun.Text = (wchar_t)0x221A + L" " + TextRun.Text; // 8730
+            break;
+        }
+    }
+
+    HDC hDC = ((DrawDetailsParams*)DrawDetails)->hDC;
+
+    Graphics graphics(hDC);
+    //    PointF DrawPos(TEXT_X_START, TEXT_Y_START);
+    PointF DrawPos((REAL)(RT->pos_x + RM_X_OFFSET), (REAL)RT->pos_y + TEXT_Y_START);
+    RectF BoundingBox;
+    //WCHAR WC;
+
+
 
     // Now we can draw the text run - one char at a time to record the co-ords for anchor points
     SolidBrush  solidBrush(Color(255, 0, 0, 0));
@@ -288,108 +308,41 @@ void WindowRMPage::DrawTextItem(void* DrawDetails, RootText* RT)
         RM_CRDT_ID AnchorID = TextRun.AnchorID;
         font = GetRMFont(TextRun.format_code);
         std::wostringstream LB;
-        LB << L"Text Run code " << TextRun.format_code << L" for text " << TextRun.Text;
-        DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
+        std::wstring TRT(TextRun.Text);
+        std::replace(TRT.begin(), TRT.end(), L'\n', L'¶');
+        LB << L"Text Run code " << TextRun.format_code << L" for text " << TRT << L" Starting at (" << DrawPos.X << L", " << DrawPos.Y << L") Anchor " << AnchorID;
+        DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
 
 
         for (wchar_t& TC : TextRun.Text) {
-
+#if SHOW_LINE_ANCHORS
+            if (TC == '\n')
+                graphics.DrawString(L"¶", 1, font, DrawPos, &form, &solidBrush);
+#endif
             graphics.DrawString(&TC, 1, font, DrawPos, &form, &solidBrush);
             if (TC == ' ') // measure string won't measure a space, so we have to expand it
                 TC = 'X';
             graphics.MeasureString(&TC, 1, font, DrawPos, &form, &BoundingBox);
-            //                            Pen GPen(Color(0,255,0), 1);
-            //                            graphics.DrawRectangle(&GPen, BoundingBox);
+
+#if SHOW_LINE_ANCHORS
+            Pen GPen(Color(0,255,0), 1);
+            graphics.DrawRectangle(&GPen, BoundingBox);
+#endif
 
             if (TC == '\n') {
                 DrawPos.Y += BoundingBox.Height;
-                DrawPos.X = (REAL)RT->pos_x + RM_X_OFFSET;
+                DrawPos.X = (REAL)(RT->pos_x + RM_X_OFFSET);
             }
             else {
                 DrawPos.X += BoundingBox.Width;
             }
 
-            POINT BR = { (int)DrawPos.X, (int)DrawPos.Y };
+            POINT BR = { (int)DrawPos.X, (int)(DrawPos.Y + BoundingBox.Height) };
             Anchors[AnchorID] = BR;
             AnchorID.part2++;
 
         }
     }
-/*
-    for (auto& text : RT->texts) {
-        if (text.value)
-        {
-            char* Message = text.value;
-
-            // We need to go through one char at a time to calculate the anchor points and apply formats
-            while (*Message) {
-
-                WC = (WCHAR)*Message;
-
-                if (font)
-                {
-                    std::wostringstream LB;
-                    LB << L"FONT: code: " << *Message << L" style: " << font->GetStyle() << L" size: " << font->GetSize() << L" - Anchor " << AnchorID;
-                    DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG_VERBOSE);
-                }
-
-
-                graphics.DrawString(&WC, 1, font, DrawPos, &form, &solidBrush);
-                if (*Message == ' ') // measure string won't measure a space, so we have to expand it
-                    WC = 'X';
-                graphics.MeasureString(&WC, 1, font, DrawPos, &form, &BoundingBox);
-                //                            Pen GPen(Color(0,255,0), 1);
-                //                            graphics.DrawRectangle(&GPen, BoundingBox);
-
-                if (*Message == '\n') {
-                    DrawPos.Y += BoundingBox.Height;
-                    DrawPos.X = (REAL)RT->pos_x + RM_X_OFFSET;
-
-                    // So, look ahead, and see if there's another format def before the next newline
-                    RM_CRDT_ID lookaheadID = AnchorID;
-                    char* lookahead = Message + 1;
-                    for (; *lookahead != '\n' && *lookahead != '\0' ; lookahead++)
-                    {                      
-                        for (auto& format : RT->formats)
-                        {
-                            if (format.charID == lookaheadID) {
-                                font = GetRMFont(format.format_code);
-                                std::wostringstream LB;
-                                LB << L"FONT: changing to code " << format.format_code << L" at ID " << lookaheadID;
-                                DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
-                                goto LOOP_EXIT;
-                            }
-                        }
-                    }
-                LOOP_EXIT: 
-                    ;
-                }
-                else {
-                    DrawPos.X += BoundingBox.Width;
-                }
-
-                // now see if we need to change format for the next char
-                for (auto& format : RT->formats)
-                {
-                    if (format.charID == AnchorID) {
-                        font = GetRMFont(format.format_code);
-                        std::wostringstream LB;
-                        LB << L"FONT: changing to code " << format.format_code;
-                        DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG_VERBOSE);
-                        break;
-                    }
-                }
-
-
-                POINT BR = { (int)DrawPos.X, (int)DrawPos.Y };
-                Anchors[AnchorID] = BR;
-                AnchorID.part2++;
-
-                Message++;
-            }
-        }
-    }
-    */
 }
 
 void WindowRMPage::FindMinMax(SceneLineItem* SLI)

@@ -566,8 +566,14 @@ bool RootText::ParseBuffer(const unsigned char* Buff, size_t ValidLen, int versi
 		std::wostringstream LB;
 		LB << L"...Text ID " << text.item_id << L" :";
 		if (text.value)
-			LB << text.value;
-		DoLog(typeid(*this).name(), LB.str(), LOG_WARNING);
+		{
+			std::string TRT(text.value);
+			std::replace(TRT.begin(), TRT.end(), '\n', (char)'¶');
+			LB << TRT.c_str();
+		}
+		else
+			LB << L"¬"; 
+		DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
 	}
 //
 //		# Formatting
@@ -600,8 +606,8 @@ bool RootText::ParseBuffer(const unsigned char* Buff, size_t ValidLen, int versi
 				//    21 02 34 03 00 00 00
 		formats.push_back(format);
 		std::wostringstream LB;
-		LB << L"...FORMAT ID " << format.charID << L" Code " << format.format_code << L" (2:" << format.code2 << L", 3:" << format.code3 << L")";
-		DoLog(typeid(*this).name(), LB.str(), LOG_WARNING);
+		LB << L"...Format ID " << format.charID << L" Code " << format.format_code << L" (2:" << format.code2 << L", 3:" << format.code3 << L")";
+		DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
 	}
 //
 //		# Last section

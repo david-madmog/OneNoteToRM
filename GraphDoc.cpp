@@ -25,7 +25,7 @@ template GraphDoc<WindowONEPage>::GraphDoc(GraphAPI* API);
 template GraphDoc<WindowONEPage>::~GraphDoc();
 template int GraphDoc<WindowONEPage>::LoadPages(wchar_t* SectionID);
 //template int GraphDoc<WindowONEPage>::LoadDoc(const std::string& NotebookName, const std::string& SectionName);
-//template int GraphDoc<WindowONEPage>::SaveDoc(const std::string& NotebookName, const std::string& SectionName);
+template int GraphDoc<WindowONEPage>::SaveDoc(const std::string& NotebookName, const std::string& SectionName);
 template int GraphDoc<WindowONEPage>::SaveDoc(wchar_t* SectionID);
 template void GraphDoc<WindowONEPage>::DrawPage(void* DrawDetails, int Page);
 
@@ -73,7 +73,7 @@ template<class PageType> int GraphDoc<PageType>::LoadPages(wchar_t * SectionID) 
     catch (njson::parse_error ex) {
         std::wostringstream LB;
         LB << L"JSON Parse Error: " << ex.what();
-        DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
         return 0;
     }
 
@@ -121,7 +121,7 @@ template<class PageType> void GraphDoc<PageType>::DeletePages(wchar_t* SectionID
     catch (njson::parse_error ex) {
         std::wostringstream LB;
         LB << L"JSON Parse Error: " << ex.what();
-        DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
         return;
     }
 
@@ -156,7 +156,7 @@ template<class PageType> wchar_t * GraphDoc<PageType>::FindDocID(const std::stri
     catch (njson::parse_error ex) {
         std::wostringstream LB;
         LB << L"JSON Parse Error: " << ex.what();
-        DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
         return 0;
     }
 
@@ -168,7 +168,7 @@ template<class PageType> wchar_t * GraphDoc<PageType>::FindDocID(const std::stri
                 Section["parentNotebook"].contains("displayName")
                 ) 
             {
-                std::string XXX = Section.dump(4);
+//                std::string XXX = Section.dump(4);
                 std::string FoundSectionName = Section["displayName"].get< std::string>() ;
                 std::string FoundNotebookName = Section["parentNotebook"]["displayName"].get< std::string>();
 
@@ -182,10 +182,121 @@ template<class PageType> wchar_t * GraphDoc<PageType>::FindDocID(const std::stri
                 }
             }
         }
+
+        // If we've got here, the section doesn't exist, so create it
+        return CreateSection(NotebookName, SectionName);
     }
 
 
     return 0;
+}
+
+template<class PageType> wchar_t* GraphDoc<PageType>::CreateSection(const std::string& NotebookName, const std::string& SectionName)
+{
+    std::string NotebookID = "";
+
+    //First we need to find the ID of the notebook...
+    std::wstring* RespData = API->SendRequestAndAwaitResponse(L"me/onenote/notebooks?$select=id,displayName");
+
+    if (!RespData)
+        return nullptr;
+
+    njson respJson;
+    try {
+        respJson = njson::parse(*RespData);
+    }
+    catch (njson::parse_error ex) {
+        std::wostringstream LB;
+        LB << L"JSON Parse Error: " << ex.what();
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
+        return 0;
+    }
+    if (respJson.contains("value")) {
+        for (njson& Section : respJson["value"])
+        {
+            if (Section.contains("displayName"))
+            {
+                //                std::string XXX = Section.dump(4);
+                std::string FoundNotebookName = Section["displayName"].get< std::string>();
+
+                if (NotebookName == FoundNotebookName) {
+                    // Hooray - found what we're looking for
+                    NotebookID = Section["id"].get< std::string>();
+                    break;
+                }
+            }
+        }
+    }
+
+    if (NotebookID.empty())
+        return nullptr; // Couldn't find the notebook for some reason
+    
+    std::wstring URL = L"/me/onenote/notebooks/";
+    URL.append(s2ws(NotebookID));
+    URL.append(L"/sections");
+
+    njson RequestJson;
+    RequestJson.emplace("displayName", SectionName);
+    std::wstring Body = s2ws(RequestJson.dump());
+
+    RespData = API->PostUpdateAndAwaitResponse(URL.c_str(), Body.c_str(), NULL);
+
+    if (!RespData)
+        return nullptr;
+
+    try {
+        respJson = njson::parse(*RespData);
+    }
+    catch (njson::parse_error ex) {
+        std::wostringstream LB;
+        LB << L"JSON Parse Error: " << ex.what();
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
+        return 0;
+    }
+    if (respJson.contains("id")) {
+        // Hooray - found what we're looking for
+        std::string SectionID = respJson["id"].get< std::string>();
+        size_t convertedChars = 0;
+        wchar_t* LocalWBuff = (wchar_t*)malloc((SectionID.length() + 1) * sizeof(wchar_t));
+        mbstowcs_s(&convertedChars, LocalWBuff, SectionID.length() + 1, SectionID.c_str(), SectionID.length());
+        return LocalWBuff;
+    }
+
+    /*
+POST https://graph.microsoft.com/v1.0/me/onenote/notebooks/{id}/sections
+Content-type: application/json
+
+{
+  "displayName": "Section name"
+}
+
+HTTP/1.1 201 Created
+Content-type: application/json
+
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('david%40madmog.co.uk')/onenote/notebooks('0-ADAEA281180757D1%21s21b15485600a4dc3911b99974f571c62')/sections/$entity",
+    "id": "0-ADAEA281180757D1!s9bc9e7665956446e9c8a2149cea6adcd",
+    "self": "https://graph.microsoft.com/v1.0/users/david@madmog.co.uk/onenote/sections/0-ADAEA281180757D1!s9bc9e7665956446e9c8a2149cea6adcd",
+    "createdDateTime": "2026-04-14T12:22:54Z",
+    "displayName": "Hello",
+    "lastModifiedDateTime": "2026-04-14T12:22:54Z",
+    "isDefault": false,
+  "createdBy": {
+    "user": {
+      "id": "id-value",
+      "displayName": "displayName-value"
+    }
+  },
+  "lastModifiedBy": {
+    "user": {
+      "id": "id-value",
+      "displayName": "displayName-value"
+    }
+  }
+}
+
+*/
+    return nullptr;
 }
 
 
@@ -241,7 +352,7 @@ template<class PageType> int GraphDoc<PageType>::SaveDoc(const std::string& Note
                 catch (njson::parse_error ex) {
                     std::wostringstream LB;
                     LB << L"JSON Parse Error: " << ex.what();
-                    DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
+                    DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
                     return 0;
                 }
             }
@@ -284,7 +395,7 @@ template<class PageType> int GraphDoc<PageType>::SaveDoc(wchar_t* SectionID)
             catch (njson::parse_error ex) {
                 std::wostringstream LB;
                 LB << L"JSON Parse Error: " << ex.what();
-                DoLog(typeid(*this).name(), LB.str(), LOG_INFO);
+                DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
                 return 0;
             }
         }

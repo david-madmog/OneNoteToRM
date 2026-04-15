@@ -35,7 +35,7 @@ void * RMBlock::ReadVarUINT(int * data, void * Buff_Ptr) {
 
 void * RMBlock::ReadTag(RM_Tag* tag, void* Buff_Ptr, int index, TagTypeEnum TagType) {
 	int x;
-	
+
 	Buff_Ptr = ReadVarUINT(&x, Buff_Ptr);
 
 	//First part is an index number that identifies if this is the right data we're expecting
@@ -48,12 +48,16 @@ void * RMBlock::ReadTag(RM_Tag* tag, void* Buff_Ptr, int index, TagTypeEnum TagT
 	if (tag->index != index) {
 	//	char LogBuff[1024];
 	//	sprintf_s(LogBuff, "Expected index %d, got %d, at position %d", index, tag->index, 0);
-		throw incorrect_tag("Index not as expected");
+		std::ostringstream ExMsg;
+		ExMsg << "Index not as expected: was " << tag->index << ", Expected " << index;
+		throw incorrect_tag(ExMsg.str());
 	}
 	if (tag->TagType != TagType) {
 	//	char LogBuff[1024];
 	//	sprintf_s(LogBuff, "Expected tag type %d, got %d, at position %d", TagType, tag->TagType, 0);
-		throw incorrect_tag("TagType not as expected");
+		std::ostringstream ExMsg;
+		ExMsg << "Tag not as expected: was " << tag->TagType << ", Expected " << TagType;
+		throw incorrect_tag(ExMsg.str());
 	}
 
 	return Buff_Ptr;
@@ -69,7 +73,7 @@ void* RMBlock::ReadStringWithFormat(RM_STRING* data, UINT32* fmt, void* Buff_Ptr
 	catch (incorrect_tag& ex)
 	{
 		// tag not there... just carry on
-		DoLog("ReadStringWithFormat", ex.what(), LOG_DEBUG_VERBOSE);
+		DoLog("ReadStringWithFormat (String):", ex.what(), LOG_DEBUG);
 	}
 
 	try {
@@ -83,7 +87,7 @@ void* RMBlock::ReadStringWithFormat(RM_STRING* data, UINT32* fmt, void* Buff_Ptr
 	catch (incorrect_tag& ex)
 	{
 		// tag not there... just carry on
-		DoLog("ReadStringWithFormat", ex.what(), LOG_DEBUG_VERBOSE);
+		DoLog("ReadStringWithFormat (Format)", ex.what(), LOG_DEBUG);
 	}
 	
 	return Buff_Ptr;

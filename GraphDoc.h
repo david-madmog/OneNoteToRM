@@ -23,6 +23,7 @@ template<class PageType> class GraphDoc : public Drawable
 private:
 	void DeletePages(wchar_t* SectionID);
 	wchar_t* FindDocID(const std::string& NotebookName, const std::string& SectionName);
+	wchar_t* CreateSection(const std::string& NotebookName, const std::string& SectionName);
 
 	GraphAPI* API;
 
@@ -41,5 +42,7 @@ public:
 	void DrawPage(void* DrawDetails, int page);
 
 	void AddPage(PageType* Page) { Pages.push_back(Page); }
+
+	std::string Name = "";
 };
 

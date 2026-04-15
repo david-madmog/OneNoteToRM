@@ -116,7 +116,7 @@ void ToRMOnePage::DrawPage(void* DrawDetails)
 
 			std::wostringstream LB;
 			LB << L"Text " << RMT.value << L": Format " << RTF.format_code << L" at ID:" << RTF.charID;
-			DoLog(typeid(*this).name(), LB.str(), LOG_WARNING);
+			DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
 
 			ItemId += (int) S->size();
 		}

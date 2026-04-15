@@ -25,3 +25,8 @@
 #define TEXT_X_START 50
 #define TEXT_Y_START 150
 #define LINES_Y_START 300
+
+//#define X_SCALE 0.5
+//#define Y_SCALE 0.5
+#define X_SCALE 1
+#define Y_SCALE 1
