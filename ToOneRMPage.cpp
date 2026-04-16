@@ -3,7 +3,7 @@
 #include "WindowRMPage.h"
 #include "GraphDoc.h"
 
-#define SHOW_LINE_ANCHORS 0
+#define SHOW_LINE_ANCHORS 1
 
 
 ToOneRMPage::ToOneRMPage() 
@@ -215,7 +215,10 @@ void ToOneRMPage::DrawTextItem(void* DrawDetails, RootText* RT)
     }
 
     Text->Left = DrawPos.x;
-    Text->Top = DrawPos.y;
+    Text->Top = DrawPos.y + TEXT_Y_ONE_OFFSET;
+#if SHOW_LINE_ANCHORS
+    int i = 0;
+#endif
 
     for (auto& text : RT->texts) {
         ONE_TextSpan span = ONE_TextSpan();
@@ -238,13 +241,13 @@ void ToOneRMPage::DrawTextItem(void* DrawDetails, RootText* RT)
                     span.Text = L"";
                     //TR.AnchorID = CharAnchorID;
                     // Subsequent root text chunk runs will have code 0 unless/until overridden by an explicit code
+                    DrawPos.y += (long)(FONT_SCALE_Y * span.FontSize);  // Horrible approximation, as we don't really have a reference to calculate otherwise
+                    DrawPos.x = (LONG)RT->pos_x + RM_X_OFFSET;
                     span.Font = GetRMFont(0);
                     span.FontSize = GetRMFontSize(0);
-                    DrawPos.y += rootSpan.FontSize;  // Horrible approximation, as we don't really have a reference to calculate otherwise
-                    DrawPos.x = (LONG)RT->pos_x + RM_X_OFFSET;
                 }
                 else {
-                    DrawPos.x += rootSpan.FontSize;
+                    DrawPos.x += (long)(FONT_SCALE_X * span.FontSize);
                 }
 
                 // now see if we need to change format for the current Run
@@ -260,6 +263,39 @@ void ToOneRMPage::DrawTextItem(void* DrawDetails, RootText* RT)
                         break;
                     }
                 }
+#if SHOW_LINE_ANCHORS
+                INK_Trace* Trace = new INK_Trace();
+                Trace->colour = Gdiplus::Color::Green;
+                Trace->thickness_scale = 100;
+
+                std::wostringstream tid;
+                tid << L"{12345342}";
+                Trace->tool_id = tid.str();
+                tid << L"TEXTB-B" << i++;
+                Trace->trace_id = tid.str();
+                INK_Point P;
+                P.X = (int)(DrawPos.x) * RM_TO_ONE_XY_SCALE_FACTOR;
+                P.Y = (int)(DrawPos.y) * RM_TO_ONE_XY_SCALE_FACTOR;
+                P.F = (int)200;
+                Trace->points.push_back(P);
+                P.X = (int)(DrawPos.x + span.FontSize) * RM_TO_ONE_XY_SCALE_FACTOR;
+                P.Y = (int)(DrawPos.y) * RM_TO_ONE_XY_SCALE_FACTOR;
+                P.F = (int)200;
+                Trace->points.push_back(P);
+                P.X = (int)(DrawPos.x + span.FontSize) * RM_TO_ONE_XY_SCALE_FACTOR;
+                P.Y = (int)(DrawPos.y + span.FontSize) * RM_TO_ONE_XY_SCALE_FACTOR;
+                P.F = (int)200;
+                Trace->points.push_back(P);
+                P.X = (int)(DrawPos.x) * RM_TO_ONE_XY_SCALE_FACTOR;
+                P.Y = (int)(DrawPos.y + span.FontSize) * RM_TO_ONE_XY_SCALE_FACTOR;
+                P.F = (int)200;
+                Trace->points.push_back(P);
+                P.X = (int)(DrawPos.x) * RM_TO_ONE_XY_SCALE_FACTOR;
+                P.Y = (int)(DrawPos.y) * RM_TO_ONE_XY_SCALE_FACTOR;
+                P.F = (int)200;
+                Trace->points.push_back(P);
+                OnePage.InkTraces.push_back(Trace);
+#endif
 
                 POINT BR = {(int)DrawPos.x, (int)DrawPos.y };
                 Anchors[AnchorID] = BR;

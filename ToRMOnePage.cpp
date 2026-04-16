@@ -140,6 +140,7 @@ void ToRMOnePage::DrawPage(void* DrawDetails)
 	TN2->node_id = { 0,11 };
 	TN2->visible = { {0, 0}, 1 };
 	TN2->label.timestamp = { 0, 0 };
+	TN2->anchor_origin_x = { { 0, 0 } , ONE_TO_RM_X_OFFSET };
 	const char* S = "Layer 1";
 	TN2->label.value = (char*)S;
 	RMPage->AddBlock(TN2);
@@ -170,7 +171,7 @@ void ToRMOnePage::DrawPage(void* DrawDetails)
 			if (P1->width == 0)
 				P1->width = 1;
 			P1->pressure = 255;
-			P1->x = (FLOAT) (Point.X / RM_TO_ONE_XY_SCALE_FACTOR) - RM_X_OFFSET;
+			P1->x = (FLOAT) (Point.X / RM_TO_ONE_XY_SCALE_FACTOR) - RM_X_OFFSET + ONE_TO_RM_X_OFFSET;
 			P1->y = (FLOAT) Point.Y / RM_TO_ONE_XY_SCALE_FACTOR;
 			LI->points.push_back(*P1);
 		}

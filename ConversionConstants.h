@@ -21,10 +21,15 @@
 #define PAGE_SIZE_Y 1872
 #define RM_X_OFFSET (PAGE_SIZE_X / 2)
 
+#define FONT_SCALE_X 1.5
+#define FONT_SCALE_Y 2.67
 
 #define TEXT_X_START 50
 #define TEXT_Y_START 150
 #define LINES_Y_START 300
+#define TEXT_Y_ONE_OFFSET -110
+
+#define ONE_TO_RM_X_OFFSET 150
 
 //#define X_SCALE 0.5
 //#define Y_SCALE 0.5

@@ -55,11 +55,13 @@ void ONE_Preview(HWND hWnd);
 void RM_to_ONE(HWND hWnd, bool Notebook);
 void ONE_to_RM(HWND hWnd, bool Notebook);
 
+int ProcessCommandLine(std::wstring CommandLine);
+std::wstring ParseCommandLine(std::wstring Flag, std::wstring CommandLine);
 
 // Window controls... create and lay out
 HWND hRMList;
 HWND hONEList;
-HWND hListBox;
+HWND hListBox = 0;
 HWND hImage;
 
 HWND RMPreview;
@@ -116,6 +118,7 @@ const char* LogLevelName[] = {
 
 const LogLevel CurrentLevel = LogLevel::LOG_INFO;
 const LogLevel ConsoleLevel = LogLevel::LOG_DEBUG;
+bool bConsoleMode = false;
 
 void DoLog(const char* Class, const std::wstring& Msg, LogLevel Level)
 {
@@ -137,14 +140,17 @@ void DoLog(const char* Class, const wchar_t* Msg, LogLevel Level)
         if (Level <= LOG_ERROR)
         {
             buff << L"[" << timeString << L"][" << LogLevelName[Level] << L"][" << Class << L"]:" << Msg;
-            if (Level >= CurrentLevel)
+            if (Level >= CurrentLevel && hListBox)
             {
                 int NewItem = ListBox_AddString(hListBox, buff.str().c_str());
                 ListBox_SetTopIndex(hListBox, NewItem);
             }
 
             buff << std::endl;
-            OutputDebugString(buff.str().c_str());
+            if (bConsoleMode)
+                std::cout << ws2s(buff.str());
+            else
+                OutputDebugString(buff.str().c_str());
         }
     }
 }
@@ -162,46 +168,55 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_ int       nCmdShow)
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
-    UNREFERENCED_PARAMETER(lpCmdLine);
 
-    GdiplusStartupInput gdiplusStartupInput;
-    ULONG_PTR           gdiplusToken;
-
-    // Initialize GDI+.
-    GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
-
-    // Initialize global strings
-    LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_DOCXTORM, szWindowClass, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_DOCXTORML, szPopupWindowClass, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_DOCXTORMP, szPreviewWindowClass, MAX_LOADSTRING);
-    MyRegisterClass(hInstance);
-    MyRegisterPopupClass(hInstance);
-    MyRegisterPreviewClass(hInstance);
-
-    // Perform application initialization:
-    if (!InitInstance (hInstance, nCmdShow))
+    // See if we're in silent/command line mode
+    std::wstring CommandLine(lpCmdLine);
+    if (CommandLine.find(L"-C") != std::string::npos || CommandLine.find(L"-c") != std::string::npos)
     {
-        return FALSE;
+        bConsoleMode = true;
+        return ProcessCommandLine(CommandLine);
     }
-
-    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_DOCXTORM));
-
-    MSG msg;
-
-    // Main message loop:
-    while (GetMessage(&msg, nullptr, 0, 0))
+    else
     {
-        if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+        GdiplusStartupInput gdiplusStartupInput;
+        ULONG_PTR           gdiplusToken;
+
+        // Initialize GDI+.
+        GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
+
+        // Initialize global strings
+        LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
+        LoadStringW(hInstance, IDC_DOCXTORM, szWindowClass, MAX_LOADSTRING);
+        LoadStringW(hInstance, IDC_DOCXTORML, szPopupWindowClass, MAX_LOADSTRING);
+        LoadStringW(hInstance, IDC_DOCXTORMP, szPreviewWindowClass, MAX_LOADSTRING);
+        MyRegisterClass(hInstance);
+        MyRegisterPopupClass(hInstance);
+        MyRegisterPreviewClass(hInstance);
+
+        // Perform application initialization:
+        if (!InitInstance(hInstance, nCmdShow))
         {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
+            return FALSE;
         }
+
+        HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_DOCXTORM));
+
+        MSG msg;
+
+        // Main message loop:
+        while (GetMessage(&msg, nullptr, 0, 0))
+        {
+            if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+            {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
+        }
+
+        GdiplusShutdown(gdiplusToken);
+
+        return (int)msg.wParam;
     }
-
-    GdiplusShutdown(gdiplusToken);
-
-    return (int) msg.wParam;
 }
 
 
@@ -1066,7 +1081,7 @@ bool ONE_Load(GraphDoc<PageType>* GD, HWND hWnd) {
     std::unique_ptr<wchar_t> Section(new wchar_t[LB_SIZE]);
     ListBox_GetText(hONEList, CurSel, (LPARAM)Section.get());
     std::string SectionName(ws2s(Section.get()));
-    size_t sep = SectionName.find_first_of(" - ");
+    size_t sep = SectionName.find(" - ");
     SectionName = SectionName.substr(sep + 3);
 
     Msg.append(Section.get());
@@ -1280,3 +1295,187 @@ void ONE_to_RM(HWND hWnd, bool Notebook)
     DoLog("MAIN",L"... Done", LOG_INFO);
 }
 
+
+int ProcessCommandLine(std::wstring CommandLine) {
+
+	// First, create or attach to console so we can log our activity
+	if (AttachConsole(ATTACH_PARENT_PROCESS))
+	{
+		// Probably command line - 
+		FILE* fi = 0;
+		freopen_s(&fi, "CONOUT$", "w", stdout);
+		std::cout << std::endl;
+	}
+	else {
+		if (AllocConsole())
+		{
+			FILE* fi = 0;
+			freopen_s(&fi, "CONOUT$", "w", stdout);
+			std::cout << std::endl;
+		}
+		else {
+			// Error - can't do anything 
+			DWORD iRet = GetLastError();
+			LPTSTR errmessage;
+			FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, iRet, 0, (LPTSTR)&errmessage, 10, NULL);
+			std::cout << ws2s(errmessage);
+			MessageBox(NULL, errmessage, L"Can't create console", MB_OK);
+			return 1;
+		}
+	}
+	DoLog("CommandLine", L"Command Line mode selected", LOG_DEBUG);
+
+	// Parse out command line switches
+	std::wstring Input = ParseCommandLine(L"-I", CommandLine);
+	std::wstring Output = ParseCommandLine(L"-O", CommandLine);
+	std::wstring Mode = ParseCommandLine(L"-M", CommandLine);
+        
+	if (Input.empty() || (Output.empty() && Mode == L"R") || Mode.empty() || (Mode != L"R" && Mode != L"O"))
+	{
+		DoLog("CommandLine", L"Incorrect Parameters", LOG_ERROR);
+		std::cout << "USAGE:" << std::endl << std::endl;
+		std::cout << "OneNoteToRM.exe -C -I <Input Document> -O <Output Document> -M <Mode>" << std::endl << std::endl;
+		std::cout << "-C   indicates command line mode" << std::endl;
+		std::cout << "-M R: Remarkable to OneNote" << std::endl;
+        std::cout << "      -I is RM document name" << std::endl;
+        std::cout << "      -O is mandatory as name of Notebook to insert section into" << std::endl;
+        std::cout << "-M O: OneNote to Remarkable" << std::endl;
+        std::cout << "      -I use format Notebook/Section" << std::endl;
+        std::cout << "      -O is ignored" << std::endl;
+        return 1;
+	}
+
+	// And Do it!
+	if (Mode == L"R")
+	{
+		// RM to One mode
+		// First, load the RM page
+		if (TOZF)
+			delete TOZF;
+		TOZF = new RMDocFile<ToOneRMPage>();
+
+		std::wstring Msg = L"Starting RM Load: ";
+		Msg.append(Input);
+		Msg.append(L"...");
+		DoLog("CommandLine", Msg, LOG_INFO);
+
+		std::unique_ptr<char> WorkingDir(new char[LB_SIZE]);
+		GetPrivateProfileStringA("RMFILE", "WorkingDir", "", WorkingDir.get(), LB_SIZE, gszIniFileName);
+
+		RMAPI::GetDoc(ws2s(Input));
+
+		size_t Found = Input.find_last_of(L"\\");
+		if (Found != std::string::npos)
+			Input = Input.substr(Found + 1);
+
+		std::string Zipfile = WorkingDir.get();
+		Zipfile.append(ws2s(Input));
+		Zipfile.append(".rmdoc");
+		NumPages = TOZF->ExtractRMsFromZip(Zipfile.c_str());
+		CurrentPage = 0;
+
+		if (!gAPI)
+			gAPI = new GraphAPI();
+
+		if (GD)
+			delete GD;
+		GD = new GraphDoc<WindowONEPage>(gAPI);
+
+		// Now do the conversion...
+		for (int i = 0; i < NumPages; i++)
+			TOZF->DrawPage((void*)GD, i);
+
+		// And save it!
+		Msg = L"Starting ONE Save: ";
+
+		std::string Section = TOZF->Name;
+		std::string NotebookName = ws2s(Output);
+		Msg.append(Output);
+		Msg.append(L" - ");
+		Msg.append(s2ws(Section));
+		Msg.append(L"...");
+		DoLog("CommandLine", Msg, LOG_INFO);
+		GD->SaveDoc(NotebookName, Section);
+	}
+	else {
+		// One to RM Mode
+		// First, load the ONE page
+		if (!gAPI)
+			gAPI = new GraphAPI();
+
+		if (TOGD)
+			delete TOGD;
+		TOGD = new GraphDoc<ToRMOnePage>(gAPI);
+
+		std::wstring Msg = L"Starting ONE Load: ";
+		std::string SectionName(ws2s(Input));
+		size_t sep = SectionName.find("/");
+		std::string NotebookName = SectionName.substr(0, sep);
+		SectionName = SectionName.substr(sep + 1);
+
+		Msg.append(Input);
+		Msg.append(L"...");
+		DoLog("MAIN", Msg, LOG_INFO);
+
+		TOGD->Name = SectionName;
+		NumPages = TOGD->LoadDoc(NotebookName, SectionName);
+		if (NumPages == -1) {
+			// No Auth! Logon!
+			DoLog("CommandLine", L"No Auth, please run in interactive to log in", LOG_ERROR);
+			return 1;
+		}
+
+		if (ZF)
+			delete ZF;
+		ZF = new RMDocFile<WindowRMPage>();
+
+		// Now convert...
+		for (int i = 0; i < NumPages; i++)
+			TOGD->DrawPage((void*)ZF, i);
+
+		// And save the RM file
+		std::unique_ptr<char> WorkingDir(new char[LB_SIZE]);
+		GetPrivateProfileStringA("RMFILE", "WorkingDir", "", WorkingDir.get(), LB_SIZE, gszIniFileName);
+
+		Msg = L"Starting RM Save: ";
+		Msg.append(s2ws(SectionName));
+		Msg.append(L"...");
+		DoLog("MAIN", Msg, LOG_INFO);
+		std::string TMPfile = WorkingDir.get();
+		TMPfile.append("Output.rmdoc");
+		if (ZF)
+			NumPages = ZF->SaveRMsToZip(TMPfile.c_str());
+
+		RMAPI::SaveDoc(SectionName, WorkingDir.get());
+	}
+
+	DoLog("CommandLine", L"... Done", LOG_INFO);
+	return 0;
+}
+
+inline void ltrim(std::wstring& s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](wchar_t ch) {
+        return !std::isspace(ch);
+        }));
+}
+inline void rtrim(std::wstring& s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](wchar_t ch) {
+        return !std::isspace(ch);
+        }).base(), s.end());
+}
+
+std::wstring ParseCommandLine(std::wstring Flag, std::wstring CommandLine)
+{
+    std::wstring result;
+    size_t found = CommandLine.find(Flag);
+    if (found == std::string::npos)
+        return result;
+
+    found += Flag.length();
+    size_t end = CommandLine.find(L"-", found);
+    result = CommandLine.substr(found, (end - found));
+    rtrim(result);
+    ltrim(result);
+
+    return result;
+}

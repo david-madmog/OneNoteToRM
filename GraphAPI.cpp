@@ -115,7 +115,7 @@ std::wstring* GraphAPI::PostUpdateAndAwaitResponse(const wchar_t* URLPath, const
         utility::string_t* RespData = new utility::string_t(RespDataTask.get());
         std::wostringstream LB;
         LB << L"GOT data: " << RespData->substr(0, LB_SIZE - 50);
-        DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
+        DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG_VERBOSE);
         return RespData;   //!!!CHECK WE DELETE THIS
     }
     else {
@@ -175,7 +175,7 @@ std::wstring* GraphAPI::SendRequestAndAwaitResponse(const wchar_t* URLPath) {
         utility::string_t* RespData = new utility::string_t(RespDataTask.get());
         std::wostringstream LB;
         LB << L"GOT data: " << RespData->substr(0, LB_SIZE - 50);
-        DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
+        DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG_VERBOSE);
         return RespData; //!!!CHECK WE DELETE THIS
     }
     else {

@@ -119,7 +119,7 @@ void RMPage::Load(zip_file* file)
                         if (bUseful) {
                             AddBlock(NewBlock);
                         } else {
-                            DoLog(typeid(*this).name(), "Useless block: ignoring", LOG_DEBUG);
+                            DoLog(typeid(*this).name(), "Useless block: ignoring", LOG_DEBUG_VERBOSE);
                         }
                     }
                     catch (incorrect_tag &e) {
