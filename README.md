@@ -12,7 +12,7 @@ PDF, so allows unlimited editing and re-editing in either environment.
 
 The focus is on translating the actual lines, though it will translate text also. Documents are translated in a format that looks similar. However, due to different underlying archetectures and approaches, not all information is preserved in a round trip; for example pen styles can be lost.
 
-** This is still a work in progress and subject to change. Do not use this for important information - take a local copy first! **
+**This is still a work in progress and subject to change. Do not use this for important information - take a local copy first!**
 
 ## Installation
 
