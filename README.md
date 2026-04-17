@@ -58,3 +58,22 @@ OneNoteToRM.exe -C -I <Input Document> -O <Output Document> -M <Mode>
 	- -I use format Notebook/Section
 	- -O is ignored
 
+## Acknowledgements and references
+
+### RMDoc
+
+The format of ReMarkable .rmdoc files is not officially documented. I made heavy use of the knowldge uncovered by the following:
+
+- Rick Lupton's RMScene - <https://github.com/ricklupton/rmscene/tree/main>
+- ddvk's work - <https://github.com/ddvk>
+- Excustic's further development of RMC, including the InkML exporter - <https://github.com/Excustic/rmc>
+
+### OneNote (Graph) API
+
+The native OneNote document format is so complex as to be unusable. However, apart from the complexity of setting up the OAuth 
+for logon, the Graph API is relatively straightforward.
+	
+- see <https://learn.microsoft.com/en-us/graph/integrate-with-onenote> for API description.
+- see <https://microsoft.github.io/cpprestsdk/classweb_1_1http_1_1http__request.html> for documentation on C++ REST API
+- I also used the nlohmann/json parser for building the body of requests and managing the responses. See <https://json.nlohmann.me/api/basic_json/> for JSON docs
+- I also used the pugixml C++ XML processing library for processing the HTML and InkML documents: <https://pugixml.org>
