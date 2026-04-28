@@ -37,7 +37,8 @@ template<class PageType> class RMDocFile : public Drawable
 {
 protected:
     void LoadMetaData(zip* archive, int index, size_t size);
-    void LoadPagesData(zip* archive, int index, size_t size);
+    void LoadContentData(zip* archive, int index, size_t size);
+    void LoadPageData(zip* archive, int index, size_t size);
     void* WriteMetaData(zip* archive, const char* docID);
     void* WritePagesData(zip* archive, const char* docID);
     void* WritePage(zip* archive, const char* docID, RMPage* Page);
@@ -54,6 +55,7 @@ public:
     int SaveRMsToZip(const char* FileName);
     void DrawPage(void* DrawDetails, int page);
     void AddPage(PageType* Page) { Pages.push_back(Page); }
+    time_t LastEditTime();
 
     json Metadata;
     std::string Name;

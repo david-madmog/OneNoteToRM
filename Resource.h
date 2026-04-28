@@ -35,6 +35,7 @@
 #define BTN_ONE_TO_RM 213
 #define BTN_RM_TO_ONE_NB 214
 #define BTN_ONE_TO_RM_NB 215
+#define BTN_TIMED 216
 
 #define BTN_ABOUT 2220
 

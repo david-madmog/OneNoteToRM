@@ -10,12 +10,14 @@ using namespace std;
 template int RMDocFile<WindowRMPage>::ExtractRMsFromZip(const char* FileName);
 template int RMDocFile<WindowRMPage>::SaveRMsToZip(const char* FileName);
 template void RMDocFile<WindowRMPage>::DrawPage(void* DrawDetails, int Page);
+template time_t RMDocFile<WindowRMPage>::LastEditTime();
 template RMDocFile<WindowRMPage>::~RMDocFile();
 
 #include "ToOneRMPage.h"
 template int RMDocFile<ToOneRMPage>::ExtractRMsFromZip(const char* FileName);
 template int RMDocFile<ToOneRMPage>::SaveRMsToZip(const char* FileName);
 template void RMDocFile<ToOneRMPage>::DrawPage(void* DrawDetails, int Page);
+template time_t RMDocFile<ToOneRMPage>::LastEditTime();
 template RMDocFile<ToOneRMPage>::~RMDocFile();
 
 template<class PageType> RMDocFile<PageType>::~RMDocFile() {
@@ -58,7 +60,7 @@ template<class PageType> int RMDocFile<PageType>::ExtractRMsFromZip(const char* 
             char* ext = strtok_s(NULL, ".", &strtok_context);
                         
             if (ext) {
-                if (!strcmp(ext, "rm")) 
+                if (!strcmp(ext, "rm"))
                 {
                     // Find the relevant page
                     char* strtok_context_2 = NULL;
@@ -73,7 +75,7 @@ template<class PageType> int RMDocFile<PageType>::ExtractRMsFromZip(const char* 
 
                     std::string ID(lastnamesegment);
                     bool bFound = false;
-                    for (PageType* Page: Pages)
+                    for (PageType* Page : Pages)
                     {
                         if (*Page == ID) {
                             Page->Load(zip_fopen_index(archive, ZipIndex, 0));
@@ -89,7 +91,9 @@ template<class PageType> int RMDocFile<PageType>::ExtractRMsFromZip(const char* 
                 else if (!strcmp(ext, "metadata"))
                     LoadMetaData(archive, ZipIndex, fileInfo.size);
                 else if (!strcmp(ext, "content"))
-                    LoadPagesData(archive, ZipIndex, fileInfo.size);
+                    LoadContentData(archive, ZipIndex, fileInfo.size);
+                else if (!strcmp(ext, "pagedata"))
+                    ; // We have nothing to do with this for now... don't know what it is!
                 else {
                     std::wostringstream LB;
                     LB << L"Unrecognised file type in Zip: " << ext ;
@@ -125,7 +129,7 @@ template<class PageType> int RMDocFile<PageType>::ExtractRMsFromZip(const char* 
 }
 
 
-template<class PageType> void RMDocFile<PageType>::LoadMetaData(zip * archive, int index, size_t size) {
+template<class PageType> void RMDocFile<PageType>::LoadMetaData(zip* archive, int index, size_t size) {
     Metadata = LoadJSONData(zip_fopen_index(archive, index, 0), size);
 
     //std::string meta{ Metadata.dump(2) };
@@ -139,10 +143,12 @@ template<class PageType> void RMDocFile<PageType>::LoadMetaData(zip * archive, i
 
     //.metadata
     //{
-    //    "createdTime": "1763459978040",
+    //    "createdTime": "0",
     //        "lastModified" : "1768844812925",
     //        "lastOpened" : "1768844757552",
-    //        "lastOpenedPage" : 0,
+    //        "lastOpenedPage" : 1,
+    //        "metadatamodified" : false,
+    //        "modified" : false,
     //        "new" : false,
     //        "parent" : "",
     //        "pinned" : false,
@@ -152,8 +158,15 @@ template<class PageType> void RMDocFile<PageType>::LoadMetaData(zip * archive, i
     //}
 
 }
+template<class PageType> void RMDocFile<PageType>::LoadPageData(zip* archive, int index, size_t size) {
+    std::wostringstream LB;
+    LB << L"PageData: Doc Name:" << Name.c_str();
+    DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
+}
 
-template<class PageType> void RMDocFile<PageType>::LoadPagesData(zip* archive, int index, size_t size) {
+
+
+template<class PageType> void RMDocFile<PageType>::LoadContentData(zip* archive, int index, size_t size) {
     json Content = LoadJSONData(zip_fopen_index(archive, index, 0), size);
     std::string S = Content.dump(2);
 
@@ -333,6 +346,9 @@ template<class PageType> json RMDocFile<PageType>::LoadJSONData(zip_file* file, 
     return obj;
 }
 
+
+
+
 ////////////////////////////////////////////////////////////////////////////////////////
 
 template<class PageType> int RMDocFile<PageType>::SaveRMsToZip(const char* FileName)
@@ -390,7 +406,10 @@ template<class PageType> int RMDocFile<PageType>::SaveRMsToZip(const char* FileN
 }
 
 template<class PageType> void * RMDocFile<PageType>::WriteMetaData(zip* archive, const char * docID) {
+
+    Metadata["visibleName"] = Name;
     std::string MD{ Metadata.dump() };
+
     void* Buff = malloc(MD.size() + 1);
     if (Buff)
     {
@@ -477,3 +496,15 @@ template<class PageType> void RMDocFile<PageType>::DrawPage(void* DrawDetails, i
     }
 }
 
+
+template<class PageType> time_t RMDocFile<PageType>::LastEditTime() {
+    time_t EditTime = 0;
+    std::string ETString;
+
+    if (Metadata.contains("lastModified")) {
+        ETString = Metadata["lastModified"];
+        EditTime = std::stoull(ETString, nullptr) / 1000 ; // Convert from ms to standatd time_t
+    }
+
+    return EditTime;
+}

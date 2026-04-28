@@ -77,6 +77,7 @@ public:
 	void LoadPage(std::wstring * Data, std::string& Name);
 	std::wstring* SavePage(std::wstring& MultipartBoundary);
 	virtual void DrawPage(void* DrawDetails);
+	std::string LastMod = "";
 
 	friend class ToOneRMPage;
 };

@@ -50,10 +50,22 @@ LRESULT CALLBACK    PreviewWndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
 
+struct ONE_ID {
+    bool Empty = true;
+    std::wstring FileID;
+    std::string Notebook;
+    std::string Section;
+};
+
+std::string RM_Name_FromList(HWND hWnd);
+ONE_ID OneID_FromList(HWND hWnd);
 void RM_Preview(HWND hWnd);
 void ONE_Preview(HWND hWnd);
-void RM_to_ONE(HWND hWnd, bool Notebook);
-void ONE_to_RM(HWND hWnd, bool Notebook);
+void RM_to_ONE(std::string RMFile, ONE_ID OneID, bool Notebook);
+void ONE_to_RM(std::string RMFile, ONE_ID OneID, bool Notebook);
+void Timed(std::string RMFile, ONE_ID OneID );
+
+
 
 int ProcessCommandLine(std::wstring CommandLine);
 std::wstring ParseCommandLine(std::wstring Flag, std::wstring CommandLine);
@@ -70,6 +82,7 @@ HWND hRMToOne;
 HWND hONEToRM;
 HWND hRMToOneNotebook;
 HWND hONEToRMNotebook;
+HWND hTimed;
 HWND RMRefresh;
 HWND ONERefresh;
 
@@ -116,8 +129,10 @@ const char* LogLevelName[] = {
     "*ERR"
 };
 
+const int LogLevelColour[] = { 8, 7, 10, 14, 12 };
+
 const LogLevel CurrentLevel = LogLevel::LOG_INFO;
-const LogLevel ConsoleLevel = LogLevel::LOG_DEBUG;
+LogLevel ConsoleLevel = LogLevel::LOG_DEBUG;
 bool bConsoleMode = false;
 
 void DoLog(const char* Class, const std::wstring& Msg, LogLevel Level)
@@ -134,7 +149,7 @@ void DoLog(const char* Class, const wchar_t* Msg, LogLevel Level)
         std::time_t time = std::time({});
         char timeString[std::size("yyyy-mm-ddThh:mm:ssZ")];
         struct tm tmDest;
-        gmtime_s(&tmDest, &time);
+        localtime_s(&tmDest, &time);
         std::strftime(std::data(timeString), std::size(timeString), "%F %T", &tmDest);
 
         if (Level <= LOG_ERROR)
@@ -148,7 +163,11 @@ void DoLog(const char* Class, const wchar_t* Msg, LogLevel Level)
 
             buff << std::endl;
             if (bConsoleMode)
+            {
+                HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+                SetConsoleTextAttribute(hConsole, LogLevelColour[Level]);
                 std::cout << ws2s(buff.str());
+            }
             else
                 OutputDebugString(buff.str().c_str());
         }
@@ -171,7 +190,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     // See if we're in silent/command line mode
     std::wstring CommandLine(lpCmdLine);
-    if (CommandLine.find(L"-C") != std::string::npos || CommandLine.find(L"-c") != std::string::npos)
+    if (CommandLine.find(L"-M") != std::string::npos || CommandLine.find(L"-m") != std::string::npos)
     {
         bConsoleMode = true;
         return ProcessCommandLine(CommandLine);
@@ -335,6 +354,7 @@ void LayoutWindow(HWND hWnd)
     SetWindowPos(hONEToRM, NULL, (9 * ColW) / 2 + hPad - 40, RowH + 2 * hPad, 80, 35, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
     SetWindowPos(hRMToOneNotebook, NULL, (9 * ColW) / 2 + hPad - 40, RowH + 3 * hPad + 35, 80, 35, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
     SetWindowPos(hONEToRMNotebook, NULL, (9 * ColW) / 2 + hPad - 40, RowH + 4 * hPad + 70, 80, 35, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
+    SetWindowPos(hTimed, NULL, (9 * ColW) / 2 + hPad - 40, RowH + 5 * hPad + 105, 80, 35, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
     SetWindowPos(RMPreview, NULL, hPad, (3 * RowH + hPad), 120, 30, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
     SetWindowPos(RMRefresh, NULL, 2 * hPad + 120, (3 * RowH + hPad), 120, 30, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
 
@@ -406,6 +426,11 @@ void LoadControls(HWND hWnd) {
         WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON | BS_MULTILINE,
         175, 45, 120, 50,
         hWnd, (HMENU)BTN_ONE_TO_RM_NB, GetModuleHandle(NULL), NULL);
+
+    hTimed = CreateWindow(_T("button"), _T("← ? →"),
+        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON | BS_MULTILINE,
+        175, 45, 120, 50,
+        hWnd, (HMENU)BTN_TIMED, GetModuleHandle(NULL), NULL);
 
 
 
@@ -501,20 +526,77 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 PostMessage(hWnd, WM_LOADONEDOCS, NULL, NULL);
                 break;
             case BTN_RM_TO_ONE:
+            {
                 DoLog("MAIN", L"Starting RM to ONE...(Section overwrite)", LOG_INFO);
-                WorkerThread = new std::thread(RM_to_ONE, hWnd, false);
+                std::string RMFile = RM_Name_FromList(hWnd);
+                ONE_ID OneID = OneID_FromList(hWnd);
+                if (!OneID.Empty && !RMFile.empty())
+                {
+                    if (TOZF)
+                    {
+                        delete TOZF;
+                        TOZF = nullptr;
+                    }
+                    WorkerThread = new std::thread(RM_to_ONE, RMFile, OneID, false);
+                }
+            }
                 break;
             case BTN_ONE_TO_RM:
+            {
                 DoLog("MAIN", L"Starting ONE to RM...(File Overwrite)", LOG_INFO);
-                WorkerThread = new std::thread(ONE_to_RM, hWnd, false);
+                std::string RMFile = RM_Name_FromList(hWnd);
+                ONE_ID OneID = OneID_FromList(hWnd);
+                if (!OneID.Empty && !RMFile.empty())
+                {
+                    if (TOZF)
+                    {
+                        delete TOZF;
+                        TOZF = nullptr;
+                    }
+                    WorkerThread = new std::thread(ONE_to_RM, RMFile, OneID, false);
+                }
+            }
                 break;
             case BTN_RM_TO_ONE_NB:
+            {
                 DoLog("MAIN", L"Starting RM to ONE...", LOG_INFO);
-                WorkerThread = new std::thread(RM_to_ONE, hWnd, true);
+                std::string RMFile = RM_Name_FromList(hWnd);
+                ONE_ID OneID = OneID_FromList(hWnd);
+                if (!OneID.Empty && !RMFile.empty())
+                {
+                    if (TOGD)
+                    {
+                        delete TOGD;
+                        TOGD = nullptr;
+                    }
+                    WorkerThread = new std::thread(RM_to_ONE, RMFile, OneID, true);
+                }
+            }
                 break;
             case BTN_ONE_TO_RM_NB:
+            {
                 DoLog("MAIN", L"Starting ONE to RM...", LOG_INFO);
-                WorkerThread = new std::thread(ONE_to_RM, hWnd, true);
+                std::string RMFile = ""; // We don't need the name in this mode
+                ONE_ID OneID = OneID_FromList(hWnd);
+                if (!OneID.Empty)
+                {
+                    if (TOGD)
+                    {
+                        delete TOGD;
+                        TOGD = nullptr;
+                    }
+                    WorkerThread = new std::thread(ONE_to_RM, RMFile, OneID, true);
+                }
+            }
+            break;
+            case BTN_TIMED:
+            {
+                DoLog("MAIN", L"Starting Time Comparison update...", LOG_INFO);
+                std::string RMFile = RM_Name_FromList(hWnd);
+                ONE_ID OneID = OneID_FromList(hWnd);
+                if (!OneID.Empty && !RMFile.empty())
+                    WorkerThread = new std::thread(Timed, RMFile, OneID);
+            }
                 break;
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
@@ -539,7 +621,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         std::vector<std::wstring> Notebooks;
         if (!gAPI)
             gAPI = new GraphAPI();
-        gAPI->EnsureConnected();
+        if (!gAPI->EnsureConnected())
+        {
+            DoLog("MAIN", L"No Auth, starting popup", LOG_INFO);
+            hLoginPopup = CreateWindowW(szPopupWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL,
+                CW_USEDEFAULT, 0, 500, 650, hWnd, nullptr, hInst, nullptr);
+
+            if (!hLoginPopup) {
+                DWORD err = GetLastError();
+                std::wostringstream LB;
+                LB << L"Creating Popup Error: 0x" << std::hex << std::uppercase << err;
+                DoLog("MAIN", LB.str(), LOG_ERROR);
+            }
+            else {
+                ShowWindow(hLoginPopup, SW_NORMAL);
+                UpdateWindow(hLoginPopup);
+                PostMessage(hLoginPopup, WM_LOGINTOMS, NULL, (LPARAM)gAPI);
+            }
+        }
 
         gAPI->ListSections(Sections);
         for (auto& Section : Sections) {
@@ -1037,18 +1136,49 @@ LRESULT CALLBACK PreviewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
     return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
-template <class PageType>
-void RM_Load(RMDocFile<PageType> * ZF, HWND hWnd)
+
+std::string RM_Name_FromList(HWND hWnd)
 {
     std::unique_ptr<wchar_t> RMFile(new wchar_t[LB_SIZE]);
     int CurSel = ListBox_GetCurSel(hRMList);
+    if (CurSel == -1) {
+        DoLog("ONE_LOAD", "No document selected", LOG_WARNING);
+        return "";
+    }
     ListBox_GetText(hRMList, CurSel, RMFile.get());
     std::string sRMFile = ws2s(RMFile.get());
+    return sRMFile;
+}
 
-    std::wstring Msg = L"Starting RM Load: ";
-    Msg.append(RMFile.get());
-    Msg.append(L"...");
-    DoLog("MAIN", Msg, LOG_INFO);
+ONE_ID OneID_FromList(HWND hWnd)
+{
+    ONE_ID OneID;
+    int CurSel = ListBox_GetCurSel(hONEList);
+
+    if (CurSel == -1) {
+        DoLog("ONE_LOAD", "No document selected", LOG_WARNING);
+        OneID.Empty = true;
+        return OneID;
+    }
+
+    OneID.FileID = std::wstring((wchar_t*)ListBox_GetItemData(hONEList, CurSel));
+    std::unique_ptr<wchar_t> Section(new wchar_t[LB_SIZE]);
+    ListBox_GetText(hONEList, CurSel, (LPARAM)Section.get());
+    std::string SectionName(ws2s(Section.get()));
+    size_t sep = SectionName.find(" - ");
+    OneID.Section = SectionName.substr(sep + 3);
+    OneID.Notebook = SectionName.substr(0, sep);
+    OneID.Empty = false;
+    return OneID;
+}
+
+template <class PageType>
+void RM_Load(RMDocFile<PageType> * ZF, std::string sRMFile)
+{
+    std::string Msg = "Starting RM Load : ";
+    Msg.append(sRMFile);
+    Msg.append("...");
+    DoLog("MAIN", Msg.c_str(), LOG_INFO);
 
     std::unique_ptr<char> WorkingDir(new char[LB_SIZE]);
     GetPrivateProfileStringA("RMFILE", "WorkingDir", "", WorkingDir.get(), LB_SIZE, gszIniFileName);
@@ -1067,65 +1197,42 @@ void RM_Load(RMDocFile<PageType> * ZF, HWND hWnd)
 }
 
 template <class PageType>
-bool ONE_Load(GraphDoc<PageType>* GD, HWND hWnd) {
-    int CurSel = ListBox_GetCurSel(hONEList);
-    wchar_t* ONEFileID = (wchar_t*)ListBox_GetItemData(hONEList, CurSel);
+bool ONE_Load(GraphDoc<PageType>* GD, ONE_ID OneID) {
 
-    if (ONEFileID == NULL) {
-        // must be a "create according to RM name" - so we can't load it
-        DoLog("ONE_LOAD", "Can't Load generic ONE doc", LOG_WARNING);
-        return false;
-    }
+    std::string Msg = "Starting ONE Load: ";
+    Msg.append(OneID.Notebook);
+    Msg.append(" - ");
+    Msg.append(OneID.Section);
+    Msg.append("...");
+    DoLog("MAIN", Msg.c_str(), LOG_INFO);
 
-    std::wstring Msg = L"Starting ONE Load: ";
-    std::unique_ptr<wchar_t> Section(new wchar_t[LB_SIZE]);
-    ListBox_GetText(hONEList, CurSel, (LPARAM)Section.get());
-    std::string SectionName(ws2s(Section.get()));
-    size_t sep = SectionName.find(" - ");
-    SectionName = SectionName.substr(sep + 3);
+    GD->Name = OneID.Section;
 
-    Msg.append(Section.get());
-    Msg.append(L"...");
-    DoLog("MAIN", Msg, LOG_INFO);
+    if (OneID.FileID.empty())
+        NumPages = GD->LoadDoc(OneID.Notebook, OneID.Section);
+    else
+        NumPages = GD->LoadPages(OneID.FileID.c_str());
 
-    GD->Name = SectionName;
-
-    if (!gAPI)
-        gAPI = new GraphAPI();
-
-    NumPages = GD->LoadPages(ONEFileID);
     if (NumPages == -1) {
         // No Auth! Logon!
-        DoLog("MAIN", L"No Auth, starting popup", LOG_INFO);
-        hLoginPopup = CreateWindowW(szPopupWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL,
-            CW_USEDEFAULT, 0, 500, 650, hWnd, nullptr, hInst, nullptr);
-
-        if (!hLoginPopup) {
-            DWORD err = GetLastError();
-            std::wostringstream LB;
-            LB << L"Creating Popup Error: 0x" << std::hex << std::uppercase << err;
-            DoLog("MAIN", LB.str(), LOG_ERROR);
-        }
-        else {
-            ShowWindow(hLoginPopup, SW_NORMAL);
-            UpdateWindow(hLoginPopup);
-            PostMessage(hLoginPopup, WM_LOGINTOMS, NULL, (LPARAM)gAPI);
-        }
-
+        DoLog("MAIN", L"No Auth!", LOG_INFO);
+        return false;
     }
     CurrentPage = 0;
     return true;
 
 }
 
-
 void RM_Preview(HWND hWnd)
 {
     if (ZF)
         delete ZF;
     ZF = new RMDocFile<WindowRMPage>();
+    std::string RMFile = RM_Name_FromList(hWnd);
+    if (RMFile.empty())
+        return;
 
-    RM_Load(ZF, hWnd);
+    RM_Load(ZF, RMFile);
 
     if (hPreview)
     {
@@ -1157,8 +1264,11 @@ void ONE_Preview(HWND hWnd)
     if (GD)
         delete GD;
     GD = new GraphDoc<WindowONEPage>(gAPI);
+    ONE_ID OneID = OneID_FromList(hWnd);
+    if (OneID.Empty)
+        return;
 
-    if (ONE_Load(GD, hWnd))
+    if (ONE_Load(GD, OneID))
     {
         if (hPreview)
         {
@@ -1186,13 +1296,14 @@ void ONE_Preview(HWND hWnd)
     }
 }
 
-void RM_to_ONE(HWND hWnd, bool Notebook)
+void RM_to_ONE(std::string RMFile, ONE_ID OneID, bool Notebook)
 {
     // First, load the RM page
-    if (TOZF)
-        delete TOZF;
-    TOZF = new RMDocFile<ToOneRMPage>();
-    RM_Load(TOZF, hWnd);
+    if (! TOZF)
+    {
+        TOZF = new RMDocFile<ToOneRMPage>();
+        RM_Load(TOZF, RMFile);
+    }
 
     if (!gAPI)
         gAPI = new GraphAPI();
@@ -1207,55 +1318,38 @@ void RM_to_ONE(HWND hWnd, bool Notebook)
 
     // And save it!
     std::wstring Msg = L"Starting ONE Save: ";
+    Msg.append(s2ws(OneID.Notebook));
+    Msg.append(L" - ");
 
-    int CurSel = ListBox_GetCurSel(hONEList);
-    if (CurSel != -1)
-    {
-        if (Notebook) {
-            // Not an existing section, so find or create based on Name of RM Doc
-            std::unique_ptr<wchar_t> Notebook(new wchar_t[LB_SIZE]);
-            ListBox_GetText(hONEList, CurSel, (LPARAM)Notebook.get());
-            std::string Section = TOZF->Name;
-            std::string NotebookName = ws2s(Notebook.get()); 
-            size_t sep = NotebookName.find_first_of(" - ");
-            NotebookName = NotebookName.substr(0, sep);
-            Msg.append(s2ws(NotebookName));
-            Msg.append(L" - ");
-            Msg.append(s2ws(Section));
-            Msg.append(L"...");
-            DoLog("MAIN", Msg, LOG_INFO);
-            GD->SaveDoc(NotebookName, Section);
-        }
-        else {
-            wchar_t* ONEFileID = (wchar_t*)ListBox_GetItemData(hONEList, CurSel);
-            std::unique_ptr<wchar_t> Notebook(new wchar_t[LB_SIZE]);
-            ListBox_GetText(hONEList, CurSel, (LPARAM)Notebook.get());
-            Msg.append(Notebook.get());
-            Msg.append(L"...");
-            DoLog("MAIN", Msg, LOG_INFO);
-            if (ONEFileID)
-                GD->SaveDoc(ONEFileID);
-        }
-        CurrentPage = 0;
+    if (Notebook) {
+        OneID.Section = TOZF->Name;
+        Msg.append(s2ws(OneID.Section));
+        Msg.append(L"...");
+        DoLog("MAIN", Msg, LOG_INFO);
+        GD->SaveDoc(OneID.Notebook, OneID.Section);
     }
     else {
-        DoLog("MAIN", L"Can't convert - no destination selected", LOG_ERROR);
+        Msg.append(s2ws(OneID.Section));
+        Msg.append(L"...");
+        DoLog("MAIN", Msg, LOG_INFO);
+        GD->SaveDoc(OneID.FileID.c_str());
     }
+    CurrentPage = 0;
     
     DoLog("MAIN", L"... Done", LOG_INFO);
 }
 
-void ONE_to_RM(HWND hWnd, bool Notebook)
+void ONE_to_RM(std::string RMFile, ONE_ID OneID, bool Notebook)
 {
     // First, load the ONE page
     if (!gAPI)
         gAPI = new GraphAPI();
 
-    if (TOGD)
-        delete TOGD;
-    TOGD = new GraphDoc<ToRMOnePage>(gAPI);
-
-    ONE_Load(TOGD, hWnd);
+    if (!TOGD)
+    {
+        TOGD = new GraphDoc<ToRMOnePage>(gAPI);
+        ONE_Load(TOGD, OneID);
+    }
 
     if (ZF)
         delete ZF;
@@ -1266,33 +1360,89 @@ void ONE_to_RM(HWND hWnd, bool Notebook)
         TOGD->DrawPage((void*)ZF, i);
 
     // And save the RM file#
-    std::string sRMFile;
     if (Notebook) {
-        sRMFile = TOGD->Name;
-    }
-    else
-    {
-        std::unique_ptr<wchar_t> RMFile(new wchar_t[LB_SIZE]);
-        int CurSel = ListBox_GetCurSel(hRMList);
-        ListBox_GetText(hRMList, CurSel, RMFile.get());
-        sRMFile = ws2s(RMFile.get());
+        RMFile = TOGD->Name;
     }
 
     std::unique_ptr<char> WorkingDir(new char[LB_SIZE]);
     GetPrivateProfileStringA("RMFILE", "WorkingDir", "", WorkingDir.get(), LB_SIZE, gszIniFileName);
     
     std::wstring Msg = L"Starting RM Save: ";
-    Msg.append(s2ws(sRMFile));
+    Msg.append(s2ws(RMFile));
     Msg.append(L"...");
     DoLog("MAIN", Msg, LOG_INFO);
     std::string TMPfile = WorkingDir.get();
     TMPfile.append("Output.rmdoc");
     if (ZF)
+    {   
+        ZF->Name = RMFile;
         NumPages = ZF->SaveRMsToZip(TMPfile.c_str());
+    }
 
-    RMAPI::SaveDoc(sRMFile, WorkingDir.get());
+    RMAPI::SaveDoc(RMFile, WorkingDir.get());
 
     DoLog("MAIN",L"... Done", LOG_INFO);
+}
+
+void Timed(std::string RMFile, ONE_ID OneID) {
+    std::string Key;
+
+    if (TOZF)
+        delete TOZF;
+    TOZF = new RMDocFile<ToOneRMPage>();
+    RM_Load(TOZF, RMFile);
+    time_t ZFTime = TOZF->LastEditTime();
+    std::unique_ptr<char> Buff(new char[LB_SIZE]);
+    std::string Msg;
+    struct tm datetime;
+    localtime_s(&datetime, &ZFTime);
+    strftime(Buff.get(), LB_SIZE, "%F %T", &datetime );
+    Msg = "RM File edited at ";
+    Msg.append(Buff.get());
+    DoLog("MAIN", Msg.c_str(), LOG_INFO);
+
+    if (!gAPI)
+        gAPI = new GraphAPI();
+    if (TOGD)
+        delete TOGD;
+    TOGD = new GraphDoc<ToRMOnePage>(gAPI);
+    ONE_Load(TOGD, OneID);
+    time_t GDTime = TOGD->LastEditTime();
+    localtime_s(&datetime, &GDTime);
+    strftime(Buff.get(), LB_SIZE, "%F %T", &datetime);
+    Msg = "ONE File edited at ";
+    Msg.append(Buff.get());
+    DoLog("MAIN", Msg.c_str(), LOG_INFO);
+
+    Key = TOZF->Name;
+    Key.append(TOGD->Name);
+    std::unique_ptr<char> LastUpdate(new char[LB_SIZE]);
+    GetPrivateProfileStringA("TimedUpdate",Key.c_str(), "0", LastUpdate.get(), LB_SIZE, gszIniFileName);
+    time_t LastUpdateTime = std::stoull(LastUpdate.get(), nullptr);
+    if (GDTime < LastUpdateTime && ZFTime < LastUpdateTime)
+    { 
+        localtime_s(&datetime, &LastUpdateTime);
+        strftime(Buff.get(), LB_SIZE, "%F %T", &datetime);
+        Msg = "Neither file changed since last update at ";
+        Msg.append(Buff.get());
+        DoLog("MAIN", Msg.c_str(), LOG_INFO);
+        return;
+    }
+
+    if (GDTime > ZFTime) {
+        DoLog("MAIN", "OneNote is Later, performing ONE to RM...", LOG_INFO);
+        ONE_to_RM(RMFile, OneID, true);
+    }
+    else {
+        DoLog("MAIN", "RM is Later, performing RM to ONE...", LOG_INFO);
+        RM_to_ONE(RMFile, OneID, true);
+    }
+
+    std::stringstream LU;
+    LU << time(nullptr);
+    WritePrivateProfileStringA("TimedUpdate", Key.c_str(), LU.str().c_str(), gszIniFileName);
+
+    DoLog("MAIN", L"... Done", LOG_INFO);
 }
 
 
@@ -1328,128 +1478,81 @@ int ProcessCommandLine(std::wstring CommandLine) {
 	// Parse out command line switches
 	std::wstring Input = ParseCommandLine(L"-I", CommandLine);
 	std::wstring Output = ParseCommandLine(L"-O", CommandLine);
-	std::wstring Mode = ParseCommandLine(L"-M", CommandLine);
-        
-	if (Input.empty() || (Output.empty() && Mode == L"R") || Mode.empty() || (Mode != L"R" && Mode != L"O"))
+    std::wstring Mode = ParseCommandLine(L"-M", CommandLine);
+    std::wstring Loop = ParseCommandLine(L"-L", CommandLine);
+
+	if (Input.empty() || (Output.empty() && Mode == L"R") || Mode.empty() || (Mode != L"R" && Mode != L"O" && Mode != L"T"))
 	{
 		DoLog("CommandLine", L"Incorrect Parameters", LOG_ERROR);
 		std::cout << "USAGE:" << std::endl << std::endl;
-		std::cout << "OneNoteToRM.exe -C -I <Input Document> -O <Output Document> -M <Mode>" << std::endl << std::endl;
-		std::cout << "-C   indicates command line mode" << std::endl;
+		std::cout << "OneNoteToRM.exe -M <Mode> -I <Input Document> -O <Output Document>" << std::endl << std::endl;
 		std::cout << "-M R: Remarkable to OneNote" << std::endl;
         std::cout << "      -I is RM document name" << std::endl;
         std::cout << "      -O is mandatory as name of Notebook to insert section into" << std::endl;
         std::cout << "-M O: OneNote to Remarkable" << std::endl;
         std::cout << "      -I use format Notebook/Section" << std::endl;
         std::cout << "      -O is ignored" << std::endl;
+        std::cout << "-M T: Time mode - either direction based on most recently updated" << std::endl;
+        std::cout << "      (Will do nothing if neither is updated since last T mode invoked)" << std::endl;
+        std::cout << "      -I - OneNote name: use format Notebook/Section" << std::endl;
+        std::cout << "      -O - RM document Name" << std::endl;
+        std::cout << "-L: Loop mode; will perform the action, wait for specified number(in seconds) and repeat indefinitely" << std::endl;
+            
         return 1;
 	}
 
-	// And Do it!
-	if (Mode == L"R")
-	{
-		// RM to One mode
-		// First, load the RM page
-		if (TOZF)
-			delete TOZF;
-		TOZF = new RMDocFile<ToOneRMPage>();
+    do
+    {
+        // And Do it!
+        switch (Mode[0])
+        {
+        case L'R':
+        {
+            // RM to One mode
+            ONE_ID OneID;
+            OneID.Notebook = ws2s(Output);
+            RM_to_ONE(ws2s(Input), OneID, true);
+        }
+        break;
+        case 'O':
+        {
+            // One to RM Mode
+            ONE_ID OneID;
+            std::string SectionName(ws2s(Input));
+            size_t sep = SectionName.find("/");
+            OneID.Notebook = SectionName.substr(0, sep);
+            OneID.Section = SectionName.substr(sep + 1);
 
-		std::wstring Msg = L"Starting RM Load: ";
-		Msg.append(Input);
-		Msg.append(L"...");
-		DoLog("CommandLine", Msg, LOG_INFO);
+            ONE_to_RM(ws2s(Output), OneID, true);
+        }
+        break;
+        case 'T':
+        {
+            // Query mode
+            ONE_ID OneID;
+            std::string SectionName(ws2s(Input));
+            size_t sep = SectionName.find("/");
+            OneID.Notebook = SectionName.substr(0, sep);
+            OneID.Section = SectionName.substr(sep + 1);
 
-		std::unique_ptr<char> WorkingDir(new char[LB_SIZE]);
-		GetPrivateProfileStringA("RMFILE", "WorkingDir", "", WorkingDir.get(), LB_SIZE, gszIniFileName);
+            Timed(ws2s(Output), OneID);
+        }
+        break;
+        }
 
-		RMAPI::GetDoc(ws2s(Input));
+        DoLog("CommandLine", L"... Done", LOG_INFO);
 
-		size_t Found = Input.find_last_of(L"\\");
-		if (Found != std::string::npos)
-			Input = Input.substr(Found + 1);
+        if (!Loop.empty())
+        {
+            std::chrono::seconds SS(std::stoi(Loop));
+            std::wostringstream Msg;
+            Msg << "Waiting for " << SS ;
+            DoLog("Command Line", Msg.str(), LOG_INFO);
+            std::this_thread::sleep_for(SS);
+        }
 
-		std::string Zipfile = WorkingDir.get();
-		Zipfile.append(ws2s(Input));
-		Zipfile.append(".rmdoc");
-		NumPages = TOZF->ExtractRMsFromZip(Zipfile.c_str());
-		CurrentPage = 0;
+    } while (!Loop.empty());
 
-		if (!gAPI)
-			gAPI = new GraphAPI();
-
-		if (GD)
-			delete GD;
-		GD = new GraphDoc<WindowONEPage>(gAPI);
-
-		// Now do the conversion...
-		for (int i = 0; i < NumPages; i++)
-			TOZF->DrawPage((void*)GD, i);
-
-		// And save it!
-		Msg = L"Starting ONE Save: ";
-
-		std::string Section = TOZF->Name;
-		std::string NotebookName = ws2s(Output);
-		Msg.append(Output);
-		Msg.append(L" - ");
-		Msg.append(s2ws(Section));
-		Msg.append(L"...");
-		DoLog("CommandLine", Msg, LOG_INFO);
-		GD->SaveDoc(NotebookName, Section);
-	}
-	else {
-		// One to RM Mode
-		// First, load the ONE page
-		if (!gAPI)
-			gAPI = new GraphAPI();
-
-		if (TOGD)
-			delete TOGD;
-		TOGD = new GraphDoc<ToRMOnePage>(gAPI);
-
-		std::wstring Msg = L"Starting ONE Load: ";
-		std::string SectionName(ws2s(Input));
-		size_t sep = SectionName.find("/");
-		std::string NotebookName = SectionName.substr(0, sep);
-		SectionName = SectionName.substr(sep + 1);
-
-		Msg.append(Input);
-		Msg.append(L"...");
-		DoLog("MAIN", Msg, LOG_INFO);
-
-		TOGD->Name = SectionName;
-		NumPages = TOGD->LoadDoc(NotebookName, SectionName);
-		if (NumPages == -1) {
-			// No Auth! Logon!
-			DoLog("CommandLine", L"No Auth, please run in interactive to log in", LOG_ERROR);
-			return 1;
-		}
-
-		if (ZF)
-			delete ZF;
-		ZF = new RMDocFile<WindowRMPage>();
-
-		// Now convert...
-		for (int i = 0; i < NumPages; i++)
-			TOGD->DrawPage((void*)ZF, i);
-
-		// And save the RM file
-		std::unique_ptr<char> WorkingDir(new char[LB_SIZE]);
-		GetPrivateProfileStringA("RMFILE", "WorkingDir", "", WorkingDir.get(), LB_SIZE, gszIniFileName);
-
-		Msg = L"Starting RM Save: ";
-		Msg.append(s2ws(SectionName));
-		Msg.append(L"...");
-		DoLog("MAIN", Msg, LOG_INFO);
-		std::string TMPfile = WorkingDir.get();
-		TMPfile.append("Output.rmdoc");
-		if (ZF)
-			NumPages = ZF->SaveRMsToZip(TMPfile.c_str());
-
-		RMAPI::SaveDoc(SectionName, WorkingDir.get());
-	}
-
-	DoLog("CommandLine", L"... Done", LOG_INFO);
 	return 0;
 }
 
@@ -1479,3 +1582,4 @@ std::wstring ParseCommandLine(std::wstring Flag, std::wstring CommandLine)
 
     return result;
 }
+

@@ -3,7 +3,7 @@
 #include "WindowRMPage.h"
 #include "GraphDoc.h"
 
-#define SHOW_LINE_ANCHORS 1
+#define SHOW_LINE_ANCHORS 0
 
 
 ToOneRMPage::ToOneRMPage() 
@@ -65,7 +65,7 @@ void ToOneRMPage::DrawLineItem(void* DrawDetails, SceneLineItem* SLI)
 {
 
 //    INK_Point Origin((paper_size[0] / 2) + LineExt.X, LINES_Y_START, 100);
-    INK_Point Origin(-LineExt.X, -LineExt.Y, 100);
+    INK_Point Origin(-LineExt.X, -LineExt.Y + LINES_Y_START, 100);
 
     if (SLI->points.empty())
         return;

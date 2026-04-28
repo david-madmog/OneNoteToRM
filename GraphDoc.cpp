@@ -23,19 +23,21 @@ using njson = nlohmann::json;
 #include "WindowONEPage.h"
 template GraphDoc<WindowONEPage>::GraphDoc(GraphAPI* API);
 template GraphDoc<WindowONEPage>::~GraphDoc();
-template int GraphDoc<WindowONEPage>::LoadPages(wchar_t* SectionID);
+template int GraphDoc<WindowONEPage>::LoadPages(const wchar_t* SectionID);
 template int GraphDoc<WindowONEPage>::LoadDoc(const std::string& NotebookName, const std::string& SectionName);
 template int GraphDoc<WindowONEPage>::SaveDoc(const std::string& NotebookName, const std::string& SectionName);
-template int GraphDoc<WindowONEPage>::SaveDoc(wchar_t* SectionID);
+template int GraphDoc<WindowONEPage>::SaveDoc(const wchar_t* SectionID);
+template time_t GraphDoc<WindowONEPage>::LastEditTime();
 template void GraphDoc<WindowONEPage>::DrawPage(void* DrawDetails, int Page);
 
 #include "ToRMONEPage.h"
 template GraphDoc<ToRMOnePage>::GraphDoc(GraphAPI* API);
 template GraphDoc<ToRMOnePage>::~GraphDoc();
-template int GraphDoc<ToRMOnePage>::LoadPages(wchar_t* SectionID);
+template int GraphDoc<ToRMOnePage>::LoadPages(const wchar_t* SectionID);
 template int GraphDoc<ToRMOnePage>::LoadDoc(const std::string& NotebookName, const std::string& SectionName);
 template int GraphDoc<ToRMOnePage>::SaveDoc(const std::string& NotebookName, const std::string& SectionName);
-template int GraphDoc<ToRMOnePage>::SaveDoc(wchar_t* SectionID);
+template int GraphDoc<ToRMOnePage>::SaveDoc(const wchar_t* SectionID);
+template time_t GraphDoc<ToRMOnePage>::LastEditTime();
 template void GraphDoc<ToRMOnePage>::DrawPage(void* DrawDetails, int Page);
 
 
@@ -49,7 +51,7 @@ template<class PageType> GraphDoc<PageType>::~GraphDoc() {
 }
 
 
-template<class PageType> int GraphDoc<PageType>::LoadPages(wchar_t * SectionID) {
+template<class PageType> int GraphDoc<PageType>::LoadPages(const wchar_t * SectionID) {
 
     if (!API)
         return 0;
@@ -60,7 +62,7 @@ template<class PageType> int GraphDoc<PageType>::LoadPages(wchar_t * SectionID) 
     // First get the list of pages
     std::wstring PagesList = L"me/onenote/sections/";
     PagesList.append(SectionID);
-    PagesList.append(L"/pages?$select=id,title");
+    PagesList.append(L"/pages?$select=id,title,lastModifiedDateTime");
 
     std::wstring* RespData = API->SendRequestAndAwaitResponse(PagesList.c_str());
     if (RespData == nullptr)
@@ -85,7 +87,8 @@ template<class PageType> int GraphDoc<PageType>::LoadPages(wchar_t * SectionID) 
 		for (njson& PageJson : respJson["value"])
         {
             std::wstring PageQuery{ L"me/onenote/pages/" };
-            std::string ID = PageJson["id"].get< std::string>();
+            std::string ID = PageJson["id"].get<std::string>();
+            std::string LMDT = PageJson["lastModifiedDateTime"].get<std::string>();
             mbstowcs_s(&convertedChars, LocalWBuff, 1024, ID.c_str(), ID.length());
             PageQuery.append(LocalWBuff);
             PageQuery.append(L"/content?includeinkML=true");
@@ -94,8 +97,9 @@ template<class PageType> int GraphDoc<PageType>::LoadPages(wchar_t * SectionID) 
             {
                 PageType* Page = new PageType;
                 Pages.push_back(Page);
-                std::string Title{ PageJson["title"].get< std::string>() };
+                std::string Title{ PageJson["title"].get<std::string>() };
                 Page->LoadPage(PageData, Title);
+                Page->LastMod = LMDT;
             }
         }
     }
@@ -103,7 +107,7 @@ template<class PageType> int GraphDoc<PageType>::LoadPages(wchar_t * SectionID) 
     return (int)Pages.size();
 }
 
-template<class PageType> void GraphDoc<PageType>::DeletePages(wchar_t* SectionID)
+template<class PageType> void GraphDoc<PageType>::DeletePages(const wchar_t* SectionID)
 {
     // First get the list of pages
     std::wstring PagesList = L"me/onenote/sections/";
@@ -365,7 +369,7 @@ template<class PageType> int GraphDoc<PageType>::SaveDoc(const std::string& Note
     }
     return 0;
 }
-template<class PageType> int GraphDoc<PageType>::SaveDoc(wchar_t* SectionID)
+template<class PageType> int GraphDoc<PageType>::SaveDoc(const wchar_t* SectionID)
 {
     if (!API)
         return 0;
@@ -412,6 +416,30 @@ template<class PageType> void GraphDoc<PageType>::DrawPage(void* DrawDetails, in
         ONEPage* P = Pages[Page];
         P->DrawPage(DrawDetails);
     }
+}
+
+template<class PageType> time_t GraphDoc<PageType>::LastEditTime()
+{
+    time_t EditTime = 0;
+    const std::string Format = "%Y-%m-%dT%H:%M:%S%Z"; // "2026-04-17T18:02:10Z"
+//    struct tm tmStruct;
+
+    for (auto page : Pages) {
+        using namespace std::chrono;
+
+        system_clock::time_point ST;
+        std::istringstream ss(page->LastMod);
+        ss >> parse(Format, ST);
+        local_time LT = current_zone()->to_local(ST);
+
+        time_t PageTime = system_clock::to_time_t(ST);
+        //ss >> std::get_time(&tmStruct, Format.c_str());
+        //time_t PageTime = mktime(&tmStruct);
+        if (PageTime > EditTime)
+            EditTime = PageTime;
+    }
+
+    return EditTime;
 }
 
 

@@ -40,6 +40,9 @@ Once the documents are listed, there are three main features:
 
 - Use Name → and ← : Will copy the highlighted source document to a destination document of the same name as the source (for OneNote, in the same Notebook as the highlighted destination). If a destination document of that name already exists, it will be irrevocably overwritten.
 
+- ← ? → : Will copy the highlighted source document to a destination document of the same name as the source (for OneNote, in the same Notebook as the highlighted destination), based on whichever is updated most recently. 
+		If a destination document of that name already exists, it will be irrevocably overwritten. If both have changed since the last update, changes to the older one will be irrevocably trashed.
+
 ### Command-line mode
 
 Command-line mode will only work if logon tokens have previously been obtained in interactive mode. It is intended to be used in scheduled tasks or batch files. 
@@ -47,16 +50,19 @@ Command-line mode will only work if logon tokens have previously been obtained i
 Command line switches are as follows:
 
 ```
-OneNoteToRM.exe -C -I <Input Document> -O <Output Document> -M <Mode>
+OneNoteToRM.exe -I <Input Document> -O <Output Document> -M <Mode> -L <time>
 ```
 
-- -C   indicates command line mode
 - -M R: Remarkable to OneNote
 	- -I is RM document name
 	- -O is mandatory as name of Notebook to insert section into
 - -M O: OneNote to Remarkable
 	- -I use format Notebook/Section
 	- -O is ignored
+- -M T: Timed mode (Will do nothing if neither is updated since last T mode invoked)
+   	- -I - OneNote name: use format Notebook/Section
+    - -O - RM document Name
+- -L: Loop mode; will perform the action, wait for specified number (in seconds) and repeat indefinitely
 
 ## Acknowledgements and references
 

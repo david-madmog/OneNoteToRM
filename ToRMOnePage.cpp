@@ -167,12 +167,14 @@ void ToRMOnePage::DrawPage(void* DrawDetails)
 		for (auto& Point : InkTrace->points) {
 			SceneLineItem::LineItemPoint* P1 = new SceneLineItem::LineItemPoint;
 			//			P1->width = Point.F / (RM_TO_ONE_LINE_FACTOR * (int)InkTrace->thickness_scale);
-			P1->width = Point.F / RM_TO_ONE_LINE_FACTOR ;
+			//			P1->width = (int)(Point.F * InkTrace->thickness_scale / RM_TO_ONE_LINE_FACTOR) ;
+			P1->width = (int)((Point.F / RM_TO_ONE_PRESSURE_FACTOR) + (InkTrace->thickness_scale / RM_TO_ONE_LINE_FACTOR));
 			if (P1->width == 0)
 				P1->width = 1;
 			P1->pressure = 255;
+
 			P1->x = (FLOAT) (Point.X / RM_TO_ONE_XY_SCALE_FACTOR) - RM_X_OFFSET + ONE_TO_RM_X_OFFSET;
-			P1->y = (FLOAT) Point.Y / RM_TO_ONE_XY_SCALE_FACTOR;
+			P1->y = (FLOAT) Point.Y / RM_TO_ONE_XY_SCALE_FACTOR - LINES_Y_START;
 			LI->points.push_back(*P1);
 		}
 
@@ -208,22 +210,25 @@ void ToRMOnePage::DrawPage(void* DrawDetails)
 
 void ToRMOnePage::LoadMetaData(RMDocFile<WindowRMPage>* DocFile) {
 
-	std::string Data{ R"(
-						{
-						    "createdTime": "1763459978040",
-						        "lastModified" : "1768844812925",
-						        "lastOpened" : "1768844757552",
-						        "lastOpenedPage" : 0,
+	std::string Data{ R"({		"createdTime": "0",
+						        "lastOpenedPage" : 1,
 						        "new" : false,
 						        "parent" : "",
 						        "pinned" : false,
 						        "source" : "",
-						        "type" : "DocumentType",
-						        "visibleName" : "Jobs"
-						}
-					)"
+						        "type" : "DocumentType"
+						})"
 	};
 
-	DocFile->Metadata = json::parse(Data);
+	DocFile->Metadata = json::parse(Data, nullptr, false, true);
+
+	time_t Now;
+	time(&Now);
+	std::ostringstream NowString;
+	NowString << (Now * 1000);
+
+	DocFile->Metadata["lastModified"] = NowString.str();
+	DocFile->Metadata["lastOpened"] = NowString.str();
+
 }
 
