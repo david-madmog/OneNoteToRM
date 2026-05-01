@@ -286,6 +286,7 @@ int GraphAPI::GetLogonToken()
 
     http_client client(EndpointRoot);
 
+    uri_builder URI;
     URI.set_path(TenantID);
     URI.append_path(OAuthTokenEndpoint);
 

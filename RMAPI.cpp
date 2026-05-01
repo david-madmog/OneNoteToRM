@@ -33,6 +33,11 @@ string RMAPI::exec(const char* cmd) {
         string strResult;
         HANDLE hPipeRead, hPipeWrite;
 
+        std::unique_ptr<char> TempDir(new char[LB_SIZE]);
+        GetTempPathA(LB_SIZE - 1, TempDir.get());
+//        GetPrivateProfileStringA("RMFILE", "WorkingDir", "", WorkingDir.get(), LB_SIZE, gszIniFileName);
+       
+
         SECURITY_ATTRIBUTES saAttr = { sizeof(SECURITY_ATTRIBUTES) };
         saAttr.bInheritHandle = TRUE; // Pipe handles are inherited by child process.
         saAttr.lpSecurityDescriptor = NULL;
@@ -50,7 +55,7 @@ string RMAPI::exec(const char* cmd) {
 
         PROCESS_INFORMATION pi = { 0 };
 
-        BOOL fSuccess = CreateProcessA(NULL, (LPSTR)cmd, NULL, NULL, TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi);
+        BOOL fSuccess = CreateProcessA(NULL, (LPSTR)cmd, NULL, NULL, TRUE, CREATE_NEW_CONSOLE, NULL, (LPCSTR)TempDir.get(), &si, &pi);
         if (!fSuccess)
         {
             CloseHandle(hPipeWrite);
@@ -116,8 +121,11 @@ void RMAPI::GetDoc(std::string Name)
     string Command = "";
 
     std::ranges::replace(Name, '\\', '/'); 
-    Command = "rmapi get \"";
 
+    std::unique_ptr<char> RMAPIDir(new char[LB_SIZE]);
+    GetPrivateProfileStringA("RMFILE", "RMAPIDir", "", RMAPIDir.get(), LB_SIZE, gszIniFileName);
+    Command.append(RMAPIDir.get());
+    Command.append("rmapi get \"");
     Command.append(Name);
     Command.append("\"");
 
@@ -130,9 +138,14 @@ void RMAPI::GetDoc(std::string Name)
 }
 
 void RMAPI::ListDocs(vector<wstring>&Docs) {
+    string Command = "";
     DoLog("RMAPI", "Querying RM API for doc list", LOG_DEBUG);
 
-    string result = exec("rmapi find");
+    std::unique_ptr<char> RMAPIDir(new char[LB_SIZE]);
+    GetPrivateProfileStringA("RMFILE", "RMAPIDir", "", RMAPIDir.get(), LB_SIZE, gszIniFileName);
+    Command.append(RMAPIDir.get());
+    Command.append("rmapi find");
+    string result = exec(Command.c_str());
     wstringstream  wresult;
     wresult << result.c_str();
 
@@ -177,8 +190,11 @@ void RMAPI::SaveDoc(std::string Name, std::string path) {
 
 
     // put T4.rmdoc /trash --force
-    std::string Command;
-    Command = "rmapi put \"";
+    std::string Command = "";
+    std::unique_ptr<char> RMAPIDir(new char[LB_SIZE]);
+    GetPrivateProfileStringA("RMFILE", "RMAPIDir", "", RMAPIDir.get(), LB_SIZE, gszIniFileName);
+    Command.append(RMAPIDir.get());
+    Command.append("rmapi put \"");
     Command.append(Zipfile);
     Command.append("\" ");
     //Command.append(path);

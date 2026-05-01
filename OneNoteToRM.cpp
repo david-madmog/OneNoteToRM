@@ -1180,15 +1180,15 @@ void RM_Load(RMDocFile<PageType> * ZF, std::string sRMFile)
     Msg.append("...");
     DoLog("MAIN", Msg.c_str(), LOG_INFO);
 
-    std::unique_ptr<char> WorkingDir(new char[LB_SIZE]);
-    GetPrivateProfileStringA("RMFILE", "WorkingDir", "", WorkingDir.get(), LB_SIZE, gszIniFileName);
-
     RMAPI::GetDoc(sRMFile);
 
     size_t Found = sRMFile.find_last_of("\\");
     if (Found != std::string::npos)
         sRMFile = sRMFile.substr(Found + 1);
 
+    std::unique_ptr<char> WorkingDir(new char[LB_SIZE]);
+//    GetPrivateProfileStringA("RMFILE", "WorkingDir", "", WorkingDir.get(), LB_SIZE, gszIniFileName);
+    GetTempPathA(LB_SIZE - 1, WorkingDir.get());
     std::string Zipfile = WorkingDir.get();
     Zipfile.append(sRMFile);
     Zipfile.append(".rmdoc");
@@ -1365,8 +1365,9 @@ void ONE_to_RM(std::string RMFile, ONE_ID OneID, bool Notebook)
     }
 
     std::unique_ptr<char> WorkingDir(new char[LB_SIZE]);
-    GetPrivateProfileStringA("RMFILE", "WorkingDir", "", WorkingDir.get(), LB_SIZE, gszIniFileName);
-    
+    //    GetPrivateProfileStringA("RMFILE", "WorkingDir", "", WorkingDir.get(), LB_SIZE, gszIniFileName);
+    GetTempPathA(LB_SIZE - 1, WorkingDir.get());
+
     std::wstring Msg = L"Starting RM Save: ";
     Msg.append(s2ws(RMFile));
     Msg.append(L"...");
