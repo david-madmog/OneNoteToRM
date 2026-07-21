@@ -378,3 +378,4 @@ FodyWeavers.xsd
 /icons/reMarkable_IDI_ICON1.ico
 /Run - Copy - Copy.bat
 *.bat
+/OneNoteToRMToken.ini
