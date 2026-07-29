@@ -31,6 +31,7 @@
 #include <format>
 #include <fstream>
 #include <iostream>
+#include <limits.h>
 #include <locale>
 #include <malloc.h>
 #include <map>
@@ -46,8 +47,13 @@
 #include <thread>
 #include <type_traits>
 #include <typeinfo>
+#include <utility>
+#include <unordered_map>
 #include <vector>
 #include <wtypes.h>
+
+
+
 
 //#include <afxwin.h>   // must come first
 #include <Unknwn.h>

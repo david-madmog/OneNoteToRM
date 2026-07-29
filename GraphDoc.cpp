@@ -1,4 +1,4 @@
-#include "framework.h"
+#include "pch.h"
 #include "GraphDoc.h"
 #include "OneNoteToRM.h"
 
@@ -6,6 +6,7 @@
 #pragma warning( disable : 26439 26495)
 #include <cpprest/asyncrt_utils.h>
 #pragma warning ( pop )
+
 
 
 #pragma warning ( push )
@@ -427,14 +428,14 @@ template<class PageType> time_t GraphDoc<PageType>::LastEditTime()
     for (auto page : Pages) {
         using namespace std::chrono;
 
-        system_clock::time_point ST;
         std::istringstream ss(page->LastMod);
-        ss >> parse(Format, ST);
-        local_time LT = current_zone()->to_local(ST);
 
-        time_t PageTime = system_clock::to_time_t(ST);
-        //ss >> std::get_time(&tmStruct, Format.c_str());
-        //time_t PageTime = mktime(&tmStruct);
+        local_seconds tp;
+        ss >> parse(Format, tp);
+        auto tp_utc = current_zone()->to_sys(tp);
+
+        time_t PageTime = tp_utc.time_since_epoch().count();
+
         if (PageTime > EditTime)
             EditTime = PageTime;
     }

@@ -1,0 +1,133 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <StartupObject>OneNoteToRMUI.Program</StartupObject>
+    <ApplicationIcon>OneNoteToRM.ico</ApplicationIcon>
+    <NuGetAudit>False</NuGetAudit>
+    <UseWPF>True</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="OneNoteToRMDLL\**" />
+    <Compile Remove="OneNoteToRMPkg\**" />
+    <Compile Remove="OneNoteToRM\**" />
+    <Compile Remove="x64\**" />
+    <EmbeddedResource Remove="OneNoteToRMDLL\**" />
+    <EmbeddedResource Remove="OneNoteToRMPkg\**" />
+    <EmbeddedResource Remove="OneNoteToRM\**" />
+    <EmbeddedResource Remove="x64\**" />
+    <None Remove="OneNoteToRMDLL\**" />
+    <None Remove="OneNoteToRMPkg\**" />
+    <None Remove="OneNoteToRM\**" />
+    <None Remove="x64\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove=".gitattributes" />
+    <None Remove=".gitignore" />
+    <None Remove="Conversion test - Copy.rmdoc" />
+    <None Remove="Conversion test - Copy2.rmdoc" />
+    <None Remove="ConversionConstants.h" />
+    <None Remove="cpp.hint" />
+    <None Remove="dllmain.cpp" />
+    <None Remove="framework.h" />
+    <None Remove="GraphAPI.cpp" />
+    <None Remove="GraphAPI.h" />
+    <None Remove="GraphDoc.cpp" />
+    <None Remove="GraphDoc.h" />
+    <None Remove="iconsext.cfg" />
+    <None Remove="LICENSE" />
+    <None Remove="OAuth.cpp" />
+    <None Remove="OAuth.h" />
+    <None Remove="OneNoteToRM.aps" />
+    <None Remove="OneNoteToRM.cpp" />
+    <None Remove="OneNoteToRM.h" />
+    <None Remove="OneNoteToRM.rc" />
+    <None Remove="OneNoteToRM.vcxproj.filters" />
+    <None Remove="OneNoteToRMDLL.cpp" />
+    <None Remove="OneNoteToRMDLL.vcxproj.filters" />
+    <None Remove="ONEPage.cpp" />
+    <None Remove="ONEPage.h" />
+    <None Remove="pch.cpp" />
+    <None Remove="pch.h" />
+    <None Remove="pugiconfig.hpp" />
+    <None Remove="pugixml.cpp" />
+    <None Remove="pugixml.hpp" />
+    <None Remove="README.md" />
+    <None Remove="resource.h" />
+    <None Remove="restore from Copy.bat" />
+    <None Remove="restore from Test2.bat" />
+    <None Remove="rmapi-win64.zip" />
+    <None Remove="RMAPI.cpp" />
+    <None Remove="rmapi.exe" />
+    <None Remove="RMAPI.h" />
+    <None Remove="RMBlock.cpp" />
+    <None Remove="RMBlock.h" />
+    <None Remove="RMBlockTypes.cpp" />
+    <None Remove="RMBlockTypes.h" />
+    <None Remove="RMDocFile.cpp" />
+    <None Remove="RMDocFile.h" />
+    <None Remove="RMPage.cpp" />
+    <None Remove="RMPage.h" />
+    <None Remove="Run - Copy - Copy.bat" />
+    <None Remove="Run.bat" />
+    <None Remove="small.ico" />
+    <None Remove="targetver.h" />
+    <None Remove="Test1.url" />
+    <None Remove="test3.url" />
+    <None Remove="To Do ONE2RM.bat" />
+    <None Remove="To Do RM2ONE.bat" />
+    <None Remove="To Do SYNC LOOP.bat" />
+    <None Remove="ToOneRMPage.cpp" />
+    <None Remove="ToOneRMPage.h" />
+    <None Remove="ToRMOnePage.cpp" />
+    <None Remove="ToRMOnePage.h" />
+    <None Remove="WindowONEPage.cpp" />
+    <None Remove="WindowONEPage.h" />
+    <None Remove="WindowRMPage.cpp" />
+    <None Remove="WindowRMPage.h" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="OneNoteToRM.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Ini" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4078.44" />
+    <PackageReference Include="Serilog" Version="4.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+</Project>

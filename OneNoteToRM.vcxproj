@@ -246,41 +246,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="ConversionConstants.h" />
-    <ClInclude Include="GraphAPI.h" />
-    <ClInclude Include="OneNoteToRM.h" />
-    <ClInclude Include="framework.h" />
-    <ClInclude Include="GraphDoc.h" />
-    <ClInclude Include="ONEPage.h" />
-    <ClInclude Include="pugiconfig.hpp" />
-    <ClInclude Include="pugixml.hpp" />
+    <ClInclude Include="OAuth.h" />
+    <ClInclude Include="OneNoteToRMDLL.h" />
     <ClInclude Include="Resource.h" />
-    <ClInclude Include="RMAPI.h" />
-    <ClInclude Include="RMBlock.h" />
-    <ClInclude Include="RMBlockTypes.h" />
-    <ClInclude Include="RMPage.h" />
-    <ClInclude Include="RMDocFile.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="ToOneRMPage.h" />
-    <ClInclude Include="ToRMOnePage.h" />
-    <ClInclude Include="WindowONEPage.h" />
-    <ClInclude Include="WindowRMPage.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GraphAPI.cpp" />
+    <ClCompile Include="OAuth.cpp" />
     <ClCompile Include="OneNoteToRM.cpp" />
-    <ClCompile Include="GraphDoc.cpp" />
-    <ClCompile Include="ONEPage.cpp" />
-    <ClCompile Include="pugixml.cpp" />
-    <ClCompile Include="RMAPI.cpp" />
-    <ClCompile Include="RMBlock.cpp" />
-    <ClCompile Include="RMBlockTypes.cpp" />
-    <ClCompile Include="RMPage.cpp" />
-    <ClCompile Include="RMDocFile.cpp" />
-    <ClCompile Include="ToOneRMPage.cpp" />
-    <ClCompile Include="ToRMOnePage.cpp" />
-    <ClCompile Include="WindowONEPage.cpp" />
-    <ClCompile Include="WindowRMPage.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="OneNoteToRM.rc" />
@@ -305,6 +278,11 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="ToDo.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="OneNoteToRMDLL.vcxproj">
+      <Project>{35fc40a2-0ffe-4e74-89bb-ca5d05887c48}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

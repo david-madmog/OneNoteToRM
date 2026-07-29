@@ -1,4 +1,5 @@
-#include "framework.h"
+#include "pch.h"
+
 #include "WindowONEPage.h"
 #include "OneNoteToRM.h"
 
@@ -9,8 +10,19 @@ void WindowONEPage::DrawPage(void* DrawDetails)
     RectF BoundingBox;
     HDC hDC = ((DrawDetailsParams*)DrawDetails)->hDC;
     Graphics graphics(hDC);
+    int MaxX=0, MaxY=0;
 
-    SetRect(&((DrawDetailsParams*)DrawDetails)->Rect, 0, 0, 1000, 1000);
+    for (auto& Trace : InkTraces)
+    {
+        for (int i = 0; i < Trace->points.size(); i++)
+        {
+            if (Trace->points[i].X > MaxX) MaxX = Trace->points[i].X;
+            if (Trace->points[i].Y > MaxY) MaxY = Trace->points[i].Y;
+        }
+    }
+
+    // Tell the window what size we actually needed
+    SetRect(&((DrawDetailsParams*)DrawDetails)->Rect, 0, 0, (int)MaxX / 20, (int)MaxY / 20);
     FillRect(hDC, &((DrawDetailsParams*)DrawDetails)->Rect, (HBRUSH)(COLOR_WINDOW + 1));
 
     SolidBrush  solidBrush(Color(255, 0, 0, 0));
@@ -42,10 +54,13 @@ void WindowONEPage::DrawPage(void* DrawDetails)
         Point * Points = new Point[Trace->points.size()];
         if (Points != NULL)
             for (int i = 0; i < Trace->points.size(); i++)
+            {
 #pragma warning ( push )
 #pragma warning( disable : 6386)
                 Points[i] = Point((int)Trace->points[i].X / 20, (int)Trace->points[i].Y / 20);
 #pragma warning ( pop )
+            }
+
 
         graphics.DrawLines(&pen, Points, (int)Trace->points.size());
 
@@ -53,7 +68,6 @@ void WindowONEPage::DrawPage(void* DrawDetails)
         
         delete[] Points;
     }
-
 
 }
 

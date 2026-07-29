@@ -1,7 +1,8 @@
-#include "framework.h"
+#include "pch.h"
 #include "ToOneRMPage.h"
 #include "WindowRMPage.h"
 #include "GraphDoc.h"
+
 
 #define SHOW_LINE_ANCHORS 0
 

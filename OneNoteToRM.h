@@ -1,6 +1,7 @@
 #pragma once
 #include <windows.h>
 #include <string>
+#include "OneNoteToRMDLL.h"
 
 /*******************************************************************************
 
@@ -21,8 +22,8 @@ enum LogLevel {
 	LOG_ERROR
 };
 
-extern HWND hLoginPopup;
 extern char gszIniFileName[];
+extern char gszTokenFileName[];
 
 std::wstring s2ws(const std::unique_ptr<char> str);
 std::wstring s2ws(const std::string& str);
@@ -30,7 +31,7 @@ std::string ws2s(const std::unique_ptr<wchar_t> str) ;
 std::string ws2s(const std::wstring& wstr);
 
 //extern char * LogBuffer;
-constexpr auto LB_SIZE = 10240;
+#define LB_SIZE 10240l
 
 void DoLog(const char* Class, const char* Msg, LogLevel Level = LOG_DEBUG_VERBOSE);
 void DoLog(const char* Class, const wchar_t* Msg, LogLevel Level = LOG_DEBUG_VERBOSE);
@@ -41,7 +42,4 @@ public:
 	virtual void DrawPage(void* DrawDetails, int page) {};
 };
 
-struct DrawDetailsParams {
-	HDC hDC;
-	RECT Rect;
-};
+

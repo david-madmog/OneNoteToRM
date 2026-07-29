@@ -1,7 +1,9 @@
-#include "framework.h"
+#include "pch.h"
 #include "RMAPI.h"
 #include "OneNoteToRM.h"
 #include <shellapi.h>
+
+
 
 using namespace std;
 
@@ -137,7 +139,8 @@ void RMAPI::GetDoc(std::string Name)
 	DoLog("RMAPI", Result.c_str(), LOG_DEBUG);
 }
 
-void RMAPI::ListDocs(vector<wstring>&Docs) {
+std::string RMAPI::ListDocsString()
+{
     string Command = "";
     DoLog("RMAPI", "Querying RM API for doc list", LOG_DEBUG);
 
@@ -145,23 +148,44 @@ void RMAPI::ListDocs(vector<wstring>&Docs) {
     GetPrivateProfileStringA("RMFILE", "RMAPIDir", "", RMAPIDir.get(), LB_SIZE, gszIniFileName);
     Command.append(RMAPIDir.get());
     Command.append("rmapi find");
-    string result = exec(Command.c_str());
-    wstringstream  wresult;
-    wresult << result.c_str();
+    stringstream result(exec(Command.c_str()));
 
+    // Now trim down 
     vector<string> strings;
-    wstring s;
-    while (getline(wresult, s)) {
+    string s;
+    stringstream TrimmedResult;
+
+    while (getline(result, s)) {
         // something like : [f] \General topics
         // or               [f] \\dir\file
         if (s[1] == 'f') {
             s.erase(0, 5);
             if (s[0] == '\\')
                 s.erase(0, 1);
-            Docs.push_back(s);
+            TrimmedResult << s << endl;
         }
     }
+
+    return TrimmedResult.str();
 }
+    
+//void RMAPI::ListDocsStringToVector(std::string ListDocsString, vector<wstring>& Docs) {
+//    wstringstream  wresult;
+//    wresult << ListDocsString.c_str();
+//
+//    vector<string> strings;
+//    wstring s;
+//    while (getline(wresult, s)) {
+//        // something like : [f] \General topics
+//        // or               [f] \\dir\file
+//        if (s[1] == 'f') {
+//            s.erase(0, 5);
+//            if (s[0] == '\\')
+//                s.erase(0, 1);
+//            Docs.push_back(s);
+//        }
+//    }
+//}
 
 void RMAPI::SaveDoc(std::string Name, std::string path) {
     // trash\T4

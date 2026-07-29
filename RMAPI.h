@@ -24,7 +24,8 @@ private:
 
 public:
 	static void GetDoc(std::string Name);
-	static void ListDocs(std::vector<std::wstring>&Docs);
+//	static void ListDocsStringToVector(std::string ListDocsString, std::vector<std::wstring>& Docs);
+	static std::string ListDocsString();
 	static void SaveDoc(std::string Name, std::string path);
 	static void CopyDoc(std::string Name);
 };

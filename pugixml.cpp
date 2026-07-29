@@ -13,6 +13,7 @@
 
 #pragma warning( disable : 26495 28182 6054)
 
+#include "pch.h"
 
 #ifndef SOURCE_PUGIXML_CPP
 #define SOURCE_PUGIXML_CPP
@@ -1977,7 +1978,7 @@ PUGI_IMPL_NS_BEGIN
 	#define PUGI_IMPL_SCANCHARTYPE(ct) { while (offset < size && PUGI_IMPL_IS_CHARTYPE(data[offset], ct)) offset++; }
 
 		// check if we have a non-empty XML declaration
-		if (size < 6 || !((data[0] == '<') & (data[1] == '?') & (data[2] == 'x') & (data[3] == 'm') & (data[4] == 'l') && PUGI_IMPL_IS_CHARTYPE(data[5], ct_space)))
+		if (size < 6 || !((data[0] == '<') && (data[1] == '?') && (data[2] == 'x') && (data[3] == 'm') && (data[4] == 'l') && PUGI_IMPL_IS_CHARTYPE(data[5], ct_space)))
 			return false;
 
 		// scan XML declaration until the encoding field
@@ -10488,7 +10489,7 @@ PUGI_IMPL_NS_BEGIN
 			case axis_attribute:
 			{
 				for (xml_attribute_struct* a = n->first_attribute; a; a = a->next_attribute)
-					if (step_push(ns, a, n, alloc) & once)
+					if (step_push(ns, a, n, alloc) && once)
 						return;
 
 				break;
@@ -10497,7 +10498,7 @@ PUGI_IMPL_NS_BEGIN
 			case axis_child:
 			{
 				for (xml_node_struct* c = n->first_child; c; c = c->next_sibling)
-					if (step_push(ns, c, alloc) & once)
+					if (step_push(ns, c, alloc) && once)
 						return;
 
 				break;
@@ -10507,14 +10508,14 @@ PUGI_IMPL_NS_BEGIN
 			case axis_descendant_or_self:
 			{
 				if (axis == axis_descendant_or_self)
-					if (step_push(ns, n, alloc) & once)
+					if (step_push(ns, n, alloc) && once)
 						return;
 
 				xml_node_struct* cur = n->first_child;
 
 				while (cur)
 				{
-					if (step_push(ns, cur, alloc) & once)
+					if (step_push(ns, cur, alloc) && once)
 						return;
 
 					if (cur->first_child)
@@ -10538,7 +10539,7 @@ PUGI_IMPL_NS_BEGIN
 			case axis_following_sibling:
 			{
 				for (xml_node_struct* c = n->next_sibling; c; c = c->next_sibling)
-					if (step_push(ns, c, alloc) & once)
+					if (step_push(ns, c, alloc) && once)
 						return;
 
 				break;
@@ -10547,7 +10548,7 @@ PUGI_IMPL_NS_BEGIN
 			case axis_preceding_sibling:
 			{
 				for (xml_node_struct* c = n->prev_sibling_c; c->next_sibling; c = c->prev_sibling_c)
-					if (step_push(ns, c, alloc) & once)
+					if (step_push(ns, c, alloc) && once)
 						return;
 
 				break;
@@ -10569,7 +10570,7 @@ PUGI_IMPL_NS_BEGIN
 
 				while (cur)
 				{
-					if (step_push(ns, cur, alloc) & once)
+					if (step_push(ns, cur, alloc) && once)
 						return;
 
 					if (cur->first_child)
@@ -10611,7 +10612,7 @@ PUGI_IMPL_NS_BEGIN
 					else
 					{
 						// leaf node, can't be ancestor
-						if (step_push(ns, cur, alloc) & once)
+						if (step_push(ns, cur, alloc) && once)
 							return;
 
 						while (!cur->prev_sibling_c->next_sibling)
@@ -10621,7 +10622,7 @@ PUGI_IMPL_NS_BEGIN
 							if (!cur) return;
 
 							if (!node_is_ancestor(cur, n))
-								if (step_push(ns, cur, alloc) & once)
+								if (step_push(ns, cur, alloc) && once)
 									return;
 						}
 
@@ -10636,14 +10637,14 @@ PUGI_IMPL_NS_BEGIN
 			case axis_ancestor_or_self:
 			{
 				if (axis == axis_ancestor_or_self)
-					if (step_push(ns, n, alloc) & once)
+					if (step_push(ns, n, alloc) && once)
 						return;
 
 				xml_node_struct* cur = n->parent;
 
 				while (cur)
 				{
-					if (step_push(ns, cur, alloc) & once)
+					if (step_push(ns, cur, alloc) && once)
 						return;
 
 					cur = cur->parent;
@@ -10682,14 +10683,14 @@ PUGI_IMPL_NS_BEGIN
 			case axis_ancestor_or_self:
 			{
 				if (axis == axis_ancestor_or_self && _test == nodetest_type_node) // reject attributes based on principal node type test
-					if (step_push(ns, a, p, alloc) & once)
+					if (step_push(ns, a, p, alloc) && once)
 						return;
 
 				xml_node_struct* cur = p;
 
 				while (cur)
 				{
-					if (step_push(ns, cur, alloc) & once)
+					if (step_push(ns, cur, alloc) && once)
 						return;
 
 					cur = cur->parent;
@@ -10727,7 +10728,7 @@ PUGI_IMPL_NS_BEGIN
 						cur = cur->next_sibling;
 					}
 
-					if (step_push(ns, cur, alloc) & once)
+					if (step_push(ns, cur, alloc) && once)
 						return;
 				}
 

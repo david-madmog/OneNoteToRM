@@ -1,6 +1,7 @@
-#include "framework.h"
+#include "pch.h"
 #include "GraphAPI.h"
 #include "resource.h"
+
 
 #pragma warning ( push )
 #pragma warning( disable : 26439 26495)
@@ -32,17 +33,25 @@ using namespace concurrency::streams;       // Asynchronous streams
 
 using njson = nlohmann::json;
 
-static wil::com_ptr<ICoreWebView2Controller> webviewController;
-static wil::com_ptr<ICoreWebView2> webview;
-static uri_builder URI;
-
 
 GraphAPI::GraphAPI()
 {
+    std::wstring wIniFileName = s2ws(gszIniFileName);
+
     // So, when we're instantiated, get the refresh token and clear the access token
-    Refresh_Token = new char[LB_SIZE];
-    GetPrivateProfileStringA("OneNote", "RefreshToken", "", Refresh_Token, LB_SIZE, gszIniFileName);
+    Refresh_Token = new char[IB_SIZE];
+    GetPrivateProfileStringA("OneNote", "RefreshToken", "", Refresh_Token, IB_SIZE, gszTokenFileName);
     Token = NULL;
+
+    GetPrivateProfileStringA("OneNote", "EntraAppID", "", EntraAppID, IB_SIZE, gszIniFileName);
+    GetPrivateProfileStringW(L"OneNote", L"TenantID", L"", TenantID, IB_SIZE, wIniFileName.c_str());
+    GetPrivateProfileStringA("OneNote", "RedirectURI", "", RedirectURI, IB_SIZE, gszIniFileName);
+
+    GetPrivateProfileStringW(L"OneNote", L"EndpointRoot", L"", EndpointRoot, IB_SIZE, wIniFileName.c_str());
+    GetPrivateProfileStringW(L"OneNote", L"OAuthTokenEndpoint", L"", OAuthTokenEndpoint, IB_SIZE, wIniFileName.c_str());
+
+    GetPrivateProfileStringW(L"OneNote", L"GraphRoot", L"", GraphRoot, IB_SIZE, wIniFileName.c_str());
+    GetPrivateProfileStringW(L"OneNote", L"GraphHost", L"", GraphHost, IB_SIZE, wIniFileName.c_str());
 }
 
 GraphAPI::~GraphAPI()
@@ -186,92 +195,6 @@ std::wstring* GraphAPI::SendRequestAndAwaitResponse(const wchar_t* URLPath) {
     return nullptr;
 }
 
-void GraphAPI::LoginToMicrosoft(HWND hWnd)
-{
-    char* code = nullptr;
-    // SO we build the URL, and then use the WebView to get permission/login
-
-    URI.set_scheme(L"https");
-    URI.set_host(EndpointHost);
-    URI.set_path(TenantID);
-    URI.append_path(OAuthEndpoint);
-
-    URI.set_query(L"");
-    URI.append_query(L"client_id", EntraAppID, true);
-    URI.append_query(L"response_type", L"code", true);
-    URI.append_query(L"redirect_uri", RedirectURI, false);
-    URI.append_query(L"response_mode", L"query", true);
-    //    URI.append_query(L"scope", L"https://graph.microsoft.com/.default offline_access notes.Create notes.ReadWrite", true);
-    URI.append_query(L"scope", L"offline_access Notes.Create Notes.Read Notes.ReadWrite Notes.Read.All Notes.ReadWrite.All", true);
-
-    utility::string_t s = URI.to_string();   // for debugging
-    // Step 3 - Create a single WebView within the parent window
-        // Locate the browser and set up the environment for WebView
-    CreateCoreWebView2EnvironmentWithOptions(nullptr, nullptr, nullptr,
-        Microsoft::WRL::Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
-            [hWnd](HRESULT result, ICoreWebView2Environment* env) -> HRESULT {
-
-                // Create a CoreWebView2Controller and get the associated CoreWebView2 whose parent is the main window hWnd
-                env->CreateCoreWebView2Controller(hWnd, Microsoft::WRL::Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
-                    [hWnd](HRESULT result, ICoreWebView2Controller* controller) -> HRESULT {
-                        if (controller != nullptr) {
-                            webviewController = controller;
-                            webviewController->get_CoreWebView2(&webview);
-                        }
-
-                        // Add a few settings for the webview
-                        wil::com_ptr<ICoreWebView2Settings> settings;
-                        webview->get_Settings(&settings);
-                        settings->put_IsScriptEnabled(TRUE);
-                        settings->put_AreDefaultScriptDialogsEnabled(TRUE);
-                        settings->put_IsWebMessageEnabled(TRUE);
-
-
-                        // Schedule an async task to navigate to Our Logon site
-                        webview->Navigate(URI.to_uri().to_string().c_str());
-
-                        EventRegistrationToken token;
-                        // SO, this is how it works... 
-                        // We display the navi site, and it will redirect us to the "Redirect URI" once we're done with the
-                        // login code in the query string. So, we look at where we're navigating to, and if it's there, we
-                        // can extract the code and close ourselves
-                        webview->add_NavigationStarting(Microsoft::WRL::Callback<ICoreWebView2NavigationStartingEventHandler>(
-                            [](ICoreWebView2* webview, ICoreWebView2NavigationStartingEventArgs* args) -> HRESULT {
-                                wil::unique_cotaskmem_string uri;
-                                args->get_Uri(&uri);
-                                std::wstring source(uri.get());
-
-                                web::uri redirectURI(source);
-                                if (redirectURI.host() == RedirectURIHost && redirectURI.path() == RedirectURIPath) {
-                                    wchar_t* QueryString = (wchar_t*)malloc((redirectURI.query().size() + 1) * sizeof(wchar_t));
-                                    if (QueryString)
-                                    {
-                                        wcscpy_s(QueryString, redirectURI.query().size() + 1, redirectURI.query().c_str());
-                                        PostMessage(hLoginPopup, WM_DONELOGINTOMS, NULL, (LPARAM)QueryString);
-                                    }
-
-                                    std::wostringstream LB;
-                                    LB << L"Got there! : " << redirectURI.query();
-                                    DoLog("WEBVIEW", LB.str(), LOG_ERROR);
-                                }
-                                else {
-                                    std::wostringstream LB;
-                                    LB << L"Nav starting: " << redirectURI.host() << redirectURI.path();
-                                    DoLog("WEBVIEW", LB.str(), LOG_ERROR);
-                                }
-
-
-
-                                return S_OK;
-                            }).Get(), &token);
-                        return S_OK;
-                    }).Get());
-                return S_OK;
-            }).Get());
-
-
-}
-
 int GraphAPI::GetLogonToken()
 {
     // So, do we have a refresh token?
@@ -365,7 +288,7 @@ int GraphAPI::GetLogonToken()
                 LB << "Got Refresh token : " << Refresh_Token;
                 DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
 
-                WritePrivateProfileStringA("OneNote", "RefreshToken", Refresh_Token, gszIniFileName);
+                WritePrivateProfileStringA("OneNote", "RefreshToken", Refresh_Token, gszTokenFileName);
             }
 
         }
@@ -448,7 +371,7 @@ void GraphAPI::DeletePage(const wchar_t* URLPath)
 }
 
 
-void GraphAPI::SetLoginCode(wchar_t* LoginCodeW) {
+void GraphAPI::SetLoginCode(const wchar_t* LoginCodeW) {
     //size_t i;
     //size_t Size = std::wcslen(LoginCodeW) + 1;
     //LoginCode = (char*)malloc(Size);
@@ -466,15 +389,6 @@ bool GraphAPI::EnsureConnected(void)
         }
     }
     return true;
-}
-
-void GraphAPI::ResizeLogonWindow(HWND hWnd) {
-    if (webviewController != nullptr) {
-        RECT bounds;
-        GetClientRect(hWnd, &bounds);
-        bounds.right = bounds.left + 500;
-        webviewController->put_Bounds(bounds);
-    }
 }
 
 void GraphAPI::ListSections(std::vector<ONE_Section>& Sections) {
@@ -521,4 +435,14 @@ void GraphAPI::ListSections(std::vector<ONE_Section>& Sections) {
     }
 }
 
+std::string GraphAPI::ListDocsString() {
+    std::vector<ONE_Section> Sections;
+    std::wstringstream Result(L"");
+      
+    ListSections(Sections);
+    for (auto& Section : Sections) {
+        Result << Section.Notebook << L" - " << Section.Section << L"|" << Section.ID << std::endl;
+    }
+    return ws2s(Result.str());
+}
 

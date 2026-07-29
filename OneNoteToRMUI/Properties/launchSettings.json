@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "OneNoteToRMUI": {
+      "commandName": "Project",
+      "workingDirectory": "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\OneNoteToRM\\x64\\Debug",
+      "nativeDebugging": true
+    }
+  }
+}

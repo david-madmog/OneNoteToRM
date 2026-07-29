@@ -12,7 +12,6 @@ Work out pen width - more fiddling
 Work out how to get calligraphy pen working in OneNote
 Text formatting and Bullets in OneNote - seems to have gone off?
 "Shader" pen not coming out with transparency on ONENote
-set log level from ini
 Auto-refresh when needing to log in
 
 Installer
