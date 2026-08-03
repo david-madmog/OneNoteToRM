@@ -29,6 +29,7 @@ namespace OneNoteToRMUI
         /// </summary>
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(OneNoteToRMUI));
             LayoutPanel = new TableLayoutPanel();
             panel1 = new Panel();
@@ -40,11 +41,13 @@ namespace OneNoteToRMUI
             listBox1 = new ListBox();
             tvRM = new TreeView();
             tvOne = new TreeView();
-            ChkShowDebug = new CheckBox();
             panel3 = new Panel();
+            chkAuto = new CheckBox();
             btnOne2RM = new Button();
             btnTimed = new Button();
             btnRM2One = new Button();
+            ChkShowDebug = new CheckBox();
+            AutoTimer = new System.Windows.Forms.Timer(components);
             LayoutPanel.SuspendLayout();
             panel1.SuspendLayout();
             panel2.SuspendLayout();
@@ -55,15 +58,15 @@ namespace OneNoteToRMUI
             // 
             LayoutPanel.ColumnCount = 3;
             LayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            LayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 65F));
+            LayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
             LayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
             LayoutPanel.Controls.Add(panel1, 0, 1);
             LayoutPanel.Controls.Add(panel2, 2, 1);
             LayoutPanel.Controls.Add(listBox1, 0, 2);
             LayoutPanel.Controls.Add(tvRM, 0, 0);
             LayoutPanel.Controls.Add(tvOne, 2, 0);
-            LayoutPanel.Controls.Add(ChkShowDebug, 1, 1);
             LayoutPanel.Controls.Add(panel3, 1, 0);
+            LayoutPanel.Controls.Add(ChkShowDebug, 1, 1);
             LayoutPanel.Dock = DockStyle.Fill;
             LayoutPanel.Location = new Point(0, 0);
             LayoutPanel.Name = "LayoutPanel";
@@ -82,7 +85,7 @@ namespace OneNoteToRMUI
             panel1.Location = new Point(0, 237);
             panel1.Margin = new Padding(0);
             panel1.Name = "panel1";
-            panel1.Size = new Size(351, 43);
+            panel1.Size = new Size(329, 43);
             panel1.TabIndex = 10;
             // 
             // btnRMRefresh
@@ -110,10 +113,10 @@ namespace OneNoteToRMUI
             panel2.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             panel2.Controls.Add(btnOnePreview);
             panel2.Controls.Add(btnOneRefresh);
-            panel2.Location = new Point(416, 237);
+            panel2.Location = new Point(439, 237);
             panel2.Margin = new Padding(0);
             panel2.Name = "panel2";
-            panel2.Size = new Size(352, 43);
+            panel2.Size = new Size(329, 43);
             panel2.TabIndex = 11;
             // 
             // btnOnePreview
@@ -152,73 +155,103 @@ namespace OneNoteToRMUI
             tvRM.HideSelection = false;
             tvRM.Location = new Point(3, 3);
             tvRM.Name = "tvRM";
-            tvRM.Size = new Size(345, 231);
+            tvRM.Size = new Size(323, 231);
             tvRM.TabIndex = 13;
             // 
             // tvOne
             // 
             tvOne.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             tvOne.HideSelection = false;
-            tvOne.Location = new Point(419, 3);
+            tvOne.Location = new Point(442, 3);
             tvOne.Name = "tvOne";
-            tvOne.Size = new Size(346, 231);
+            tvOne.Size = new Size(323, 231);
             tvOne.TabIndex = 14;
-            // 
-            // ChkShowDebug
-            // 
-            ChkShowDebug.Appearance = Appearance.Button;
-            ChkShowDebug.AutoSize = true;
-            ChkShowDebug.Location = new Point(354, 240);
-            ChkShowDebug.Name = "ChkShowDebug";
-            ChkShowDebug.Size = new Size(51, 30);
-            ChkShowDebug.TabIndex = 15;
-            ChkShowDebug.Text = "Hide";
-            ChkShowDebug.UseVisualStyleBackColor = true;
-            ChkShowDebug.CheckedChanged += ChkShowDebug_CheckedChanged;
             // 
             // panel3
             // 
+            panel3.Controls.Add(chkAuto);
             panel3.Controls.Add(btnOne2RM);
             panel3.Controls.Add(btnTimed);
             panel3.Controls.Add(btnRM2One);
             panel3.Dock = DockStyle.Fill;
-            panel3.Location = new Point(354, 3);
+            panel3.Location = new Point(332, 3);
             panel3.Name = "panel3";
-            panel3.Size = new Size(59, 231);
+            panel3.Size = new Size(104, 231);
             panel3.TabIndex = 16;
+            // 
+            // chkAuto
+            // 
+            chkAuto.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            chkAuto.Appearance = Appearance.Button;
+            chkAuto.CheckAlign = ContentAlignment.MiddleCenter;
+            chkAuto.Font = new Font("Wingdings", 16.2F, FontStyle.Regular, GraphicsUnit.Point, 2);
+            chkAuto.Location = new Point(0, 141);
+            chkAuto.Name = "chkAuto";
+            chkAuto.Size = new Size(104, 38);
+            chkAuto.TabIndex = 3;
+            chkAuto.Text = "ï·ð";
+            chkAuto.TextAlign = ContentAlignment.MiddleCenter;
+            chkAuto.UseVisualStyleBackColor = true;
+            chkAuto.CheckedChanged += chkAuto_CheckedChanged;
             // 
             // btnOne2RM
             // 
-            btnOne2RM.Font = new Font("Segoe UI", 10.2F);
-            btnOne2RM.Location = new Point(0, 137);
+            btnOne2RM.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            btnOne2RM.Font = new Font("Wingdings", 16.2F);
+            btnOne2RM.Location = new Point(0, 53);
             btnOne2RM.Name = "btnOne2RM";
-            btnOne2RM.Size = new Size(59, 32);
+            btnOne2RM.Size = new Size(104, 38);
             btnOne2RM.TabIndex = 2;
-            btnOne2RM.Text = "←";
+            btnOne2RM.Text = "ï";
             btnOne2RM.UseVisualStyleBackColor = true;
             btnOne2RM.Click += btnOne2RM_Click;
             // 
             // btnTimed
             // 
-            btnTimed.Font = new Font("Segoe UI", 10.2F);
-            btnTimed.Location = new Point(0, 99);
+            btnTimed.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            btnTimed.Font = new Font("Wingdings", 16.2F);
+            btnTimed.Location = new Point(0, 97);
             btnTimed.Name = "btnTimed";
-            btnTimed.Size = new Size(59, 32);
+            btnTimed.Size = new Size(104, 38);
             btnTimed.TabIndex = 1;
-            btnTimed.Text = "←?→";
+            btnTimed.Text = "ó";
             btnTimed.UseVisualStyleBackColor = true;
             btnTimed.Click += btnTimed_Click;
             // 
             // btnRM2One
             // 
-            btnRM2One.Font = new Font("Segoe UI", 10.2F);
-            btnRM2One.Location = new Point(0, 61);
+            btnRM2One.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            btnRM2One.Font = new Font("Wingdings", 16.2F);
+            btnRM2One.Location = new Point(0, 9);
             btnRM2One.Name = "btnRM2One";
-            btnRM2One.Size = new Size(59, 32);
+            btnRM2One.Size = new Size(104, 38);
             btnRM2One.TabIndex = 0;
-            btnRM2One.Text = "→";
+            btnRM2One.Text = "ð";
             btnRM2One.UseVisualStyleBackColor = true;
             btnRM2One.Click += btnRM2One_Click;
+            // 
+            // ChkShowDebug
+            // 
+            ChkShowDebug.Appearance = Appearance.Button;
+            ChkShowDebug.BackColor = SystemColors.Control;
+            ChkShowDebug.Checked = true;
+            ChkShowDebug.CheckState = CheckState.Checked;
+            ChkShowDebug.FlatAppearance.BorderSize = 0;
+            ChkShowDebug.FlatStyle = FlatStyle.Flat;
+            ChkShowDebug.Location = new Point(329, 237);
+            ChkShowDebug.Margin = new Padding(0);
+            ChkShowDebug.Name = "ChkShowDebug";
+            ChkShowDebug.Size = new Size(110, 43);
+            ChkShowDebug.TabIndex = 15;
+            ChkShowDebug.Text = "Hide";
+            ChkShowDebug.TextAlign = ContentAlignment.MiddleCenter;
+            ChkShowDebug.UseVisualStyleBackColor = false;
+            ChkShowDebug.CheckedChanged += ChkShowDebug_CheckedChanged;
+            // 
+            // AutoTimer
+            // 
+            AutoTimer.Interval = 2000;
+            AutoTimer.Tick += AutoTimer_Tick;
             // 
             // OneNoteToRMUI
             // 
@@ -231,7 +264,6 @@ namespace OneNoteToRMUI
             Text = "One Note to RM";
             Load += OneNoteToRMUI_Load;
             LayoutPanel.ResumeLayout(false);
-            LayoutPanel.PerformLayout();
             panel1.ResumeLayout(false);
             panel2.ResumeLayout(false);
             panel3.ResumeLayout(false);
@@ -255,5 +287,7 @@ namespace OneNoteToRMUI
         private Button btnOne2RM;
         private Button btnTimed;
         private Button btnRM2One;
+        private CheckBox chkAuto;
+        private System.Windows.Forms.Timer AutoTimer;
     }
 }

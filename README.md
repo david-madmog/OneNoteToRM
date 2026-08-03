@@ -18,11 +18,11 @@ The focus is on translating the actual lines, though it will translate text also
 
 *TO DO.* There's no installation yet. For now, you'll have to download the source and build it yourself. You'll also have to install RMAPI directly from [DDVK's Github](https://github.com/ddvk/rmapi) 
 
-Sorry.
+Sorry. I'm working on the installer, it should be available "soon"
 
 ## Usage
 
-The same application runs in either interactive or command-line mode
+The application runs in interactive mode on a Windows desktop. (Command-line mode coming "soon")
 
 ### Interactive mode
 
@@ -38,12 +38,13 @@ Once the documents are listed, there are three main features:
 
 - Overwrite → and ← : Will copy the highlighted source document to the highlighted destination document (irrevocably trashing the existing contents of the destination)
 
-- Use Name → and ← : Will copy the highlighted source document to a destination document of the same name as the source (for OneNote, in the same Notebook as the highlighted destination). If a destination document of that name already exists, it will be irrevocably overwritten.
+- ← ? → : Will copy the highlighted source document to the destination document, based on whichever is updated most recently. 
+		If a destination document of that name already exists, it will be irrevocably overwritten. 
 
-- ← ? → : Will copy the highlighted source document to a destination document of the same name as the source (for OneNote, in the same Notebook as the highlighted destination), based on whichever is updated most recently. 
-		If a destination document of that name already exists, it will be irrevocably overwritten. If both have changed since the last update, changes to the older one will be irrevocably trashed.
+- ← O → : (clock icon) Will scan every minute, and if either document has changed since the last scan, will copy the newer one to the older one.
+		If both have changed since the last update, changes to the older one will be irrevocably trashed.
 
-### Command-line mode
+### Command-line mode (COMING SOON)
 
 Command-line mode will only work if logon tokens have previously been obtained in interactive mode. It is intended to be used in scheduled tasks or batch files. 
 
@@ -63,6 +64,14 @@ OneNoteToRM.exe -I <Input Document> -O <Output Document> -M <Mode> -L <time>
    	- -I - OneNote name: use format Notebook/Section
     - -O - RM document Name
 - -L: Loop mode; will perform the action, wait for specified number (in seconds) and repeat indefinitely
+
+## Architecture and sharing
+
+The body of the work is now implemented as a Windows DLL (implemented in C++) and the UI is C#, calling the DLL for all work. 
+
+The DLL features an API allowing you to create both RM and OneNote documents (in internal format) for display or conversion, load and save documents, and render/convert to either a document of the other type or a Windows Device Context (DC) for display.
+
+If you are interested in using the DLL for your own project, you are very welcome (subject to the terms of the license). I am happy to help, please do contact me.
 
 ## Acknowledgements and references
 

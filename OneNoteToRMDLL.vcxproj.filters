@@ -123,4 +123,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="OneNoteToRM.ini">
+      <Filter>Source Files</Filter>
+    </None>
+  </ItemGroup>
 </Project>

@@ -41,7 +41,6 @@
     <None Remove="GraphDoc.cpp" />
     <None Remove="GraphDoc.h" />
     <None Remove="iconsext.cfg" />
-    <None Remove="LICENSE" />
     <None Remove="OAuth.cpp" />
     <None Remove="OAuth.h" />
     <None Remove="OneNoteToRM.aps" />
@@ -58,7 +57,6 @@
     <None Remove="pugiconfig.hpp" />
     <None Remove="pugixml.cpp" />
     <None Remove="pugixml.hpp" />
-    <None Remove="README.md" />
     <None Remove="resource.h" />
     <None Remove="restore from Copy.bat" />
     <None Remove="restore from Test2.bat" />

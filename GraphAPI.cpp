@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "GraphAPI.h"
-#include "resource.h"
+//#include "resource.h"
 
 
 #pragma warning ( push )

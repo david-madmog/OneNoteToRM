@@ -69,6 +69,9 @@ namespace OneNoteToRMUI
         [DllImport("kernel32.dll", EntryPoint = "GetPrivateProfileString")]
         private static extern int GetPrivateProfileString(string SectionName, string KeyName, string Default, StringBuilder Return_StringBuilder_Name, int Size, string FileName);
 
+        [DllImport("kernel32.dll", EntryPoint = "WritePrivateProfileString")]
+        private static extern long WritePrivateProfileString(string SectionName, string KeyName, string Value, string FileName);
+
         public enum PageType
         {
             WINDOW_RM_PAGE = 1,
@@ -146,11 +149,16 @@ namespace OneNoteToRMUI
             return DT;
         }
 
-        public static string GetIniSetting(string Section, string Value)
+        public static string GetIniSetting(string Section, string Key)
         {
             var SB = new StringBuilder(1024);
-            GetPrivateProfileString(Section, Value, "", SB, 1023, DLLGetIniFile());
+            GetPrivateProfileString(Section, Key, "", SB, 1023, DLLGetIniFile());
             return SB.ToString();
+        }
+
+        public static void WriteIniSetting(string Section, string Key, string Value)
+        {
+            WritePrivateProfileString(Section, Key, Value, DLLGetIniFile());
         }
     }
 }

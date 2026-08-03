@@ -180,6 +180,9 @@
     <ClCompile Include="WindowONEPage.cpp" />
     <ClCompile Include="WindowRMPage.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="OneNoteToRM.ini" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

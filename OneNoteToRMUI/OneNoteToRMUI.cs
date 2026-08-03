@@ -9,6 +9,8 @@ namespace OneNoteToRMUI
             InitializeComponent();
         }
 
+        private string TimerCounting = "·¸¹º»¼½¾¿ÀÁÂ";
+        private int TimerCount = 999;
 
         private void btnRMPreview_Click(object sender, EventArgs e)
         {
@@ -92,6 +94,7 @@ namespace OneNoteToRMUI
             DllWrapper.DLLSetLogListbox(listBox1);
             btnRMRefresh.PerformClick();
             btnOneRefresh.PerformClick();
+            ChkShowDebug.Checked = false;
         }
 
         private void btnOnePreview_Click(object sender, EventArgs e)
@@ -114,70 +117,22 @@ namespace OneNoteToRMUI
         {
             if (ChkShowDebug.Checked == true)
             {
-                LayoutPanel.RowStyles[2].SizeType = SizeType.Absolute;
-                LayoutPanel.RowStyles[2].Height = 0;
-                ChkShowDebug.Text = "Shw";
+                LayoutPanel.RowStyles[2].SizeType = SizeType.Percent;
+                LayoutPanel.RowStyles[2].Height = 50;
+                ChkShowDebug.Text = "Hide Debug";
             }
             else
             {
-                LayoutPanel.RowStyles[2].SizeType = SizeType.Percent;
-                LayoutPanel.RowStyles[2].Height = 50;
-                ChkShowDebug.Text = "Hide";
+                LayoutPanel.RowStyles[2].SizeType = SizeType.Absolute;
+                LayoutPanel.RowStyles[2].Height = 0;
+                ChkShowDebug.Text = "";
             }
         }
 
         private void btnTimed_Click(object sender, EventArgs e)
         {
-            TreeNode? SelectedNode;
-            DateTime RMDT = DateTime.MinValue, OneDT = DateTime.MinValue;
-            IntPtr hRMDoc = 0, hOneDoc = 0;
-            int RMPages = 0, ONEPages = 0;
-            string RMFilename = String.Empty, ONEFilename = String.Empty;
-
-
-            SelectedNode = tvRM.SelectedNode;
-            if (SelectedNode != null)
-            {
-                RMFilename = SelectedNode.FullPath;
-                hRMDoc = DllWrapper.DLLCreateEmptyDoc(DllWrapper.PageType.TO_ONE_RM_PAGE);
-                RMPages = DllWrapper.DLLLoadDoc(hRMDoc, RMFilename);
-                RMDT = DllWrapper.DLLDocDateTime(hRMDoc);
-                listBox1.Items.Add("RM DOC DT:" + RMDT.ToString());
-            }
-
-            SelectedNode = tvOne.SelectedNode;
-            if (SelectedNode != null)
-                if (SelectedNode.Tag != null)
-                {
-                    ONEFilename = (string)SelectedNode.Tag;
-                    hOneDoc = DllWrapper.DLLCreateEmptyDoc(DllWrapper.PageType.TO_RM_ONE_PAGE);
-                    ONEPages = DllWrapper.DLLLoadDoc(hOneDoc, ONEFilename);
-                    OneDT = DllWrapper.DLLDocDateTime(hOneDoc);
-                    listBox1.Items.Add("ONE DOC DT:" + OneDT.ToString());
-                }
-
-            if (RMDT > OneDT)
-            {
-                listBox1.Items.Add("... RM IS Later");
-                hOneDoc = DllWrapper.DLLCreateEmptyDoc(DllWrapper.PageType.WINDOW_ONE_PAGE);
-                for (int i = 0; i < RMPages; i++)
-                {
-                    DllWrapper.DLLConvert(hRMDoc, hOneDoc, i);
-                }
-                DllWrapper.DLLSaveDoc(hOneDoc, ONEFilename);
-            }
-            else
-            {
-                listBox1.Items.Add("... ONE IS Later");
-                hRMDoc = DllWrapper.DLLCreateEmptyDoc(DllWrapper.PageType.WINDOW_RM_PAGE);
-                for (int i = 0; i < ONEPages; i++)
-                {
-                    DllWrapper.DLLConvert(hOneDoc, hRMDoc, i);
-                }
-                DllWrapper.DLLSaveDoc(hRMDoc, RMFilename);
-
-            }
-
+            DateTime Never = DateTime.MinValue;
+            DoCheck(Never);
         }
 
         private void btnRM2One_Click(object sender, EventArgs e)
@@ -239,6 +194,123 @@ namespace OneNoteToRMUI
                 DllWrapper.DLLConvert(hOneDoc, hRMDoc, i);
             }
             DllWrapper.DLLSaveDoc(hRMDoc, RMFilename);
+
+        }
+
+        private void chkAuto_CheckedChanged(object sender, EventArgs e)
+        {
+            if (chkAuto.Checked)
+            {
+                AutoTimer.Enabled = true;
+                btnOne2RM.Enabled = false;
+                btnRM2One.Enabled = false;
+                btnTimed.Enabled = false;
+
+            }
+            else
+            {
+                AutoTimer.Enabled = false;
+                btnOne2RM.Enabled = true;
+                btnRM2One.Enabled = true;
+                btnTimed.Enabled = true;
+            }
+        }
+
+        private void AutoTimer_Tick(object sender, EventArgs e)
+        {
+            if (++TimerCount >= TimerCounting.Length) {
+                if (tvRM.SelectedNode != null && tvOne.SelectedNode != null)
+                {
+                    string LastCheckKey = tvRM.SelectedNode.Text + tvOne.SelectedNode.Text;
+                    string LastCheckValue = DllWrapper.GetIniSetting("TimedUpdate", LastCheckKey);
+                    DateTime LastCheck = DateTime.MinValue;
+                    if (LastCheckValue != "")
+                    {
+                        try
+                        {
+                            LastCheck = DateTime.Parse(LastCheckValue);
+                        }
+                        catch (Exception)
+                        {
+                            // do nothing... we have min value
+                            LastCheck = DateTime.MinValue;
+                        }
+                    }
+                    DoCheck(LastCheck);
+                    DllWrapper.WriteIniSetting("TimedUpdate", LastCheckKey, DateTime.UtcNow.ToString());
+                      
+                }
+                TimerCount = 0;
+
+            }
+            chkAuto.Text = btnOne2RM.Text +  TimerCounting.Substring(TimerCount, 1) + btnRM2One.Text;
+        }
+
+
+        private void DoCheck(DateTime LastCheck)
+        {
+            TreeNode? SelectedNode;
+            DateTime RMDT = DateTime.MinValue, OneDT = DateTime.MinValue;
+            IntPtr hRMDoc = 0, hOneDoc = 0;
+            int RMPages = 0, ONEPages = 0;
+            string RMFilename = String.Empty, ONEFilename = String.Empty;
+
+
+            SelectedNode = tvRM.SelectedNode;
+            if (SelectedNode != null)
+            {
+                RMFilename = SelectedNode.FullPath;
+                hRMDoc = DllWrapper.DLLCreateEmptyDoc(DllWrapper.PageType.TO_ONE_RM_PAGE);
+                RMPages = DllWrapper.DLLLoadDoc(hRMDoc, RMFilename);
+                RMDT = DllWrapper.DLLDocDateTime(hRMDoc);
+                listBox1.Items.Add("RM DOC DT:" + RMDT.ToString());
+            }
+
+            SelectedNode = tvOne.SelectedNode;
+            if (SelectedNode != null)
+                if (SelectedNode.Tag != null)
+                {
+                    ONEFilename = (string)SelectedNode.Tag;
+                    hOneDoc = DllWrapper.DLLCreateEmptyDoc(DllWrapper.PageType.TO_RM_ONE_PAGE);
+                    ONEPages = DllWrapper.DLLLoadDoc(hOneDoc, ONEFilename);
+                    OneDT = DllWrapper.DLLDocDateTime(hOneDoc);
+                    listBox1.Items.Add("ONE DOC DT:" + OneDT.ToString());
+                }
+
+            if (RMDT > OneDT)
+            {
+                listBox1.Items.Add("... RM is Later");
+                if (RMDT > LastCheck)
+                {
+                    hOneDoc = DllWrapper.DLLCreateEmptyDoc(DllWrapper.PageType.WINDOW_ONE_PAGE);
+                    for (int i = 0; i < RMPages; i++)
+                    {
+                        DllWrapper.DLLConvert(hRMDoc, hOneDoc, i);
+                    }
+                    DllWrapper.DLLSaveDoc(hOneDoc, ONEFilename);
+                }else
+                {
+                    listBox1.Items.Add("... but not changed");
+                }
+            }
+            else
+            {
+                listBox1.Items.Add("... ONE is Later");
+                if (OneDT > LastCheck)
+                {
+                    hRMDoc = DllWrapper.DLLCreateEmptyDoc(DllWrapper.PageType.WINDOW_RM_PAGE);
+                    for (int i = 0; i < ONEPages; i++)
+                    {
+                        DllWrapper.DLLConvert(hOneDoc, hRMDoc, i);
+                    }
+                    DllWrapper.DLLSaveDoc(hRMDoc, RMFilename);
+                }
+                else
+                {
+                    listBox1.Items.Add("... but not changed");
+                }
+
+            }
 
         }
     }

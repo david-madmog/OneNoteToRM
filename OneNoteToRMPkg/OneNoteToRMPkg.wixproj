@@ -1,8 +1,5 @@
 ﻿<Project Sdk="WixToolset.Sdk/7.0.0">
-	<PropertyGroup>
-		<AcceptEula>wix7</AcceptEula>
-	</PropertyGroup>
-	<ItemGroup>
-    <ProjectReference Include="..\OneNoteToRM.vcxproj" />
-  </ItemGroup>
+  <PropertyGroup>
+    <AcceptEula>wix7</AcceptEula>
+  </PropertyGroup>
 </Project>
