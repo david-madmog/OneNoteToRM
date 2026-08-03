@@ -41,7 +41,7 @@ Once the documents are listed, there are three main features:
 - ← ? → : Will copy the highlighted source document to the destination document, based on whichever is updated most recently. 
 		If a destination document of that name already exists, it will be irrevocably overwritten. 
 
-- ← O → : (clock icon) Will scan every minute, and if either document has changed since the last scan, will copy the newer one to the older one.
+- ← &#9202; → : (clock icon) Will scan every minute, and if either document has changed since the last scan, will copy the newer one to the older one.
 		If both have changed since the last update, changes to the older one will be irrevocably trashed.
 
 ### Command-line mode (COMING SOON)
