@@ -55,7 +55,7 @@
             pictureBox1.Size = new Size(547, 312);
             pictureBox1.TabIndex = 1;
             pictureBox1.TabStop = false;
-            pictureBox1.Paint += pictureBox1_Paint;
+            pictureBox1.Paint += PictureBox1_Paint;
             // 
             // trackBar1
             // 
@@ -68,7 +68,7 @@
             trackBar1.Size = new Size(598, 49);
             trackBar1.TabIndex = 3;
             trackBar1.TickStyle = TickStyle.Both;
-            trackBar1.Scroll += trackBar1_Scroll;
+            trackBar1.Scroll += TrackBar1_Scroll;
             // 
             // PopupForm
             // 

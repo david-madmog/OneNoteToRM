@@ -2,6 +2,15 @@
 #include "RMBlockTypes.h"
 #include "OneNoteToRM.h"
 
+/*******************************************************************************
+
+	RMBlockTypes.cpp
+
+	See header for documentation
+
+	(C) David Poirier 2026
+
+********************************************************************************/
 
 #pragma pack( push, 1)
 

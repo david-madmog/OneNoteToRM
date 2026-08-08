@@ -3,6 +3,16 @@
 #include "WindowONEPage.h"
 #include "OneNoteToRM.h"
 
+/*******************************************************************************
+
+    WindowOnePage.cpp
+
+    See header for documentation
+
+    (C) David Poirier 2026
+
+********************************************************************************/
+
 using namespace Gdiplus;
 
 void WindowONEPage::DrawPage(void* DrawDetails)

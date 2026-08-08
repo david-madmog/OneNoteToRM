@@ -22,15 +22,17 @@ Sorry. I'm working on the installer, it should be available "soon"
 
 ## Usage
 
-The application runs in interactive mode on a Windows desktop. (Command-line mode coming "soon")
+The application runs in interactive mode on a Windows desktop or from a windows command line.
 
-### Interactive mode
+### Setup 
 
 On the first run, the application will need to be configured for permissions to access both the RM Cloud and the MS Graph API.
 
 *TO DO: Document logging in with RMAPI*
 
 The application will present a Microsoft login dialog and ask for permissions to access the OneNote files. Once this is granted, it will obtain a token that is valid for 90 days, and is refreshed on each run. Once the token is obtained it should not need to ask again, unless the app is not used for a period of time, in which case it will need re-authenticating (but should not ask for permissions to be granted again).
+
+### Interactive mode
 
 Once the documents are listed, there are three main features:
 
@@ -44,26 +46,27 @@ Once the documents are listed, there are three main features:
 - ← &#128337; → : Will scan every minute, and if either document has changed since the last scan, will copy the newer one to the older one.
 		If both have changed since the last update, changes to the older one will be irrevocably trashed.
 
-### Command-line mode (COMING SOON)
+### Command-line mode
 
 Command-line mode will only work if logon tokens have previously been obtained in interactive mode. It is intended to be used in scheduled tasks or batch files. 
 
 Command line switches are as follows:
 
 ```
-OneNoteToRM.exe -I <Input Document> -O <Output Document> -M <Mode> -L <time>
+OneNoteToRM.exe -I <Input Document> -O <Output Document> -M<Mode> -L <time>
 ```
 
-- -M R: Remarkable to OneNote
+- -MR: Remarkable to OneNote
 	- -I is RM document name
 	- -O is mandatory as name of Notebook to insert section into
-- -M O: OneNote to Remarkable
+- -MO: OneNote to Remarkable
 	- -I use format Notebook/Section
 	- -O is ignored
-- -M T: Timed mode (Will do nothing if neither is updated since last T mode invoked)
+- -MT: Timed mode (Will do nothing if neither is updated since last T mode invoked)
+- -ML: Timed/Loop mode 
    	- -I - OneNote name: use format Notebook/Section
     - -O - RM document Name
-- -L: Loop mode; will perform the action, wait for specified number (in seconds) and repeat indefinitely
+- L: Loop mode; will perform the action, wait for specified number (in seconds) and repeat indefinitely
 
 ## Architecture and sharing
 

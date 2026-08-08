@@ -1,29 +1,29 @@
-﻿using Microsoft.Extensions.Configuration.Ini;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Security.Policy;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+﻿/*******************************************************************************
+
+    oAuthLoginForm.cs
+
+    Popup form to host browser control to perform Microsoft oAuth Login
+    Loads login page details from .INI file, displays logon form, checks 
+        for redirect on login, pulls token from redirect string and passes
+        it to the DLL
+
+    (C) David Poirier 2026
+
+********************************************************************************/
 
 namespace OneNoteToRMUI
 {
-    public partial class oAuthLogonForm : Form
+    public partial class OAuthLogonForm : Form
     {
         private string RedirectURIHost = "";
         private string RedirectURIPath = "";
 
-        public oAuthLogonForm()
+        public OAuthLogonForm()
         {
             InitializeComponent();
         }
 
-        private void oAuthLogonForm_Load(object sender, EventArgs e)
+        private void OAuthLogonForm_Load(object sender, EventArgs e)
         {
             string EntraAppID = DllWrapper.GetIniSetting("OneNote", "EntraAppID");
             string TenantID = DllWrapper.GetIniSetting("OneNote", "TenantID");
@@ -33,7 +33,7 @@ namespace OneNoteToRMUI
             string EndpointHost = DllWrapper.GetIniSetting("OneNote", "EndpointHost");
             string OAuthEndpoint = DllWrapper.GetIniSetting("OneNote", "OAuthEndpoint");
 
-            UriBuilder URI = new UriBuilder
+            UriBuilder URI = new()
             {
                 Scheme = "https",
                 Host = EndpointHost,
@@ -51,10 +51,10 @@ namespace OneNoteToRMUI
             webView.Source = URI.Uri;
         }
 
-        private void webView_NavigationStarting(object sender, Microsoft.Web.WebView2.Core.CoreWebView2NavigationStartingEventArgs e)
+        private void WebView_NavigationStarting(object sender, Microsoft.Web.WebView2.Core.CoreWebView2NavigationStartingEventArgs e)
         {
             //listBox1.Items.Add("Nav Starting: ID=" + e.NavigationId.ToString() + " Kind=" + e.NavigationKind.ToString() + " URI=" + e.Uri.ToString());
-            UriBuilder URI = new UriBuilder(e.Uri);
+            UriBuilder URI = new(e.Uri);
 
             if (URI.Host == RedirectURIHost && URI.Path == RedirectURIPath)
             {
@@ -62,7 +62,7 @@ namespace OneNoteToRMUI
                 //                    PostMessage(hWnd, WM_DONELOGINTOMS, NULL, (LPARAM)QueryString);
                 string Q = URI.Query;
                 if (Q[0] =='?')
-                    Q = Q.Substring(1);
+                    Q = Q[1..];
                 DllWrapper.DLLSetToken(DllWrapper.PageType.WINDOW_ONE_PAGE, Q);
                 e.Cancel = true; // Don't actually go there
                 this.Close();

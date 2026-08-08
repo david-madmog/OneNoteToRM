@@ -2,6 +2,15 @@
 #include "OneNoteToRM.h"
 #include "RMPage.h"
 
+/*******************************************************************************
+
+    RMPage.cpp
+
+    See header for documentation
+
+    (C) David Poirier 2026
+
+********************************************************************************/
 
 #pragma pack( push, 1)
 struct rm_frontmatter_header {

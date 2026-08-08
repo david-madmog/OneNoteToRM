@@ -1,6 +1,17 @@
-// OneNoteToRM DLL 
-
 #pragma once
+
+/*******************************************************************************
+
+	OneNoteToRMDLL.h
+
+	Header for functions to call DLL - can be used for C++ apps calling the DLL, 
+		or for template to generate imports for other languages. Also used for the 
+		DLL itself.
+
+	(C) David Poirier 2026
+
+********************************************************************************/
+
 
 #ifdef ONENOTETORMDLL_EXPORTS
 #define ONTR_API __declspec(dllexport)
@@ -25,6 +36,8 @@ struct DrawDetailsParams {
 extern "C" ONTR_API LPSTR GetIniFile();
 extern "C" ONTR_API HRESULT GetIniFileB(LPCSTR Buffer, int BuffLen);
 extern "C" ONTR_API void SetLogListbox(HWND hWnd);
+extern "C" ONTR_API void DoLog(const char* Class, const char* Msg, int Level);
+
 extern "C" ONTR_API void SetToken(const int PageType, LPCWSTR LoginCodeW);
 
 extern "C" ONTR_API HRESULT ListDocs(const int PageType, LPCSTR Buffer, int BuffLen);
@@ -33,8 +46,7 @@ extern "C" ONTR_API HDOCFILE CreateEmptyDoc(const int PageType);
 extern "C" ONTR_API int LoadDoc(HDOCFILE Doc, const char* FileName);
 extern "C" ONTR_API HRESULT ConvertPage(HDOCFILE Source, HDOCFILE Dest, int Page);
 extern "C" ONTR_API HRESULT ConvertPageB(HDOCFILE Source, DrawDetailsParams * DDP, int Page);
-
 extern "C" ONTR_API time_t GetDocDateTime(HDOCFILE Source);
-
 extern "C" ONTR_API int SaveDoc(HDOCFILE Doc, const char* FileName);
+extern "C" ONTR_API HRESULT DeleteDoc(HDOCFILE Doc);
 

@@ -1,19 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Diagnostics;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+﻿
+
+/*******************************************************************************
+
+    PreviewForm.cs
+
+    Pop-up form for preview of RM or OneNote Doc. 
+    Consists of a picture box to give me something to get a DC to pass to the 
+        DLL and a slider to control the page to show. 
+    Public hDoc is the document handle passed from the DLL, set by whatever 
+        is loading this form
+
+    (C) David Poirier 2026
+
+********************************************************************************/
 
 namespace OneNoteToRMUI
 {
     public partial class PreviewForm : Form
     {
-        public IntPtr hDoc = IntPtr.Zero;
+        internal DllWrapper? Doc;
 
         private int Pages = 0;
 
@@ -30,14 +35,14 @@ namespace OneNoteToRMUI
             InitializeComponent();
         }
 
-        private void pictureBox1_Paint(object sender, PaintEventArgs e)
+        private void PictureBox1_Paint(object sender, PaintEventArgs e)
         {
-            if (hDoc != IntPtr.Zero)
+            if (Doc is not null)
             {
                 //Graphics G = pictureBox1.CreateGraphics();
                 IntPtr hDC = e.Graphics.GetHdc();
-                DllWrapper.Rect PageSize = DllWrapper.DLLDrawPage(hDoc, hDC, CurrentPage);
-                Size size = new Size(PageSize.right, PageSize.bottom);
+                DllWrapper.Rect PageSize = Doc.DrawPage(hDC, CurrentPage);
+                Size size = new(PageSize.right, PageSize.bottom);
                 pictureBox1.Size = size;
                 e.Graphics.ReleaseHdc(hDC);
             }
@@ -53,9 +58,10 @@ namespace OneNoteToRMUI
             pictureBox1.Invalidate();
         }
 
-        private void trackBar1_Scroll(object sender, EventArgs e)
+        private void TrackBar1_Scroll(object sender, EventArgs e)
         {
             CurrentPage = trackBar1.Value;
+            pictureBox1.Size = new(100,100); // we need to change the size, since otherwise an empty page will prevent a redraw
             pictureBox1.Invalidate();
         }
     }

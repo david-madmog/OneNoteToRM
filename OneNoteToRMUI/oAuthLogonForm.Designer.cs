@@ -1,6 +1,6 @@
 ﻿namespace OneNoteToRMUI
 {
-    partial class oAuthLogonForm
+    partial class OAuthLogonForm
     {
         /// <summary>
         /// Required designer variable.
@@ -28,7 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(oAuthLogonForm));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(OAuthLogonForm));
             webView = new Microsoft.Web.WebView2.WinForms.WebView2();
             ((System.ComponentModel.ISupportInitialize)webView).BeginInit();
             SuspendLayout();
@@ -44,7 +44,7 @@
             webView.Size = new Size(800, 450);
             webView.TabIndex = 0;
             webView.ZoomFactor = 1D;
-            webView.NavigationStarting += webView_NavigationStarting;
+            webView.NavigationStarting += WebView_NavigationStarting;
             // 
             // oAuthLogonForm
             // 
@@ -58,7 +58,7 @@
             Name = "oAuthLogonForm";
             ShowIcon = false;
             Text = "Logon";
-            Load += oAuthLogonForm_Load;
+            Load += OAuthLogonForm_Load;
             ((System.ComponentModel.ISupportInitialize)webView).EndInit();
             ResumeLayout(false);
         }

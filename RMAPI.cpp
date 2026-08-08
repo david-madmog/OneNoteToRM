@@ -3,6 +3,15 @@
 #include "OneNoteToRM.h"
 #include <shellapi.h>
 
+/*******************************************************************************
+
+    RMAPI.cpp
+
+    See header for documentation
+
+    (C) David Poirier 2026
+
+********************************************************************************/
 
 
 using namespace std;

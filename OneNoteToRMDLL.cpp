@@ -13,6 +13,17 @@
 #include "RMAPI.h"
 #include <windowsx.h>
 
+/*******************************************************************************
+
+    OneNoteToRMDLL.cpp
+
+    See header for documentation
+
+    (C) David Poirier 2026
+
+********************************************************************************/
+
+
 ///////////////////////////////////////////////////////////////////
 // Global and utility functions - not exported
 
@@ -54,8 +65,8 @@ const char* LogLevelName[] = {
 const int LogLevelColour[] = { 8, 7, 10, 14, 12 };
 HWND hLogListbox = NULL;
 
-//const LogLevel CurrentLevel = LogLevel::LOG_INFO;
-LogLevel CurrentLevel = LogLevel::LOG_WARNING;
+LogLevel CurrentLevel = LogLevel::LOG_INFO;
+//LogLevel CurrentLevel = LogLevel::LOG_WARNING;
 bool bConsoleMode = false;
 
 void DoLog(const char* Class, const std::wstring& Msg, LogLevel Level)
@@ -119,11 +130,13 @@ LPSTR GetIniFile() {
     return gszIniFileName;
 }
 
+// Non-C++ languages have trouble marshalling a returned string, so alternative scheme is to copy string into a supplied buffer
 HRESULT GetIniFileB(LPCSTR Buffer, int BuffLen) {
     int err = strcpy_s((char*)Buffer, (long)BuffLen, gszIniFileName);
     return err;
 }
 
+// If set, DLL logging will send a "ListBox_AddString" message to this list box 
 void SetLogListbox(HWND hWnd)
 {
     hLogListbox = hWnd;
@@ -134,6 +147,15 @@ void SetLogListbox(HWND hWnd)
     CurrentLevel = static_cast<LogLevel>(std::atoi(LogLevelStr));
 }
 
+void DoLog(const char* Class, const char* Msg, int Level)
+{
+    std::wstring WS;
+    WS = s2ws(Msg);
+    DoLog(Class, WS.c_str(), static_cast<LogLevel>(Level));
+
+}
+
+// Used to set the oAuth login token for MS Graph API
 void SetToken(const int PageType, LPCWSTR LoginCodeW)
 {
     switch (PageType)
@@ -153,6 +175,7 @@ void SetToken(const int PageType, LPCWSTR LoginCodeW)
     }
 }
 
+// Return a list of the known docuements 
 HRESULT ListDocs(const int PageType, LPCSTR Buffer, int BuffLen)
 {
     std::string List("");
@@ -222,7 +245,7 @@ int LoadDoc(HDOCFILE Doc, const char* FileName)
         std::string Msg = "Starting RM Load : ";
         Msg.append(sRMFile);
         Msg.append("...");
-        DoLog("MAIN", Msg.c_str(), LOG_INFO);
+        DoLog("DLL MAIN", Msg.c_str(), LOG_INFO);
 
         RMAPI::GetDoc(sRMFile);
 
@@ -246,15 +269,53 @@ int LoadDoc(HDOCFILE Doc, const char* FileName)
             Pages = TypeDoc->ExtractRMsFromZip(Zipfile.c_str());
         }
     }
-    else if (typeid(*baseClass).hash_code() == typeid(GraphDoc<WindowONEPage>).hash_code())
+    else if (typeid(*baseClass).hash_code() == typeid(GraphDoc<WindowONEPage>).hash_code() || 
+        typeid(*baseClass).hash_code() == typeid(GraphDoc<ToRMOnePage>).hash_code())
     {
-        GraphDoc<WindowONEPage>* TypeDoc = (GraphDoc<WindowONEPage> *)Doc;
-        Pages = TypeDoc->LoadPages(s2ws(FileName).c_str());
-    }
-    else if (typeid(*baseClass).hash_code() == typeid(GraphDoc<ToRMOnePage>).hash_code())
-    {
-        GraphDoc<ToRMOnePage>* TypeDoc = (GraphDoc<ToRMOnePage> *)Doc;
-        Pages = TypeDoc->LoadPages(s2ws(FileName).c_str());
+        // So, see if we've got an ID, or a Notebook and section
+        std::string sOneFile(FileName);
+        std::string Msg = "Starting ONE Load ";
+
+        std::string Notebook, Section;
+        // SO, we assume notebook and section must be seperated by / - and that's not going to be valid as a part of an ID
+        size_t Found = sOneFile.find_last_of("/");
+        bool bGotID = false;
+        if (Found != std::string::npos)
+        {
+            // Got one - must be NB/Section
+            Notebook = sOneFile.substr(0, Found);
+            Section = sOneFile.substr(Found + 1);
+            Msg.append("by Name: ");
+            Msg.append(Notebook);
+            Msg.append(" - ");
+            Msg.append(Section);
+        }
+        else {
+            // No "/" character - must be an ID
+            Msg.append("by ID: ");
+            Msg.append(FileName);
+            Msg.append(Section);
+            bGotID = true;
+        }
+
+        Msg.append("...");
+        DoLog("DLL MAIN", Msg.c_str(), LOG_INFO);
+
+        if (typeid(*baseClass).hash_code() == typeid(GraphDoc<WindowONEPage>).hash_code())
+        {
+            GraphDoc<WindowONEPage>* TypeDoc = (GraphDoc<WindowONEPage>*)Doc;
+            if (bGotID)
+                Pages = TypeDoc->LoadDoc(s2ws(sOneFile).c_str());
+            else
+                Pages = TypeDoc->LoadDoc(Notebook, Section);
+        } else
+        {
+            GraphDoc<ToRMOnePage>* TypeDoc = (GraphDoc<ToRMOnePage>*)Doc;
+            if (bGotID)
+                Pages = TypeDoc->LoadDoc(s2ws(sOneFile).c_str());
+            else
+                Pages = TypeDoc->LoadDoc(Notebook, Section);
+        }
     }
     else
         Pages = ERR_INVLAID_DOC_TYPE;
@@ -371,23 +432,54 @@ int SaveDoc(HDOCFILE Doc, const char* FileName)
             RMAPI::SaveDoc(FileName, WorkingDir.get());
         }
     }
-    else if (typeid(*baseClass).hash_code() == typeid(GraphDoc<WindowONEPage>).hash_code())
+    else if (typeid(*baseClass).hash_code() == typeid(GraphDoc<WindowONEPage>).hash_code() ||
+        typeid(*baseClass).hash_code() == typeid(GraphDoc<ToRMOnePage>).hash_code())
     {
-        GraphDoc<WindowONEPage>* TypeDoc = (GraphDoc<WindowONEPage> *)Doc;
-        std::wstring Msg = L"Starting ONE Save: ";
-        Msg.append(s2ws(FileName));
-        Msg.append(L"...");
-        DoLog("DLL MAIN", Msg, LOG_INFO);
-        Pages = TypeDoc->SaveDoc(s2ws(FileName).c_str());
-    }
-    else if (typeid(*baseClass).hash_code() == typeid(GraphDoc<ToRMOnePage>).hash_code())
-    {
-        GraphDoc<ToRMOnePage>* TypeDoc = (GraphDoc<ToRMOnePage> *)Doc;
-        std::wstring Msg = L"Starting ONE Save: ";
-        Msg.append(s2ws(FileName));
-        Msg.append(L"...");
-        DoLog("DLL MAIN", Msg, LOG_INFO);
-        Pages = TypeDoc->SaveDoc(s2ws(FileName).c_str());
+        // So, see if we've got an ID, or a Notebook and section
+        std::string sOneFile(FileName);
+        std::string Msg = "Starting ONE Save ";
+
+        std::string Notebook, Section;
+        // SO, we assume notebook and section must be seperated by / - and that's not going to be valid as a part of an ID
+        size_t Found = sOneFile.find_last_of("/");
+        bool bGotID = false;
+        if (Found != std::string::npos)
+        {
+            // Got one - must be NB/Section
+            Notebook = sOneFile.substr(0, Found);
+            Section = sOneFile.substr(Found + 1);
+            Msg.append(" by Name: ");
+            Msg.append(Notebook);
+            Msg.append(" - ");
+            Msg.append(Section);
+        }
+        else {
+            // No "/" character - must be an ID
+            Msg.append(" by ID: ");
+            Msg.append(FileName);
+            Msg.append(Section);
+            bGotID = true;
+        }
+
+        Msg.append("...");
+        DoLog("DLL MAIN", Msg.c_str(), LOG_INFO);
+
+        if (typeid(*baseClass).hash_code() == typeid(GraphDoc<WindowONEPage>).hash_code())
+        {
+            GraphDoc<WindowONEPage>* TypeDoc = (GraphDoc<WindowONEPage>*)Doc;
+            if (bGotID)
+                Pages = TypeDoc->SaveDoc(s2ws(sOneFile).c_str());
+            else
+                Pages = TypeDoc->SaveDoc(Notebook, Section);
+        }
+        else
+        {
+            GraphDoc<ToRMOnePage>* TypeDoc = (GraphDoc<ToRMOnePage>*)Doc;
+            if (bGotID)
+                Pages = TypeDoc->SaveDoc(s2ws(sOneFile).c_str());
+            else
+                Pages = TypeDoc->SaveDoc(Notebook, Section);
+        }
     }
     else
         Pages = ERR_INVLAID_DOC_TYPE;
@@ -395,6 +487,12 @@ int SaveDoc(HDOCFILE Doc, const char* FileName)
     return Pages;
 }
 
+HRESULT DeleteDoc(HDOCFILE Doc)
+{
+    Drawable* baseClass = (Drawable*)Doc;
+    delete baseClass;
+    return 0;
+}
 
 
 /*

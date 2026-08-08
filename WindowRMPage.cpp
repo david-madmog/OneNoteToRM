@@ -4,6 +4,17 @@
 #include "OneNoteToRM.h"
 #include "ConversionConstants.h"
 
+/*******************************************************************************
+
+    WindowRMPage.cpp
+
+    See header for documentation
+
+    (C) David Poirier 2026
+
+********************************************************************************/
+
+
 #define SHOW_LINE_ANCHORS 0
 
 using namespace Gdiplus;

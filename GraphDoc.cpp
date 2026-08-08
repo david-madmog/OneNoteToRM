@@ -2,6 +2,16 @@
 #include "GraphDoc.h"
 #include "OneNoteToRM.h"
 
+/*******************************************************************************
+
+    GraphDoc.cpp
+
+    See header for documentation
+
+    (C) David Poirier 2026
+
+********************************************************************************/
+
 #pragma warning ( push )
 #pragma warning( disable : 26439 26495)
 #include <cpprest/asyncrt_utils.h>
@@ -24,7 +34,7 @@ using njson = nlohmann::json;
 #include "WindowONEPage.h"
 template GraphDoc<WindowONEPage>::GraphDoc(GraphAPI* API);
 template GraphDoc<WindowONEPage>::~GraphDoc();
-template int GraphDoc<WindowONEPage>::LoadPages(const wchar_t* SectionID);
+template int GraphDoc<WindowONEPage>::LoadDoc(const wchar_t* SectionID);
 template int GraphDoc<WindowONEPage>::LoadDoc(const std::string& NotebookName, const std::string& SectionName);
 template int GraphDoc<WindowONEPage>::SaveDoc(const std::string& NotebookName, const std::string& SectionName);
 template int GraphDoc<WindowONEPage>::SaveDoc(const wchar_t* SectionID);
@@ -34,7 +44,7 @@ template void GraphDoc<WindowONEPage>::DrawPage(void* DrawDetails, int Page);
 #include "ToRMONEPage.h"
 template GraphDoc<ToRMOnePage>::GraphDoc(GraphAPI* API);
 template GraphDoc<ToRMOnePage>::~GraphDoc();
-template int GraphDoc<ToRMOnePage>::LoadPages(const wchar_t* SectionID);
+template int GraphDoc<ToRMOnePage>::LoadDoc(const wchar_t* SectionID);
 template int GraphDoc<ToRMOnePage>::LoadDoc(const std::string& NotebookName, const std::string& SectionName);
 template int GraphDoc<ToRMOnePage>::SaveDoc(const std::string& NotebookName, const std::string& SectionName);
 template int GraphDoc<ToRMOnePage>::SaveDoc(const wchar_t* SectionID);
@@ -52,7 +62,7 @@ template<class PageType> GraphDoc<PageType>::~GraphDoc() {
 }
 
 
-template<class PageType> int GraphDoc<PageType>::LoadPages(const wchar_t * SectionID) {
+template<class PageType> int GraphDoc<PageType>::LoadDoc(const wchar_t * SectionID) {
 
     if (!API)
         return 0;
@@ -317,7 +327,7 @@ template<class PageType> int GraphDoc<PageType>::LoadDoc(const std::string& Note
     wchar_t* SectionID = FindDocID(NotebookName, SectionName);
     if (SectionID)
     {
-        int NumPages = LoadPages(SectionID);
+        int NumPages = LoadDoc(SectionID);
         free(SectionID);
         return NumPages;
     }
@@ -365,7 +375,7 @@ template<class PageType> int GraphDoc<PageType>::SaveDoc(const std::string& Note
             delete PageData;
         }
 
-        //int NumPages = LoadPages(SectionID);
+        //int NumPages = LoadDoc(SectionID);
         free(SectionID);
     }
     return 0;

@@ -1,6 +1,15 @@
 #include "pch.h"
 #include "GraphAPI.h"
 //#include "resource.h"
+/*******************************************************************************
+
+    GraphAPI.cpp
+
+    See header for documentation
+
+    (C) David Poirier 2026
+
+********************************************************************************/
 
 
 #pragma warning ( push )

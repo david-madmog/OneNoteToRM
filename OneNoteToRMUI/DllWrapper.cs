@@ -1,14 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
+
+/*******************************************************************************
+
+    DLLWrapper.cs
+
+    Wrapper layer on DLL functions to encapsulate marshalling and provide 
+        C# friendly API for other functions
+
+    (C) David Poirier 2026
+
+********************************************************************************/
+
 
 namespace OneNoteToRMUI
 {
-    internal class DllWrapper
+    internal class DllWrapper(DllWrapper.PageType PT)
     {
         private const string ONTR_DLL_PATH = "OneNoteToRMDLL.dll";
 
@@ -35,9 +42,12 @@ namespace OneNoteToRMUI
 
         [DllImport(ONTR_DLL_PATH, CallingConvention = CallingConvention.Cdecl)]
         private static extern Int32 GetIniFileB(StringBuilder Buffer, Int32 BuffLen);
-        
+
         [DllImport(ONTR_DLL_PATH, CallingConvention = CallingConvention.Cdecl)]
         private static extern void SetLogListbox(IntPtr hWnd);
+
+        [DllImport(ONTR_DLL_PATH, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void DoLog(string Class, string Msg, int Level);
 
         [DllImport(ONTR_DLL_PATH, CallingConvention = CallingConvention.Cdecl)]
         private static extern void SetToken(Int32 PageType, [MarshalAs(UnmanagedType.LPWStr)] String LoginCodeW);
@@ -65,6 +75,9 @@ namespace OneNoteToRMUI
         [DllImport(ONTR_DLL_PATH, CallingConvention = CallingConvention.Cdecl)]
         private static extern UInt64 GetDocDateTime(IntPtr Doc);
 
+        [DllImport(ONTR_DLL_PATH, CallingConvention = CallingConvention.Cdecl)]
+        private static extern Int32 DeleteDoc(IntPtr Doc);
+
 
         [DllImport("kernel32.dll", EntryPoint = "GetPrivateProfileString")]
         private static extern int GetPrivateProfileString(string SectionName, string KeyName, string Default, StringBuilder Return_StringBuilder_Name, int Size, string FileName);
@@ -80,14 +93,29 @@ namespace OneNoteToRMUI
             TO_RM_ONE_PAGE = 4
         }
 
-        public DllWrapper(int initialValue)
+        public enum LogLevel
         {
-            ;
+                VERBOSE = 0,
+                DEBUG,
+                INFO,
+                WARNING,
+                ERROR
         }
 
-        public static void DLLSetLogListbox(Control LB)
+        /// /////////////////////////////////////////////////////////////////
+        /// Public static functions - for general usage
+        /// 
+        public static void DLLSetLogListbox(Control? LB)
         {
-            SetLogListbox(LB.Handle);
+            if (LB == null)
+                SetLogListbox(0);
+            else
+                SetLogListbox(LB.Handle);
+        }
+
+        public static void DLLLog(string Class, string Msg, LogLevel Level)
+        {
+            DoLog(Class, Msg, (int)Level);
         }
 
         public static void DLLSetToken(PageType PT, String LoginCode)
@@ -98,7 +126,7 @@ namespace OneNoteToRMUI
         public static String DLLGetIniFile()
         {
             var SB = new StringBuilder(1024);
-            var ret = GetIniFileB(SB, 1023);
+            _ = GetIniFileB(SB, 1023);
             return SB.ToString();
         }
 
@@ -112,47 +140,10 @@ namespace OneNoteToRMUI
             return SB.ToString().Split("\n") ;
         }
 
-        public static IntPtr DLLCreateEmptyDoc(PageType PT)
-        {
-            return CreateEmptyDoc((int)PT);
-        }
-
-        public static int DLLLoadDoc(IntPtr hDoc, String FileName)
-        {
-            return LoadDoc(hDoc, FileName);
-        }
-
-        public static Rect DLLDrawPage(IntPtr Doc, IntPtr hDC, int Page)
-        {
-            DrawDetailsParams DDP = new DrawDetailsParams();
-            DDP.hDC = hDC;
-            int Ret = ConvertPageB(Doc, ref DDP, Page);
-            return DDP.R;
-        }
-
-        public static int DLLConvert(IntPtr Source, IntPtr Dest, int Page)
-        { 
-            return ConvertPage(Source, Dest, Page);
-        }
-
-        public static int DLLSaveDoc(IntPtr Doc, String FileName) 
-        { 
-            return SaveDoc(Doc, FileName);
-        }
-
-        public static DateTime DLLDocDateTime(IntPtr Doc)
-        {
-            UInt64 Time = GetDocDateTime(Doc);
-            DateTime DT = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Local);
-            DT = DT.AddSeconds(Time);
-
-            return DT;
-        }
-
         public static string GetIniSetting(string Section, string Key)
         {
             var SB = new StringBuilder(1024);
-            GetPrivateProfileString(Section, Key, "", SB, 1023, DLLGetIniFile());
+            _ = GetPrivateProfileString(Section, Key, "", SB, 1023, DLLGetIniFile());
             return SB.ToString();
         }
 
@@ -160,5 +151,52 @@ namespace OneNoteToRMUI
         {
             WritePrivateProfileString(Section, Key, Value, DLLGetIniFile());
         }
+
+
+        /// /////////////////////////////////////////////////////////////////
+        /// Public class functions - for general usage
+        /// 
+        private readonly IntPtr hDoc = CreateEmptyDoc((int)PT);
+
+        ~DllWrapper()
+        {
+            if (hDoc != IntPtr.Zero)
+                _ = DeleteDoc(hDoc);
+        }
+
+        public int Load(String FileName)
+        {
+            return LoadDoc(hDoc, FileName);
+        }
+
+        public Rect DrawPage(IntPtr hDC, int Page)
+        {
+            DrawDetailsParams DDP = new()
+            {
+                hDC = hDC
+            };
+            _ = ConvertPageB(hDoc, ref DDP, Page);
+            return DDP.R;
+        }
+
+        public int Convert(DllWrapper Dest, int Page)
+        { 
+            return ConvertPage(hDoc, Dest.hDoc, Page);
+        }
+
+        public int Save(String FileName) 
+        { 
+            return SaveDoc(hDoc, FileName);
+        }
+
+        public DateTime DocDateTime()
+        {
+            UInt64 Time = GetDocDateTime(hDoc);
+            DateTime DT = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Local);
+            DT = DT.AddSeconds(Time);
+
+            return DT;
+        }
+
     }
 }

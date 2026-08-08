@@ -2,12 +2,15 @@
 #include "RMBlock.h"
 #include "OneNoteToRM.h"
 
+/*******************************************************************************
 
+	RMBlock.cpp
 
-//std::wostream& operator<< (std::wostream& stream, const RM_CRDT_ID& RHS) {
-//	stream << L"{" << RHS.part1 << L"-" << RHS.part2 << L"}";
-//	return stream;
-//}
+	See header for documentation
+
+	(C) David Poirier 2026
+
+********************************************************************************/
 
 RMBlock::RMBlock() {
 }
@@ -21,7 +24,6 @@ void * RMBlock::ReadVarUINT(int * data, void * Buff_Ptr) {
 	while (true) {
 		i = *Local_Ptr;
 		Local_Ptr++;
-		//i = ord(self.read_bytes(1))
 		result |= (i & 0x7F) << shift;
 		shift += 7;
 		if (!(i & 0x80))

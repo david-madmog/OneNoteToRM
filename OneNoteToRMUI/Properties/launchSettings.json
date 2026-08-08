@@ -4,6 +4,12 @@
       "commandName": "Project",
       "workingDirectory": "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\OneNoteToRM\\x64\\Debug",
       "nativeDebugging": true
+    },
+    "OneNoteToRMUI COMMAND LINE": {
+      "commandName": "Project",
+      "commandLineArgs": "-MT -I \"To Do\" -O \"David/To Do\"",
+      "workingDirectory": "C:\\Users\\david\\OneDrive\\Documents\\Development\\ReMarkable\\OneNoteToRM\\x64\\Debug",
+      "nativeDebugging": true
     }
   }
 }

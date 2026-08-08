@@ -3,6 +3,16 @@
 #include "RMDocFile.h"
 #include "ConversionConstants.h"
 
+/*******************************************************************************
+
+	ToRMPOnePage.cpp
+
+	See header for documentation
+
+	(C) David Poirier 2026
+
+********************************************************************************/
+
 #pragma warning ( push )
 #pragma warning( disable : 4005 26819)
 //#define JSON_DIAGNOSTICS 1

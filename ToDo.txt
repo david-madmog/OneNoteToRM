@@ -13,7 +13,9 @@ Work out how to get calligraphy pen working in OneNote
 Text formatting and Bullets in OneNote - seems to have gone off?
 "Shader" pen not coming out with transparency on ONENote
 Auto-refresh when needing to log in
+Consolidate logging between app window and DLL
+Handle errors/document login with RMAPI
 
 Installer
-	DEBUG without logon token on 
+	DEBUG without logon token on
 

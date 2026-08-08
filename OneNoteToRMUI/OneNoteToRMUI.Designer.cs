@@ -96,7 +96,7 @@ namespace OneNoteToRMUI
             btnRMRefresh.TabIndex = 11;
             btnRMRefresh.Text = "Refresh";
             btnRMRefresh.UseVisualStyleBackColor = true;
-            btnRMRefresh.Click += btnRMRefresh_Click;
+            btnRMRefresh.Click += BtnRMRefresh_Click;
             // 
             // btnRMPreview
             // 
@@ -106,7 +106,7 @@ namespace OneNoteToRMUI
             btnRMPreview.TabIndex = 10;
             btnRMPreview.Text = "Preview";
             btnRMPreview.UseVisualStyleBackColor = true;
-            btnRMPreview.Click += btnRMPreview_Click;
+            btnRMPreview.Click += BtnRMPreview_Click;
             // 
             // panel2
             // 
@@ -127,7 +127,7 @@ namespace OneNoteToRMUI
             btnOnePreview.TabIndex = 10;
             btnOnePreview.Text = "Preview";
             btnOnePreview.UseVisualStyleBackColor = true;
-            btnOnePreview.Click += btnOnePreview_Click;
+            btnOnePreview.Click += BtnOnePreview_Click;
             // 
             // btnOneRefresh
             // 
@@ -137,7 +137,7 @@ namespace OneNoteToRMUI
             btnOneRefresh.TabIndex = 9;
             btnOneRefresh.Text = "Refresh";
             btnOneRefresh.UseVisualStyleBackColor = true;
-            btnOneRefresh.Click += btnOneRefresh_Click;
+            btnOneRefresh.Click += BtnOneRefresh_Click;
             // 
             // listBox1
             // 
@@ -192,7 +192,7 @@ namespace OneNoteToRMUI
             chkAuto.Text = "ï·ð";
             chkAuto.TextAlign = ContentAlignment.MiddleCenter;
             chkAuto.UseVisualStyleBackColor = true;
-            chkAuto.CheckedChanged += chkAuto_CheckedChanged;
+            chkAuto.CheckedChanged += ChkAuto_CheckedChanged;
             // 
             // btnOne2RM
             // 
@@ -204,7 +204,7 @@ namespace OneNoteToRMUI
             btnOne2RM.TabIndex = 2;
             btnOne2RM.Text = "ï";
             btnOne2RM.UseVisualStyleBackColor = true;
-            btnOne2RM.Click += btnOne2RM_Click;
+            btnOne2RM.Click += BtnOne2RM_Click;
             // 
             // btnTimed
             // 
@@ -216,7 +216,7 @@ namespace OneNoteToRMUI
             btnTimed.TabIndex = 1;
             btnTimed.Text = "ó";
             btnTimed.UseVisualStyleBackColor = true;
-            btnTimed.Click += btnTimed_Click;
+            btnTimed.Click += BtnTimed_Click;
             // 
             // btnRM2One
             // 
@@ -228,7 +228,7 @@ namespace OneNoteToRMUI
             btnRM2One.TabIndex = 0;
             btnRM2One.Text = "ð";
             btnRM2One.UseVisualStyleBackColor = true;
-            btnRM2One.Click += btnRM2One_Click;
+            btnRM2One.Click += BtnRM2One_Click;
             // 
             // ChkShowDebug
             // 

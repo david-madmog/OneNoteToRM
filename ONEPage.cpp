@@ -4,6 +4,15 @@
 #include "ONEPage.h"
 #include <filesystem>
 
+/*******************************************************************************
+
+    ONEPage.cpp
+
+    See header for documentation
+
+    (C) David Poirier 2026
+
+********************************************************************************/
 
 
 using namespace std;

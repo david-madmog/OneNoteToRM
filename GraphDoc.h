@@ -36,7 +36,7 @@ public:
 
 	int LoadDoc(const std::string& NotebookName, const std::string& SectionName);
 	int SaveDoc(const std::string& NotebookName, const std::string& SectionName);
-	int LoadPages(const wchar_t* SectionID);
+	int LoadDoc(const wchar_t* SectionID);
 	int SaveDoc(const wchar_t* SectionID);
 
 	void DrawPage(void* DrawDetails, int page);

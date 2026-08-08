@@ -1,5 +1,16 @@
 #include "pch.h"
 
+/*******************************************************************************
+
+    RMDocFile.cpp
+
+    See header for documentation
+
+    (C) David Poirier 2026
+
+********************************************************************************/
+
+
 #pragma comment(lib, "rpcrt4.lib")  // UuidCreate - Minimum supported OS Win 2000
 
 #include "RMDocFile.h"
