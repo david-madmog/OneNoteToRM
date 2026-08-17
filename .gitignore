@@ -380,3 +380,8 @@ FodyWeavers.xsd
 *.bat
 /OneNoteToRMToken.ini
 /Stash of C++ App
+/Microsoft.WebView2.FixedVersionRuntime
+/Microsoft.WebView2.FixedVersionRuntime.151.0.4129.78.x64.cab
+/MicrosoftEdgeWebView2RuntimeInstallerX64.exe
+/MicrosoftEdgeWebview2Setup.exe
+*.sav
