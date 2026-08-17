@@ -1,16 +1,9 @@
 using System.CommandLine;
-using System.Runtime.InteropServices;
-
 
 namespace OneNoteToRMUI
 {
-
     internal static class Program
     {
-        [DllImport("kernel32.dll", SetLastError = true)] private static extern int FreeConsole();
-        [DllImport("kernel32.dll")] static extern IntPtr GetConsoleWindow();
-        [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h, int cmd);
-
         /// <summary>
         ///  The main entry point for the application.
         /// </summary>
@@ -92,10 +85,6 @@ namespace OneNoteToRMUI
             }
             else
             {
-                // hide the Console window immediately
-                ShowWindow(GetConsoleWindow(), 0); // hide console flash
-//                FreeConsole();
-
                 DllWrapper.DLLLog("Program", "INTERACTIVE MODE", DllWrapper.LogLevel.INFO);
 
                 // To customize application configuration such as set high DPI settings or default font,

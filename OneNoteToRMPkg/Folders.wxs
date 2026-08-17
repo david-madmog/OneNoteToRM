@@ -1,7 +1,8 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Fragment>
     <StandardDirectory Id="ProgramFiles6432Folder">
-      <Directory Id="INSTALLFOLDER" Name="!(bind.Property.ProductName)" />
-    </StandardDirectory>
+		<Directory Id="INSTALLFOLDER" Name="!(bind.Property.ProductName)" />
+		<Directory Id="WEBVIEW2FOLDER" Name="!(bind.Property.ProductName)\Microsoft.WebView2.FixedVersionRuntime" />
+	</StandardDirectory>
   </Fragment>
 </Wix>

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
@@ -106,7 +106,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OneNoteToRMDLL\OneNoteToRMDLL.vcxproj" />
+    <ProjectReference Include="..\OneNoteToRMDLL.vcxproj">
+      <Private>True</Private>
+    </ProjectReference>
   </ItemGroup>
 
   <ItemGroup>

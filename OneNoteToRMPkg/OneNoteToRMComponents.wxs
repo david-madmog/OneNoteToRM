@@ -1,25 +1,47 @@
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-	<?define RMAPISourceDir="..\"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:netfx="http://wixtoolset.org/schemas/v4/wxs/netfx">
+	<?define ExtrasSourceDir="..\"?>
 	<Fragment>
 		<ComponentGroup Id="OneNoteToRMComponents" Directory="INSTALLFOLDER">
 			<Component Id="MainExec" Guid="{62F5C224-CD94-4F81-8C43-B19F7A46585F}">
-				<File Source="OneNoteToRM.exe" />
-				<File Source="bz2.dll" />
-				<File Source="cpprest_2_10.dll" />
-				<File Source="WebView2Loader.dll" />
-				<File Source="zip.dll" />
-				<File Source="zlib1.dll" />
+				<File Source="OneNoteToRMUI.exe" />
+				<File Source="OneNoteToRMUI.dll">
+					<!--<netfx:NativeImage Id="ImportantNgen" Platform="64bit" />-->
+				</File>
+				<File Source="OneNoteToRMUI.runtimeconfig.json" />
+				<File Source="Serilog.dll" />
+				<File Source="System.CommandLine.dll" />
+				<!--<File Source="$(var.OneNoteToRMUI.TargetPath)" />-->
 			</Component>
-<!--
-			<Component Id="DebugExec" Guid="{E286D218-20B4-49B2-BCE9-4346A589C805}">
+
+			<Component Id="WebView2" Guid="{62F5C224-CD94-4F81-8C62-B19F7A46585F}">
+				<File Source="WebView2Loader.dll" />
+				<File Source="Microsoft.Web.WebView2.Core.dll" />
+				<File Source="Microsoft.Web.WebView2.Core.xml" />
+				<File Source="Microsoft.Web.WebView2.WinForms.dll" />
+				<File Source="Microsoft.Web.WebView2.WinForms.xml" />
+				<File Source="Microsoft.Web.WebView2.Wpf.dll" />
+				<File Source="Microsoft.Web.WebView2.Wpf.xml" />
+			</Component>
+
+
+			<?define Debug="Debug"?>
+			<Component Id="DebugExec" Condition="$(Configuration) = $(var.Debug)">
 				<File Source="zlibd1.dll" />
 				<File Source="bz2d.dll" />
 				<File Source="cpprest_2_10d.dll" />
-
 			</Component>
--->
+
 			<Component Id="RMAPI">
-				<File Source="$(var.RMAPISourceDir)\RMAPI.exe" />
+				<File Source="$(var.ExtrasSourceDir)\RMAPI.exe" />
+			</Component>
+
+			<Component Id="DLL" Guid="{E286D218-20B4-49B2-BCE9-4346A589C805}">
+				<File Source="$(var.OneNoteToRMDLL.TargetPath)" />
+				<File Source="bz2.dll" />
+				<File Source="cpprest_2_10.dll" />
+				<File Source="zip.dll" />
+				<File Source="zlib1.dll" />
+				<RemoveFile Name="*.log" On="uninstall"/>
 			</Component>
 
 			<Component Id="Ini" Guid="*">
@@ -33,15 +55,17 @@
 						 Key="RMAPIDir"
 						 Value="[INSTALLFOLDER]" />
 
-				<IniFile Id="Ini2"
-						 Action="removeLine"
-						 Directory="INSTALLFOLDER"
-						 Section="OneNote"
-						 Name="OneNoteToRM.ini"
-						 Key="RefreshToken"
-						 Value="[INSTALLFOLDER]" />
+				<RemoveFile Name="OneNoteToRMToken.ini" On="uninstall"/>
 
 			</Component>
 		</ComponentGroup>
+
+		<ComponentGroup Id="WebView2Runtime" Directory="WEBVIEW2FOLDER">
+			<Files Include="$(var.ExtrasSourceDir)\Microsoft.WebView2.FixedVersionRuntime\**">
+				
+			</Files>
+			
+		</ComponentGroup>
+
 	</Fragment>
 </Wix>

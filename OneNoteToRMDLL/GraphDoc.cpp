@@ -440,7 +440,7 @@ template<class PageType> time_t GraphDoc<PageType>::LastEditTime()
 
         std::istringstream ss(page->LastMod);
 
-        local_seconds tp;
+        std::chrono::local_seconds tp;
         ss >> parse(Format, tp);
         auto tp_utc = current_zone()->to_sys(tp);
 

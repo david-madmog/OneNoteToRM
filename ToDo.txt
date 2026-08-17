@@ -15,6 +15,7 @@ Text formatting and Bullets in OneNote - seems to have gone off?
 Auto-refresh when needing to log in
 Consolidate logging between app window and DLL
 Handle errors/document login with RMAPI
+*** Do I need to free string from get user directory call in GraphAPI?
 
 Installer
 	DEBUG without logon token on

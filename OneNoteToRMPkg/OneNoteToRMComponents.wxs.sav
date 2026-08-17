@@ -1,0 +1,50 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+	<?define RMAPISourceDir="..\"?>
+	<Fragment>
+		<ComponentGroup Id="OneNoteToRMComponents" Directory="INSTALLFOLDER">
+			<Component Id="MainExec" Guid="{62F5C224-CD94-4F81-8C43-B19F7A46585F}">
+				<File Source="OneNoteToRMUI.exe" />
+				<File Source="OneNoteToRMUI.dll" />
+				<File Source="OneNoteToRMUI.runtimeconfig.json" />
+				<File Source="Serilog.dll" />
+				<File Source="System.CommandLine.dll" />
+				<!--
+				<File Source="$(var.OneNoteToRMUI.TargetPath)" />
+-->
+			</Component>
+<!--
+			<Component Id="DebugExec" Guid="{E286D218-20B4-49B2-BCE9-4346A589C805}">
+				<File Source="zlibd1.dll" />
+				<File Source="bz2d.dll" />
+				<File Source="cpprest_2_10d.dll" />
+
+			</Component>
+-->
+			<Component Id="RMAPI">
+				<File Source="$(var.RMAPISourceDir)\RMAPI.exe" />
+			</Component>
+
+			<Component Id="DLL" Guid="{E286D218-20B4-49B2-BCE9-4346A589C805}">
+				<File Source="$(var.OneNoteToRMDLL.TargetPath)" />
+				<File Source="bz2.dll" />
+				<File Source="cpprest_2_10.dll" />
+				<File Source="WebView2Loader.dll" />
+				<File Source="zip.dll" />
+				<File Source="zlib1.dll" />
+			</Component>
+
+			<Component Id="Ini" Guid="*">
+				<File Source="OneNoteToRM.ini" />
+
+				<IniFile Id="Ini1"
+						 Action="addLine"
+						 Directory="INSTALLFOLDER"
+						 Section="RMFile"
+						 Name="OneNoteToRM.ini"
+						 Key="RMAPIDir"
+						 Value="[INSTALLFOLDER]" />
+
+			</Component>
+		</ComponentGroup>
+	</Fragment>
+</Wix>

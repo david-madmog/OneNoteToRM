@@ -5,7 +5,7 @@ VisualStudioVersion = 17.14.36915.13
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{B7DD6F7E-DEF8-4E67-B5B7-07EF123DB6F0}") = "OneNoteToRMPkg", "OneNoteToRMPkg\OneNoteToRMPkg.wixproj", "{61A989EB-1DB3-4AC5-8813-D547A1075AF1}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OneNoteToRMDLL", "OneNoteToRMDLL.vcxproj", "{35FC40A2-0FFE-4E74-89BB-CA5D05887C48}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OneNoteToRMDLL", "OneNoteToRMDLL\OneNoteToRMDLL.vcxproj", "{35FC40A2-0FFE-4E74-89BB-CA5D05887C48}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OneNoteToRMUI", "OneNoteToRMUI\OneNoteToRMUI.csproj", "{3CF37E9D-C840-499C-9A51-FF92F9395C69}"
 	ProjectSection(ProjectDependencies) = postProject

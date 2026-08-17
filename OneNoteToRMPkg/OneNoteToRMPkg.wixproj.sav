@@ -3,7 +3,7 @@
     <AcceptEula>wix7</AcceptEula>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\OneNoteToRMDLL\OneNoteToRMDLL.vcxproj" />
+    <ProjectReference Include="..\OneNoteToRMDLL.vcxproj" />
     <ProjectReference Include="..\OneNoteToRMUI\OneNoteToRMUI.csproj">
       <Private>True</Private>
     </ProjectReference>

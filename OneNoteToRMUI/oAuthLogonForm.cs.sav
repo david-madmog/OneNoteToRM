@@ -11,10 +11,6 @@
 
 ********************************************************************************/
 
-using Microsoft.Web.WebView2.Core;
-using System.IO;
-using System.Windows.Forms.VisualStyles;
-
 namespace OneNoteToRMUI
 {
     public partial class OAuthLogonForm : Form
@@ -27,7 +23,7 @@ namespace OneNoteToRMUI
             InitializeComponent();
         }
 
-        private async void OAuthLogonForm_Load(object sender, EventArgs e)
+        private void OAuthLogonForm_Load(object sender, EventArgs e)
         {
             string EntraAppID = DllWrapper.GetIniSetting("OneNote", "EntraAppID");
             string TenantID = DllWrapper.GetIniSetting("OneNote", "TenantID");
@@ -52,17 +48,6 @@ namespace OneNoteToRMUI
             //    URI.append_query(L"scope", L"https://graph.microsoft.com/.default offline_access notes.Create notes.ReadWrite", true);
             URI.Query += "&scope=offline_access Notes.Create Notes.Read Notes.ReadWrite Notes.Read.All Notes.ReadWrite.All";
 
-            // We need to set the environment so that the webview can find it's runtime
-            string WebView2RuntimeLocation = Directory.GetCurrentDirectory();
-            WebView2RuntimeLocation += "\\Microsoft.WebView2.FixedVersionRuntime";
-            string WebView2UserDataFolder = Path.GetTempPath();
-            DllWrapper.DLLLog("OAuthLogonForm", "Webview2 runtime: " + WebView2RuntimeLocation, DllWrapper.LogLevel.DEBUG);
-            DllWrapper.DLLLog("OAuthLogonForm", "Webview2 userdata: " + WebView2UserDataFolder, DllWrapper.LogLevel.DEBUG);
-            DllWrapper.DLLLog("OAuthLogonForm", "Navigating to URI: " + URI.ToString(), DllWrapper.LogLevel.DEBUG);
-
-            var env = await CoreWebView2Environment.CreateAsync(WebView2RuntimeLocation, WebView2UserDataFolder);
-            await webView.EnsureCoreWebView2Async(env);
-                    
             webView.Source = URI.Uri;
         }
 
@@ -76,13 +61,12 @@ namespace OneNoteToRMUI
                 //listBox1.Items.Add("NAV: Arrived! [" + URI.Query + "]");
                 //                    PostMessage(hWnd, WM_DONELOGINTOMS, NULL, (LPARAM)QueryString);
                 string Q = URI.Query;
-                if (Q[0] == '?')
+                if (Q[0] =='?')
                     Q = Q[1..];
                 DllWrapper.DLLSetToken(DllWrapper.PageType.WINDOW_ONE_PAGE, Q);
                 e.Cancel = true; // Don't actually go there
                 this.Close();
             }
         }
-
     }
 }

@@ -1,11 +1,14 @@
 ﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-  <Package Id="DavidPoirier.OneNoteToRMPkg" Name="OneNoteToRMPkg" Manufacturer="DavidPoirier" Version="0.1.0">
-    <MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
+	<?define Version="0.1.1"?>
 
-	  <MediaTemplate EmbedCab="yes" />
+	<Package Id="DavidPoirier.OneNoteToRMPkg" Name="OneNoteToRM" Manufacturer="David Poirier" Version="$(var.Version)">
+		<MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
 
-	  <Feature Id="Main">
-      <ComponentGroupRef Id="OneNoteToRMComponents" />
-    </Feature>
-  </Package>
+		<MediaTemplate EmbedCab="yes" />
+
+		<Feature Id="Main">
+			<ComponentGroupRef Id="OneNoteToRMComponents" />
+			<ComponentGroupRef Id="WebView2Runtime" />
+		</Feature>
+	</Package>
 </Wix>
