@@ -132,8 +132,8 @@ namespace OneNoteToRMUI
 
         public static string[] DLLListDocs(PageType PT)
         {
-            var SB = new StringBuilder(10240);
-            var ret = ListDocs((int)PT, SB, 10239);
+            var SB = new StringBuilder(102400);
+            var ret = ListDocs((int)PT, SB, 102399);
             if (ret != 0)
                 throw new InvalidOperationException();
 

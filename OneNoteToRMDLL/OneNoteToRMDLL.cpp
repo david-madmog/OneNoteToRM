@@ -119,6 +119,7 @@ void DoLog(const char* Class, const char* Msg, LogLevel Level)
 ////////////////////////////////////////////////////
 // Static storage
 GraphAPI* gAPI = NULL;
+RMAPI* rmAPI = NULL;
 char gszIniFileName[] = ".\\OneNoteToRM.ini";
 
 //wchar_t gszwIniFileName[] = L".\\OneNoteToRM.ini";
@@ -161,7 +162,9 @@ void SetToken(const int PageType, LPCWSTR LoginCodeW)
     {
     case PAGE_TYPE_WINDOW_RM_PAGE:
     case PAGE_TYPE_TO_ONE_RM_PAGE:
-        // Not really used at this time;
+        if (!rmAPI)
+            rmAPI = new RMAPI();
+        rmAPI->SetDeviceCode(LoginCodeW);
         break;
     case PAGE_TYPE_WINDOW_ONE_PAGE:
     case PAGE_TYPE_TO_RM_ONE_PAGE:
@@ -183,7 +186,13 @@ HRESULT ListDocs(const int PageType, LPCSTR Buffer, int BuffLen)
     {
     case PAGE_TYPE_WINDOW_RM_PAGE:
     case PAGE_TYPE_TO_ONE_RM_PAGE:
-        List = RMAPI::ListDocsString();
+        if (!rmAPI)
+            rmAPI = new RMAPI();
+        if (!rmAPI->EnsureConnected())
+            return E_FAIL;
+
+        List = rmAPI->ListDocsString();
+        //List = RMAPI::ListDocsString();
         break;
     case PAGE_TYPE_WINDOW_ONE_PAGE:
     case PAGE_TYPE_TO_RM_ONE_PAGE:
@@ -209,10 +218,14 @@ HDOCFILE CreateEmptyDoc(const int PageType)
     switch (PageType)
     {
     case PAGE_TYPE_WINDOW_RM_PAGE:
-        Doc = new RMDocFile<WindowRMPage>();
+        if (!rmAPI)
+            rmAPI = new RMAPI();
+        Doc = new RMDocFile<WindowRMPage>(rmAPI);
         break;
     case PAGE_TYPE_TO_ONE_RM_PAGE :
-        Doc = new RMDocFile<ToOneRMPage>();
+        if (!rmAPI)
+            rmAPI = new RMAPI();
+        Doc = new RMDocFile<ToOneRMPage>(rmAPI);
         break;
     case PAGE_TYPE_WINDOW_ONE_PAGE :
         if (!gAPI)
@@ -240,33 +253,34 @@ int LoadDoc(HDOCFILE Doc, const char* FileName)
     if (typeid(*baseClass).hash_code() == typeid(RMDocFile<WindowRMPage>).hash_code()
         || typeid(*baseClass).hash_code() == typeid(RMDocFile<ToOneRMPage>).hash_code())
     {
+        if (!rmAPI)
+            rmAPI = new RMAPI();
+
         std::string sRMFile(FileName);
         std::string Msg = "Starting RM Load : ";
         Msg.append(sRMFile);
         Msg.append("...");
         DoLog("DLL MAIN", Msg.c_str(), LOG_INFO);
 
-        RMAPI::GetDoc(sRMFile);
-
-        size_t Found = sRMFile.find_last_of("\\");
-        if (Found != std::string::npos)
-            sRMFile = sRMFile.substr(Found + 1);
-
-        std::unique_ptr<char> WorkingDir(new char[LB_SIZE]);
-        GetTempPathA(LB_SIZE - 1, WorkingDir.get());
-        std::string Zipfile = WorkingDir.get();
-        Zipfile.append(sRMFile);
-        Zipfile.append(".rmdoc");
+        // Name _should_ consist of ID,UUID
+        size_t i = sRMFile.find(",", 0);
+        if (i == std::string::npos)
+            return 0;
+        std::string ID = sRMFile.substr(0, i);
+        std::string UUID = sRMFile.substr(++i, std::string::npos);
 
         if (typeid(*baseClass).hash_code() == typeid(RMDocFile<WindowRMPage>).hash_code())
         {
             RMDocFile<WindowRMPage>* TypeDoc = (RMDocFile<WindowRMPage> *)Doc;
-            Pages = TypeDoc->ExtractRMsFromZip(Zipfile.c_str());
+            Pages = TypeDoc->LoadDoc(s2ws(ID), s2ws(UUID));
+            //            Pages = TypeDoc->ExtractRMsFromZip(Zipfile.c_str());
         }
         else {
             RMDocFile<ToOneRMPage>* TypeDoc = (RMDocFile<ToOneRMPage> *)Doc;
-            Pages = TypeDoc->ExtractRMsFromZip(Zipfile.c_str());
+            Pages = TypeDoc->LoadDoc(s2ws(ID), s2ws(UUID));
+            //            Pages = TypeDoc->ExtractRMsFromZip(Zipfile.c_str());
         }
+        
     }
     else if (typeid(*baseClass).hash_code() == typeid(GraphDoc<WindowONEPage>).hash_code() || 
         typeid(*baseClass).hash_code() == typeid(GraphDoc<ToRMOnePage>).hash_code())

@@ -1,6 +1,9 @@
 #pragma once
 #include <windows.h>
 #include <string>
+#include <fstream>
+#include <istream>
+#include <iostream>
 #include "OneNoteToRMDLL.h"
 
 /*******************************************************************************
@@ -23,6 +26,8 @@ enum LogLevel {
 };
 
 extern char gszIniFileName[];
+
+constexpr auto TOKEN_INI = "\\OneNoteToRMToken.ini";
 
 std::wstring s2ws(const std::unique_ptr<char> str);
 std::wstring s2ws(const std::string& str);

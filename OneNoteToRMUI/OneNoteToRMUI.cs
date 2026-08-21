@@ -8,6 +8,9 @@
 
 ********************************************************************************/
 
+using Microsoft.VisualBasic;
+using System.Security.Policy;
+
 namespace OneNoteToRMUI
 {
     public partial class OneNoteToRMUI : Form
@@ -26,86 +29,56 @@ namespace OneNoteToRMUI
             TreeNode? SelectedNode = tvRM.SelectedNode;
             if (SelectedNode != null)
             {
-                string FileName = SelectedNode.FullPath;
-                DllWrapper Doc = new(DllWrapper.PageType.WINDOW_RM_PAGE);
-                int Pages = Doc.Load(FileName);
-                PreviewForm Popup = new()
+                if (SelectedNode.Tag != null)
                 {
-                    Doc = Doc
-                };
-                Popup.SetPages(Pages);
-                Popup.Text = FileName;
-                Popup.Show();
+                    //                string FileName = SelectedNode.FullPath;
+                    string FileName = (string)SelectedNode.Tag;
+                    DllWrapper Doc = new(DllWrapper.PageType.WINDOW_RM_PAGE);
+                    int Pages = Doc.Load(FileName);
+                    PreviewForm Popup = new()
+                    {
+                        Doc = Doc
+                    };
+                    Popup.SetPages(Pages);
+                    Popup.Text = FileName;
+                    Popup.Show();
+                }
             }
         }
 
         private void BtnRMRefresh_Click(object sender, EventArgs e)
         {
-            string[] strings = DllWrapper.DLLListDocs(DllWrapper.PageType.WINDOW_RM_PAGE);
-            foreach (string s in strings)
-            {
-                if (s != String.Empty)
-                {                
-                    string[] Path = s.Split(tvRM.PathSeparator);
-                    if (Path.Length == 1)
-                        tvRM.Nodes.Add(s);
-                    else
-                    {
-                        TreeNodeCollection CurrentNodes = tvRM.Nodes;
-                        foreach (string P in Path)
-                        {
-                            int i = CurrentNodes.IndexOfKey(P);
-                            if (i == -1) // Not found
-                            {
-                                TreeNode T = CurrentNodes.Add(P, P);
-                                i = T.Index;
-                            }
-                            CurrentNodes = CurrentNodes[i].Nodes;
-                        }
-                    }
-
-                }
-            }
+            Task Tsk = Task.Run(() => {
+                string[] strings = DllWrapper.DLLListDocs(DllWrapper.PageType.WINDOW_RM_PAGE);
+                ParseDocList(strings, tvRM);
+            });
         }
 
         private void BtnOneRefresh_Click(object sender, EventArgs e)
         {
-            string[] strings = [];
-            try
+            Task Tsk = Task.Run(() =>
             {
-                strings = DllWrapper.DLLListDocs(DllWrapper.PageType.WINDOW_ONE_PAGE);
-            }
-            catch (InvalidOperationException)
-            {
-                // We assume this is cos we're not logged in
-                OAuthLogonForm F = new();
-                F.ShowDialog();
-            }
-            foreach (string s in strings)
-            {
-                if (s.Contains('|'))
+                string[] strings = [];
+                try
                 {
-                    string[] parts = s.Split("|");
-                    string[] NameParts = parts[0].Split(" - ");
-                    int i = tvOne.Nodes.IndexOfKey(NameParts[0]);
-                    TreeNode T;
-                    if (i == -1) // Not found
-                        T = tvOne.Nodes.Add(NameParts[0], NameParts[0]);
-                    else
-                        T = tvOne.Nodes[i];
-
-                    TreeNode NewNode = T.Nodes.Add(NameParts[1]);
-                    NewNode.Tag = parts[1];
+                    strings = DllWrapper.DLLListDocs(DllWrapper.PageType.WINDOW_ONE_PAGE);
                 }
-            }
+                catch (InvalidOperationException)
+                {
+                    // We assume this is cos we're not logged in
+                    OAuthLogonForm F = new();
+                    F.ShowDialog();
+                }
+                ParseDocList(strings, tvOne);
+            });
         }
 
         private void OneNoteToRMUI_Load(object sender, EventArgs e)
         {
             DllWrapper.DLLSetLogListbox(listBox1);
+            ChkShowDebug.Checked = false;
             btnRMRefresh.PerformClick();
             btnOneRefresh.PerformClick();
-            ChkShowDebug.Checked = false;
         }
 
         private void BtnOnePreview_Click(object sender, EventArgs e)
@@ -115,7 +88,7 @@ namespace OneNoteToRMUI
                 if (SelectedNode.Tag != null)
                 {
                     DllWrapper Doc = new(DllWrapper.PageType.WINDOW_ONE_PAGE);
-                    int Pages =Doc.Load((string)SelectedNode.Tag);
+                    int Pages = Doc.Load((string)SelectedNode.Tag);
                     PreviewForm Popup = new()
                     {
                         Doc = Doc
@@ -151,7 +124,7 @@ namespace OneNoteToRMUI
         private void BtnRM2One_Click(object sender, EventArgs e)
         {
             TreeNode? SelectedNode;
-            DllWrapper? RMDoc=null;
+            DllWrapper? RMDoc = null;
             int RMPages = 0;
             string ONEFilename = String.Empty;
 
@@ -239,16 +212,16 @@ namespace OneNoteToRMUI
 
         private void AutoTimer_Tick(object sender, EventArgs e)
         {
-            if (++TimerCount >= TimerCounting.Length) {
+            if (++TimerCount >= TimerCounting.Length)
+            {
                 if (tvRM.SelectedNode != null && tvOne.SelectedNode != null)
                     Program.DoCheck(tvRM.SelectedNode.Text, tvOne.SelectedNode.Text);
-                      
+
                 TimerCount = 0;
 
             }
             chkAuto.Text = string.Concat(btnOne2RM.Text, TimerCounting.AsSpan(TimerCount, 1), btnRM2One.Text);
         }
-
 
         //public void DoCheck(DateTime LastCheck)
         //{
@@ -316,5 +289,52 @@ namespace OneNoteToRMUI
         //    }
 
         //}
+
+        private static void ParseDocList(string[] strings, TreeView tv)
+        {
+            tv.Invoke(() =>
+            {
+                string[] parts;
+                string[] NameParts;
+                tv.Nodes.Clear();
+                foreach (string s in strings)
+                {
+                    if (s.Contains('|'))
+                    {
+                        parts = s.Split("|");
+                    }
+                    else
+                    {
+                        parts = [s, ""]; // ensure there's always 2 parts
+                    }
+
+                    NameParts = parts[0].Split(tv.PathSeparator);
+                    if (NameParts.Length == 1)
+                    {
+                        if (parts[0].Length > 0)
+                        {
+                            TreeNode T = tv.Nodes.Add(parts[0]);
+                            T.Tag = parts[1];
+                        }         
+                    }
+                    else
+                    {
+                        TreeNodeCollection CurrentNodes = tv.Nodes;
+                        foreach (string P in NameParts)
+                        {
+                            int i = CurrentNodes.IndexOfKey(P);
+                            if (i == -1) // Not found
+                            {
+                                TreeNode T = CurrentNodes.Add(P, P);
+                                T.Tag = parts[1];
+                                i = T.Index;
+                            }
+                            CurrentNodes = CurrentNodes[i].Nodes;
+                        }
+                    }
+
+                }
+            });
+        }
     }
 }

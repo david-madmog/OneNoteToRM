@@ -30,6 +30,8 @@ namespace OneNoteToRMUI
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
+            TreeNode treeNode1 = new TreeNode("Loading...");
+            TreeNode treeNode2 = new TreeNode("Loading...");
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(OneNoteToRMUI));
             LayoutPanel = new TableLayoutPanel();
             panel1 = new Panel();
@@ -155,6 +157,9 @@ namespace OneNoteToRMUI
             tvRM.HideSelection = false;
             tvRM.Location = new Point(3, 3);
             tvRM.Name = "tvRM";
+            treeNode1.Name = "Node0";
+            treeNode1.Text = "Loading...";
+            tvRM.Nodes.AddRange(new TreeNode[] { treeNode1 });
             tvRM.Size = new Size(323, 231);
             tvRM.TabIndex = 13;
             // 
@@ -164,6 +169,10 @@ namespace OneNoteToRMUI
             tvOne.HideSelection = false;
             tvOne.Location = new Point(442, 3);
             tvOne.Name = "tvOne";
+            treeNode2.Name = "Node0";
+            treeNode2.Text = "Loading...";
+            tvOne.Nodes.AddRange(new TreeNode[] { treeNode2 });
+            tvOne.PathSeparator = " - ";
             tvOne.Size = new Size(323, 231);
             tvOne.TabIndex = 14;
             // 

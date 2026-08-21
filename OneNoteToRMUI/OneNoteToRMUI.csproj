@@ -49,6 +49,7 @@
     <None Remove="OneNoteToRM.aps" />
     <None Remove="OneNoteToRM.cpp" />
     <None Remove="OneNoteToRM.h" />
+    <None Remove="OneNoteToRM.ini" />
     <None Remove="OneNoteToRM.rc" />
     <None Remove="OneNoteToRM.vcxproj.filters" />
     <None Remove="OneNoteToRMDLL.cpp" />
@@ -107,6 +108,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OneNoteToRMDLL\OneNoteToRMDLL.vcxproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="OneNoteToRM.ini">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
 
   <ItemGroup>

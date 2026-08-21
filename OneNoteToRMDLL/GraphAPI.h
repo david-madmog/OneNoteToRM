@@ -26,7 +26,6 @@
 #endif // !IB_SIZE
 
 
-
 typedef struct one_Section {
 	std::wstring Notebook;
 	std::wstring Section;

@@ -3,6 +3,7 @@
 #include <iostream>
 #include "OneNoteToRM.h"
 #include "RMPage.h"
+#include "RMAPI.h"
 #include <wtypes.h>
 #pragma warning ( push )
 #pragma warning( disable : 4005 26819)
@@ -35,10 +36,13 @@ using json = nlohmann::json;
 
 template<class PageType> class RMDocFile : public Drawable
 {
+private:
+    RMAPI * API;
+
 protected:
-    void LoadMetaData(zip* archive, int index, size_t size);
-    void LoadContentData(zip* archive, int index, size_t size);
-    void LoadPageData(zip* archive, int index, size_t size);
+    void LoadMetaData(json J);
+    void LoadContentData(json J);
+    void LoadPageData(json J);
     void* WriteMetaData(zip* archive, const char* docID);
     void* WritePagesData(zip* archive, const char* docID);
     void* WritePage(zip* archive, const char* docID, RMPage* Page);
@@ -49,10 +53,13 @@ protected:
 
     json LoadJSONData(zip_file* file, zip_uint64_t size);
 public:
-    RMDocFile() { static_assert(std::is_base_of<RMPage, PageType>::value, "Doc file must be based on PageType derived from RMPage"); }
+    RMDocFile(RMAPI * pAPI);
     ~RMDocFile();
-    int ExtractRMsFromZip(const char* FileName);
+//    int ExtractRMsFromZip(const char* FileName);
     int SaveRMsToZip(const char* FileName);
+
+    int LoadDoc(std::wstring ID, std::wstring UUID);
+
     void DrawPage(void* DrawDetails, int page);
     void AddPage(PageType* Page) { Pages.push_back(Page); }
     time_t LastEditTime();

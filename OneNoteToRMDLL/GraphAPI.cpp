@@ -23,7 +23,6 @@
 #include <shlobj_core.h>
 #include <wrl.h>
 #include <wil/com.h>
-//#include <webview2.h>
 #pragma warning ( pop )
 
 #include "OneNoteToRM.h"
@@ -53,7 +52,8 @@ GraphAPI::GraphAPI()
     SHGetKnownFolderPath(FOLDERID_LocalAppData, KF_FLAG_DEFAULT, NULL, &wTokenIniPath);
     Tmp = wTokenIniPath;
     TokenIniFileName = ws2s(Tmp);
-    TokenIniFileName.append("\\OneNoteToRMToken.ini");
+    TokenIniFileName.append(TOKEN_INI);
+    CoTaskMemFree(wTokenIniPath);
 
     // So, when we're instantiated, get the refresh token and clear the access token
     Refresh_Token = new char[IB_SIZE];
