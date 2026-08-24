@@ -40,7 +40,7 @@ extern "C" ONTR_API void DoLog(const char* Class, const char* Msg, int Level);
 
 extern "C" ONTR_API void SetToken(const int PageType, LPCWSTR LoginCodeW);
 
-extern "C" ONTR_API HRESULT ListDocs(const int PageType, LPCSTR Buffer, int BuffLen);
+extern "C" ONTR_API HRESULT ListDocs(const int PageType, LPCWSTR Buffer, int BuffLen);
 
 extern "C" ONTR_API HDOCFILE CreateEmptyDoc(const int PageType);
 extern "C" ONTR_API int LoadDoc(HDOCFILE Doc, const char* FileName);

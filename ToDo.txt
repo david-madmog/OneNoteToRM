@@ -17,7 +17,6 @@ Consolidate logging between app window and DLL
 Handle errors/document login with RMAPI
 Handle PDF's from RM
 Handle RM docs with image inserted
-??? Cache RM docs tree
 
 Installer
 	DEBUG without logon token on

@@ -21,7 +21,7 @@
 #define IB_SIZE 1024
 #endif // !IB_SIZE
 
-constexpr auto Sep = "\\";
+constexpr auto Sep = L"\\";
 
 
 class RMAPI
@@ -32,6 +32,8 @@ private:
 
 	std::string TokenIniFileName;
 	std::wstring wIniFileName;
+	std::wstring CatalogCache;
+	long long LastGeneration = 0;
 
 	char* DeviceToken = NULL;
 	std::wstring* UserToken = NULL;
@@ -56,28 +58,36 @@ private:
 	};
 
 	typedef struct sDocNode {
-		std::string ID = "";
-		std::string UUID="";
+		std::wstring ID = L"";
+		std::wstring UUID=L"";
 		NodeType Type = NodeType::Unknown;
-		std::string Parent="";
-		std::string UnitName="";
-		std::string Path="";
+		std::wstring Parent=L"";
+		std::wstring UnitName=L"";
+		std::wstring Path=L"";
+		std::wstring Gen = L"";
 
-		friend std::ostream& operator<<(std::ostream& os, const sDocNode RHS)
+		friend std::wostream& operator<<(std::wostream& os, const sDocNode RHS)
 		{
 			if (RHS.Path.empty())
-				os << RHS.UnitName << "(" << RHS.UUID << ")";
+				os << RHS.UnitName << L"(" << RHS.UUID << L")";
 			else
-				os << RHS.Path << "|" << RHS.ID << "," << RHS.UUID;
+				os << RHS.Path << L"|" << RHS.ID << L"," << RHS.UUID;
 //				os << RHS.Path;
 			return os;
 		}
+
+	public: 
+		void SaveToCache(const wchar_t* CatalogCache) const;
+		bool LoadFromCache(std::wstring ID, const wchar_t* CatalogCache);
 	} DocNode;
 
 	std::wstring* GetStorage(const wchar_t* path, const wchar_t* node, const wchar_t* RMFilename);
 
-	std::string RecursePath(std::unordered_map<std::string, DocNode>& Nodes, DocNode Node);
-	void WalkTree(std::unordered_map<std::string, DocNode>& Nodes, std::wstring& NodeID, std::wstring& NodeUUID, NodeType type, DocNode* Node);
+	std::wstring RecursePath(std::unordered_map<std::wstring, DocNode>& Nodes, DocNode Node);
+	void LoadRootNodes(std::unordered_map<std::wstring, DocNode>& Nodes, std::wstring& NodeID);
+	void LoadFileData(DocNode* Node);
+	void LoadMetadata(std::wstring& NodeID, std::wstring& NodeUUID, DocNode* Node);
+//		void WalkTree(std::unordered_map<std::string, DocNode>& Nodes, std::wstring& NodeID, std::wstring& NodeUUID, NodeType type, DocNode* Node);
 
 public:
 	RMAPI();
@@ -88,7 +98,7 @@ public:
 
 	static void GetDoc(std::string Name); // Old (RMAPI) version
 	//	static void ListDocsStringToVector(std::string ListDocsString, std::vector<std::wstring>& Docs);
-	std::string ListDocsString();
+	std::wstring ListDocsString();
 	std::wstring* GetDataStorage(const wchar_t* node, const wchar_t* RMFilename);
 	concurrency::streams::istream GetPage(const wchar_t* node, const wchar_t* RMFilename);
 

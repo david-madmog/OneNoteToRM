@@ -54,7 +54,7 @@ namespace OneNoteToRMUI
 
 
         [DllImport(ONTR_DLL_PATH, CallingConvention = CallingConvention.Cdecl)]
-        private static extern Int32 ListDocs(Int32 PageType, StringBuilder Buffer, Int32 BuffLen);
+        private static extern Int32 ListDocs(Int32 PageType, [MarshalAs(UnmanagedType.LPWStr)] StringBuilder Buffer, Int32 BuffLen);
 
 
         [DllImport(ONTR_DLL_PATH, CallingConvention = CallingConvention.Cdecl)]

@@ -452,7 +452,7 @@ void GraphAPI::ListSections(std::vector<ONE_Section>& Sections) {
     }
 }
 
-std::string GraphAPI::ListDocsString() {
+std::wstring GraphAPI::ListDocsString() {
     std::vector<ONE_Section> Sections;
     std::wstringstream Result(L"");
       
@@ -460,6 +460,6 @@ std::string GraphAPI::ListDocsString() {
     for (auto& Section : Sections) {
         Result << Section.Notebook << L" - " << Section.Section << L"|" << Section.ID << std::endl;
     }
-    return ws2s(Result.str());
+    return Result.str();
 }
 

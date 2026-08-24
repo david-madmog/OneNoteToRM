@@ -178,9 +178,9 @@ void SetToken(const int PageType, LPCWSTR LoginCodeW)
 }
 
 // Return a list of the known docuements 
-HRESULT ListDocs(const int PageType, LPCSTR Buffer, int BuffLen)
+HRESULT ListDocs(const int PageType, LPCWSTR Buffer, int BuffLen)
 {
-    std::string List("");
+    std::wstring List(L"");
 
     switch (PageType)
     {
@@ -207,7 +207,7 @@ HRESULT ListDocs(const int PageType, LPCSTR Buffer, int BuffLen)
         ;
     }
 
-    int err = strcpy_s((char *)Buffer, (long)BuffLen, List.c_str());
+    int err = wcscpy_s((wchar_t *)Buffer, (long)BuffLen, List.c_str());
     return err;
 }
 

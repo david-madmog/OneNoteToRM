@@ -48,7 +48,7 @@ static size_t ReadHelper(concurrency::streams::istream stream, void * dest, size
 void RMPage::Load(concurrency::streams::istream Doc){
 
 
-    int NumRead;
+    size_t NumRead;
     int NumBlocks = 0;
     // So, first we read the file header
     rm_frontmatter_header FM;

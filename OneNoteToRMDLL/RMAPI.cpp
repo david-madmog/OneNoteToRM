@@ -298,6 +298,8 @@ void RMAPI::CopyDoc(std::string Name) {
 
 ********************************************************************************/
 
+constexpr auto CatalogCacheINI=L"\\RMCatalog.ini";
+
 RMAPI::RMAPI()
 {
     wIniFileName = s2ws(gszIniFileName);
@@ -308,6 +310,8 @@ RMAPI::RMAPI()
     Tmp = wTokenIniPath;
     TokenIniFileName = ws2s(Tmp);
     TokenIniFileName.append(TOKEN_INI);
+    CatalogCache = Tmp;
+    CatalogCache.append(CatalogCacheINI);
     CoTaskMemFree(wTokenIniPath);
 
     // So, when we're instantiated, get the bearer token 
@@ -317,6 +321,9 @@ RMAPI::RMAPI()
     GetPrivateProfileStringW(L"RMAPI", L"StorageRoot", L"", StorageRoot, IB_SIZE, wIniFileName.c_str());
     GetPrivateProfileStringW(L"RMAPI", L"StorageDataPath", L"", StorageDataPath, IB_SIZE, wIniFileName.c_str());
 
+    wchar_t Data[IB_SIZE];
+    GetPrivateProfileStringW(L"GEN", L"LastGeneration", L"0", Data, IB_SIZE, CatalogCache.c_str());
+    LastGeneration = std::stoll(wstring(Data));
 }
 
 RMAPI::~RMAPI()
@@ -749,9 +756,9 @@ concurrency::streams::istream RMAPI::GetPage(const wchar_t* node, const wchar_t*
     }
 }
 
-std::string RMAPI::ListDocsString() {
+std::wstring RMAPI::ListDocsString() {
     DoLog(typeid(*this).name(), "Querying RM API for doc list", LOG_DEBUG);
-    unordered_map<string, DocNode> Nodes;
+    unordered_map<wstring, DocNode> Nodes;
 
     // So, first call the doc root
     wchar_t Data[IB_SIZE];
@@ -766,19 +773,28 @@ std::string RMAPI::ListDocsString() {
         std::wostringstream LB;
         LB << L"JSON Parse Error: " << ex.what();
         DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
-        return "";
+        return L"";
     }
 
     if (respJson.contains("hash")) {
         // Yay, found our root node
         //"hash": "de5d158da3f264c5bb339f22bf7e995625314c82f54dc898ab7130ab3ec31601",
         wstring H = s2ws(respJson["hash"]);
-        wstring UUID(L"root");
-        WalkTree(Nodes, H, UUID, NodeType::Directory, NULL);
+        LoadRootNodes(Nodes, H);
     }
 
-    // Now, roll up the nodes using parents
-    ostringstream Ret;
+    // Having got all the nodes, make a note of the current generation
+    if (respJson.contains("generation"))
+    {
+        long long DevGeneration = respJson["generation"];
+        LastGeneration = DevGeneration;
+        wostringstream DG;
+        DG << DevGeneration;
+        WritePrivateProfileStringW(L"GEN", L"LastGeneration", DG.str().c_str(), CatalogCache.c_str());
+    }
+
+    // Now, tie up the nodes' parents
+    wostringstream Ret;
     for (auto& it : Nodes)
     {
         DocNode N = it.second;
@@ -786,8 +802,8 @@ std::string RMAPI::ListDocsString() {
         {
             if (N.Parent.empty())
                 N.Path = N.UnitName;
-            else if (N.Parent == "trash")
-                N.Path = "trash" + string(Sep) + N.UnitName;
+            else if (N.Parent == L"trash")
+                N.Path = L"trash" + wstring(Sep) + N.UnitName;
             else
                 N.Path = RecursePath(Nodes, N);
             Ret << N << endl;
@@ -796,7 +812,7 @@ std::string RMAPI::ListDocsString() {
     return Ret.str();
 }
 
-string RMAPI::RecursePath(unordered_map<string, DocNode>& Nodes, DocNode Node)
+wstring RMAPI::RecursePath(unordered_map<wstring, DocNode>& Nodes, DocNode Node)
 {
     if (Node.Parent.empty()) {
         return Node.UnitName;
@@ -806,141 +822,227 @@ string RMAPI::RecursePath(unordered_map<string, DocNode>& Nodes, DocNode Node)
 
 }
 
-void RMAPI::WalkTree(unordered_map<string, DocNode>& Nodes, wstring& NodeID, wstring& NodeUUID, NodeType type, DocNode * Node)
+void RMAPI::LoadRootNodes(unordered_map<wstring, DocNode>& Nodes, wstring& NodeID)
 {
-    // So, first get this node's data
-    switch (type)
-    {
-    case NodeType::Directory:
-    case NodeType::FileData:
-        NodeUUID.append(L".docSchema");
-        break;
-    case NodeType::Content:
-        break;
-    case NodeType::Metadata:
-//        NodeUUID.append(L".metadata");
-        break;
-    }
-
+    wstring NodeUUID(L"root.docSchema");
     wstring* NodeData = GetStorage(StorageDataPath, NodeID.c_str(), NodeUUID.c_str());
     if (!NodeData)
         return;
 
-    switch (type)
+    // So, first split into lines
+    // e.g. 250240707f951ddd6c859b9a163556d55837115f22d1e52fc997ca7abf329d39:0:0071ec9e-8eef-4ea6-b3e5-21260a0d5458:1:250
+    std::wstringstream AllNodes(*NodeData);
+    wstring line;
+    while (getline(AllNodes, line))
+    {
+        // Split into sections seperated by ":"
+        vector<wstring> Segments;
+        std::wstringstream Segs(line);
+        wstring Seg;
+        while (getline(Segs, Seg, L':'))
+            Segments.push_back(Seg);
+
+        // The first field is the ID we want to query, the third id the UUID
+        if (Segments.size() < 5)
+            continue;
+        
+        DocNode NewNode;
+        NewNode.ID = Segments[0];
+        NewNode.UUID = Segments[2];
+        NewNode.Gen = Segments[4];
+        long long EntryGen = std::stoll(NewNode.Gen);
+
+        // See if it's changed since last time we looked
+        bool FoundInCache = NewNode.LoadFromCache(NewNode.ID, CatalogCache.c_str());
+
+        if ((EntryGen >= LastGeneration) || !FoundInCache)
+        {
+            LoadFileData(&NewNode);
+            std::wostringstream LB;
+            LB << L"Loaded from API: " << NewNode.UnitName << L" (EntryGen: " << EntryGen << L", LastGen: " << LastGeneration << L")";
+            DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
+
+            NewNode.SaveToCache(CatalogCache.c_str());
+        }
+        else {
+            std::wostringstream LB;
+            LB << L"Loaded from Cache: " << NewNode.UnitName << L" (EntryGen: " << EntryGen << L", LastGen: " << LastGeneration << L")";
+            DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
+        }
+
+        Nodes[NewNode.UUID] = NewNode;
+    }
+}
+
+void RMAPI::LoadFileData(DocNode* Node)
+{
+    wstring NodeUUID = Node->UUID;
+    NodeUUID.append(L".docSchema");
+    wstring* NodeData = GetStorage(StorageDataPath, Node->ID.c_str(), NodeUUID.c_str());
+    if (!NodeData)
+        return;
+
+    // So, first split into lines
+// e.g. c81c44980d2a67b170cab01e8a617e14571d8cfa8015bc9b3c454ddb369e50bb:0:bd924c5d-1e0c-40af-a915-f1931a1c9524.content:0:59659
+    std::wstringstream ss(*NodeData);
+    wstring line;
+
+    while (getline(ss, line))
+    {
+        // See if it's a "metadata" line - that's what we want
+        if (line.find(L"metadata") != string::npos)
+        {
+            // Split into sections seperated by ":"
+            vector<wstring> Segments;
+            std::wstringstream Segs(line);
+            wstring Seg;
+            while (getline(Segs, Seg, L':'))
+                Segments.push_back(Seg);
+
+            // The first field is the ID we want to query, the third id the UUID
+            if (Segments.size() < 5)
+                continue;
+
+            // The first field is the ID we want to query, the third id the UUID
+            wstring ID = Segments[0];
+            wstring UUID = Segments[2];
+            LoadMetadata(ID, UUID, Node);
+        }
+    }
+
+}
+
+void RMAPI::LoadMetadata(wstring& NodeID, wstring& NodeUUID, DocNode* Node)
+{ 
+    wstring* NodeData = GetStorage(StorageDataPath, NodeID.c_str(), NodeUUID.c_str());
+    if (!NodeData)
+        return;
+
+    // this should be a Json doc... and contains the actual name we want!
+    njson respJson;
+    try {
+        respJson = njson::parse(*NodeData);
+    }
+    catch (njson::parse_error ex) {
+        std::wostringstream LB;
+        LB << L"JSON Parse Error: " << ex.what();
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
+        return;
+    }
+
+    if (respJson.contains("type"))
+    {
+        if (respJson["type"].get<string>() == "DocumentType")
+            Node->Type = NodeType::FileData;
+        else
+            Node->Type = NodeType::Directory;
+        if (respJson.contains("parent"))
+            Node->Parent = s2ws(respJson["parent"].get<string>());
+        if (respJson.contains("visibleName"))
+            Node->UnitName = s2ws(respJson["visibleName"].get<string>());
+
+    }
+
+}
+
+//void RMAPI::WalkTree(unordered_map<string, DocNode>& Nodes, wstring& NodeID, wstring& NodeUUID, NodeType type, DocNode* Node)
+//{
+//    // So, first get this node's data
+//    switch (type)
+//    {
+//    case NodeType::Directory:
+//    case NodeType::FileData:
+//        NodeUUID.append(L".docSchema");
+//        break;
+//    case NodeType::Content:
+//        break;
+//    case NodeType::Metadata:
+////        NodeUUID.append(L".metadata");
+//        break;
+//    }
+//
+//    wstring* NodeData = GetStorage(StorageDataPath, NodeID.c_str(), NodeUUID.c_str());
+//    if (!NodeData)
+//        return;
+//
+//    switch (type)
+//    {
+//    case NodeType::Directory:
+//    {
+//        break;
+//    }
+//    case NodeType::FileData:
+//    {
+//
+//        break;
+//    }
+//    case NodeType::Content:
+//    {
+//        // nothing here for us right now...
+//        break;
+//    }
+//    case NodeType::Metadata:
+//    {
+//        break;
+//    }
+//    default:
+//    {
+//        DoLog(typeid(*this).name(), "Unrecognised node type in RMAPI results", LOG_ERROR);
+//        break;
+//    }
+//
+//    }
+//}
+
+
+void RMAPI::DocNode::SaveToCache(const wchar_t * CatalogCache) const
+{
+    WritePrivateProfileStringW(ID.c_str(), L"UUID", UUID.c_str(), CatalogCache);
+    WritePrivateProfileStringW(ID.c_str(), L"Parent", Parent.c_str(), CatalogCache);
+    WritePrivateProfileStringW(ID.c_str(), L"UnitName", UnitName.c_str(), CatalogCache);
+    WritePrivateProfileStringW(ID.c_str(), L"Gen", Gen.c_str(), CatalogCache);
+    switch (Type)
     {
     case NodeType::Directory:
-    {
-        // So, first split into lines
-        // e.g. 250240707f951ddd6c859b9a163556d55837115f22d1e52fc997ca7abf329d39:0:0071ec9e-8eef-4ea6-b3e5-21260a0d5458:1:250
-        std::wstringstream ss(*NodeData);
-        wstring line;
-        while (getline(ss, line))
-        {
-            // The first field is the ID we want to query, the third id the UUID
-            size_t i1, i2, i3;
-            i1 = line.find(L':');
-            if (i1 != string::npos)
-            {
-                i2 = line.find(L':', i1+1);
-                if (i2 != string::npos)
-                {
-                    i3 = line.find(L':', i2+1);
-                    if (i3 != string::npos)
-                    {
-                        wstring ID = line.substr(0, i1);
-                        wstring UUID = line.substr(i2+1, i3-i2-1);;
-                        WalkTree(Nodes, ID, UUID, NodeType::FileData, NULL);
-                    }
-                }
-            }
-        }
+        WritePrivateProfileStringW(ID.c_str(), L"Type", L"D", CatalogCache);
         break;
-    }
     case NodeType::FileData:
-    {
-        // So, first split into lines
-        // e.g. c81c44980d2a67b170cab01e8a617e14571d8cfa8015bc9b3c454ddb369e50bb:0:bd924c5d-1e0c-40af-a915-f1931a1c9524.content:0:59659
-        std::wstringstream ss(*NodeData);
-        wstring line;
-        
-        // Create the new node representing this document
-        DocNode NewNode;
-        NewNode.ID = ws2s(NodeID);
-        // And strip off the "file extension" at the end
-        NewNode.UUID = ws2s(NodeUUID.substr(0, NodeUUID.find(L".", 0)));
-
-        // populate some details into this node
-        while (getline(ss, line))
-        {
-            // See if it's a "metadata" line - that's what we want
-            if (line.find(L"metadata") != string::npos)
-            {
-                // The first field is the ID we want to query, the third id the UUID
-                size_t i1, i2, i3;
-                i1 = line.find(L':');
-                if (i1 != string::npos)
-                {
-                    i2 = line.find(L':', i1 + 1);
-                    if (i2 != string::npos)
-                    {
-                        i3 = line.find(L':', i2 + 1);
-                        if (i3 != string::npos)
-                        {
-                            wstring ID = line.substr(0, i1);
-                            wstring UUID = line.substr(i2 + 1, i3 - i2 - 1);
-                            WalkTree(Nodes, ID, UUID, NodeType::Metadata, &NewNode);
-                        }
-                    }
-                }
-            }
-        }
-        Nodes[NewNode.UUID] = NewNode;
-
+        WritePrivateProfileStringW(ID.c_str(), L"Type", L"F", CatalogCache);
         break;
-    }
-    case NodeType::Content:
-    {
-        // nothing here for us right now...
-        break;
-    }
-    case NodeType::Metadata:
-    {
-        // this should be a Json doc... and contains the actual name we want!
-        njson respJson;
-        try {
-            respJson = njson::parse(*NodeData);
-        }
-        catch (njson::parse_error ex) {
-            std::wostringstream LB;
-            LB << L"JSON Parse Error: " << ex.what();
-            DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
-            return;
-        }
-
-        if (respJson.contains("type"))
-        {
-            if (respJson["type"].get<string>() == "DocumentType")
-                Node->Type = NodeType::FileData;
-            else
-                Node->Type = NodeType::Directory;
-            if (respJson.contains("parent"))
-                Node->Parent = respJson["parent"].get<string>();
-            if (respJson.contains("visibleName"))
-                Node->UnitName = respJson["visibleName"].get<string>();
-
-            std::ostringstream LB;
-            LB << "Got Node Metadata: " << Node->UnitName;
-            DoLog(typeid(*this).name(), s2ws(LB.str()), LOG_DEBUG);
-        }
-        break;
-    }
     default:
-    {
-        DoLog(typeid(*this).name(), "Unrecognised node type in RMAPI results", LOG_ERROR);
+        WritePrivateProfileStringW(ID.c_str(), L"Type", L"?", CatalogCache);
         break;
     }
+}
 
+bool RMAPI::DocNode::LoadFromCache(std::wstring sID,const wchar_t* CatalogCache)
+{
+    ID = sID;
+    wchar_t Buff[IB_SIZE];
+    GetPrivateProfileStringW(ID.c_str(), L"UUID", L"", Buff, IB_SIZE, CatalogCache);
+    if (wcsnlen(Buff, IB_SIZE) == 0) // Entry was not found, so default has been returned...
+        return false;
+    UUID = wstring(Buff);
+    GetPrivateProfileStringW(ID.c_str(), L"Parent", L"", Buff, IB_SIZE, CatalogCache);
+    Parent = wstring(Buff);
+    GetPrivateProfileStringW(ID.c_str(), L"UnitName", L"", Buff, IB_SIZE, CatalogCache);
+    UnitName = wstring(Buff);
+    GetPrivateProfileStringW(ID.c_str(), L"Gen", L"", Buff, IB_SIZE, CatalogCache);
+    Gen = wstring(Buff);
+    GetPrivateProfileStringW(ID.c_str(), L"Type", L"", Buff, IB_SIZE, CatalogCache);
+    switch (Buff[0])
+    {
+    case 'D':
+        Type = NodeType::Directory;
+        break;
+    case 'F':
+        Type = NodeType::FileData;
+        break;
+    default:
+        Type = NodeType::Unknown;
+        break;
     }
+    return true;
 }
 
     /*

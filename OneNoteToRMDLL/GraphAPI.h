@@ -62,7 +62,7 @@ public:
 	void DeletePage(const wchar_t * URLPath);
 
 	void ListSections(std::vector<ONE_Section>& Sections);
-	std::string ListDocsString();
+	std::wstring ListDocsString();
 
 	bool EnsureConnected(void);
 	void SetLoginCode(const wchar_t* LoginCodeW);
