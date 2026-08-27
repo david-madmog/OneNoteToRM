@@ -169,7 +169,7 @@ void ToRMOnePage::DrawPage(void* DrawDetails)
 		LI->parent_id = { 0,11 };
 
 		LI->tool_id = 17;
-		LI->SetColor(InkTrace->colour); // May also change tool ID
+		LI->SetColor(InkTrace->colour); // May also change tool Hash
 
 		//		LI->thickness_scale = InkTrace->thickness_scale / RM_TO_ONE_THICK_FACTOR;
 		LI->thickness_scale = 1 ;

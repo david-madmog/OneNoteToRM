@@ -6,11 +6,13 @@
 
     RMAPI.cpp
 
+    V2 - Using ReMarkable API Directly
     See header for documentation
 
     (C) David Poirier 2026
 
 ********************************************************************************/
+
 #pragma warning ( push )
 #pragma warning( disable : 26439 26495)
 #include <cpprest/http_client.h>
@@ -26,6 +28,8 @@
 
 #pragma comment(lib, "rpcrt4.lib")  // UuidCreate - Minimum supported OS Win 2000
 
+#include "SHA256.h"
+#include "base64.hpp"
 
 #pragma warning ( push )
 #pragma warning( disable : 4005 26819)
@@ -42,266 +46,12 @@ using namespace concurrency::streams;       // Asynchronous streams
 
 using njson = nlohmann::json;
 
-
-int RMAPI::filecopy(string from, string to)
-{
-    // Horrible... SHFileOperation needs "double null" terminator, and std::string keeps removing it
-    char* cfrom = new char[from.size() + 2];
-    char* cto = new char[to.size() + 2];
-    memset(cfrom, 0, from.size() + 2);
-    memset(cto, 0, to.size() + 2);
-    memcpy_s(cfrom, from.size() + 2, from.c_str(), from.size());
-    memcpy_s(cto, to.size() + 2, to.c_str(), to.size());
-
-    SHFILEOPSTRUCTA FileOp = { 0 };
-    FileOp.wFunc = FO_COPY;
-    FileOp.pFrom = cfrom;  // can't use c_str() as that will destroy our terminating nulls
-    FileOp.pTo = cto;
-    FileOp.fFlags = FOF_SILENT | FOF_NOCONFIRMATION; // | FOF_NOERRORUI
-
-    int ErrorCode = SHFileOperationA(&FileOp);
-    return ErrorCode;
-}
-
-
-string RMAPI::exec(const char* cmd) {
-// Source - https://stackoverflow.com/a/35658917
-// Posted by TarmoPikaro, modified by community. See post 'Timeline' for change history
-// Retrieved 2026-03-25, License - CC BY-SA 4.0
-        string strResult;
-        HANDLE hPipeRead, hPipeWrite;
-
-        std::unique_ptr<char> TempDir(new char[LB_SIZE]);
-        GetTempPathA(LB_SIZE - 1, TempDir.get());
-//        GetPrivateProfileStringA("RMFILE", "WorkingDir", "", WorkingDir.get(), LB_SIZE, gszIniFileName);
-       
-
-        SECURITY_ATTRIBUTES saAttr = { sizeof(SECURITY_ATTRIBUTES) };
-        saAttr.bInheritHandle = TRUE; // Pipe handles are inherited by child process.
-        saAttr.lpSecurityDescriptor = NULL;
-
-        // Create a pipe to get results from child's stdout.
-        if (!CreatePipe(&hPipeRead, &hPipeWrite, &saAttr, 0))
-            return strResult;
-
-        STARTUPINFOA si = { sizeof(STARTUPINFOA) };
-        si.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
-        si.hStdOutput = hPipeWrite;
-        si.hStdError = hPipeWrite;
-        si.wShowWindow = SW_HIDE; // Prevents cmd window from flashing.
-        // Requires STARTF_USESHOWWINDOW in dwFlags.
-
-        PROCESS_INFORMATION pi = { 0 };
-
-        BOOL fSuccess = CreateProcessA(NULL, (LPSTR)cmd, NULL, NULL, TRUE, CREATE_NEW_CONSOLE, NULL, (LPCSTR)TempDir.get(), &si, &pi);
-        if (!fSuccess)
-        {
-            CloseHandle(hPipeWrite);
-            CloseHandle(hPipeRead);
-            return strResult;
-        }
-
-        bool bProcessEnded = false;
-        for (; !bProcessEnded;)
-        {
-            // Give some timeslice (50 ms), so we won't waste 100% CPU.
-            bProcessEnded = WaitForSingleObject(pi.hProcess, 50) == WAIT_OBJECT_0;
-
-            // Even if process exited - we continue reading, if
-            // there is some data available over pipe.
-            for (;;)
-            {
-                char buf[1024];
-                DWORD dwRead = 0;
-                DWORD dwAvail = 0;
-
-                if (!::PeekNamedPipe(hPipeRead, NULL, 0, NULL, &dwAvail, NULL))
-                    break;
-
-                if (!dwAvail) // No data available, return
-                    break;
-
-                if (!::ReadFile(hPipeRead, buf, min(sizeof(buf) - 1, dwAvail), &dwRead, NULL) || !dwRead)
-                    // Error, the child process might ended
-                    break;
-
-                buf[dwRead] = 0;
-                strResult += buf;
-            }
-        } //for
-
-        CloseHandle(hPipeWrite);
-        CloseHandle(hPipeRead);
-        CloseHandle(pi.hProcess);
-        CloseHandle(pi.hThread);
-        return strResult;
-    } //ExecCmd
-
-
-
-
-
-    //array<char, 128> buffer{};
-    //string result;
-    //unique_ptr<FILE, decltype(&_pclose)> pipe(_popen(cmd, "r"), _pclose);
-    //if (!pipe) {
-    //    throw runtime_error("popen() failed!");
-    //}
-    //while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe.get()) != nullptr) {
-    //    result += buffer.data();
-    //}
-    //return result;
-//}
-/*
-void RMAPI::GetDoc(std::string Name)
-{
-	string Result = "";
-    string Command = "";
-
-    std::ranges::replace(Name, '\\', '/'); 
-
-    std::unique_ptr<char> RMAPIDir(new char[LB_SIZE]);
-    GetPrivateProfileStringA("RMFILE", "RMAPIDir", "", RMAPIDir.get(), LB_SIZE, gszIniFileName);
-    Command.append(RMAPIDir.get());
-    Command.append("rmapi get \"");
-    Command.append(Name);
-    Command.append("\"");
-
-    std::wostringstream LB;
-    LB << "Document get: " << Command.c_str();
-    DoLog("RMAPI", LB.str(), LOG_DEBUG);
-
-    Result = exec(Command.c_str());
-	DoLog("RMAPI", Result.c_str(), LOG_DEBUG);
-}
-*/
-/*
-std::string RMAPI::ListDocsString()
-{
-    string Command = "";
-    DoLog("RMAPI", "Querying RM API for doc list", LOG_DEBUG);
-
-    std::unique_ptr<char> RMAPIDir(new char[LB_SIZE]);
-    GetPrivateProfileStringA("RMFILE", "RMAPIDir", "", RMAPIDir.get(), LB_SIZE, gszIniFileName);
-    Command.append(RMAPIDir.get());
-    Command.append("rmapi find");
-    std::stringstream result(exec(Command.c_str()));
-
-    // Now trim down 
-    vector<string> strings;
-    string s;
-    std::stringstream TrimmedResult;
-
-    while (getline(result, s)) {
-        // something like : [f] \General topics
-        // or               [f] \\dir\file
-        if (s[1] == 'f') {
-            s.erase(0, 5);
-            if (s[0] == '\\')
-                s.erase(0, 1);
-            TrimmedResult << s << endl;
-        }
-    }
-
-    return TrimmedResult.str();
-}
-    */
-//void RMAPI::ListDocsStringToVector(std::string ListDocsString, vector<wstring>& Docs) {
-//    wstringstream  wresult;
-//    wresult << ListDocsString.c_str();
-//
-//    vector<string> strings;
-//    wstring s;
-//    while (getline(wresult, s)) {
-//        // something like : [f] \General topics
-//        // or               [f] \\dir\file
-//        if (s[1] == 'f') {
-//            s.erase(0, 5);
-//            if (s[0] == '\\')
-//                s.erase(0, 1);
-//            Docs.push_back(s);
-//        }
-//    }
-//}
-
-void RMAPI::SaveDoc(std::string Name, std::string path) {
-    // trash\T4
-    
-    //    std::string Zipfile = WorkingDir;
-    std::string Zipfile = "";
-    Zipfile.append(Name);
-    Zipfile.append(".rmdoc");
-    std::string TMPfile = path;
-    TMPfile.append("Output.rmdoc");
-    
-    std::string TMPZfile = path;
-    TMPZfile.append(Zipfile);
-
-    // Horrible... SHFileOperation needs "double null" terminator
-    int result = filecopy(TMPfile, TMPZfile);
-
-    std::wostringstream LB;
-    if (result != ERROR_SUCCESS)
-    {
-        LPTSTR errmessage;
-        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, result, 0, (LPTSTR)&errmessage, 10,  NULL);
-        LB << L"Document Copy status " << result << L" (" << errmessage << L")";
-        DoLog("RMAPI", LB.str(), LOG_ERROR);
-    }
-
-
-    // put T4.rmdoc /trash --force
-    std::string Command = "";
-    std::unique_ptr<char> RMAPIDir(new char[LB_SIZE]);
-    GetPrivateProfileStringA("RMFILE", "RMAPIDir", "", RMAPIDir.get(), LB_SIZE, gszIniFileName);
-    Command.append(RMAPIDir.get());
-    Command.append("rmapi put \"");
-    Command.append(Zipfile);
-    Command.append("\" ");
-    //Command.append(path);
-    Command.append(" --force");
-
-    LB.str(L"");
-    LB << "Document PUT: " << Command.c_str();
-    DoLog("RMAPI", LB.str(), LOG_DEBUG);
-
-    std::string Result = exec(Command.c_str());
-    DoLog("RMAPI", Result.c_str(), LOG_DEBUG);
-}
-
-void RMAPI::CopyDoc(std::string Name) {
-    //    std::string Zipfile = WorkingDir;
-    std::string Zipfile = "";
-    Zipfile.append(Name);
-    Zipfile.append(".rmdoc");
-    std::string TMPfile = "";
-    TMPfile.append("Output.rmdoc");
-
-    string Result = "";
-    string Command = "";
-
-    Command = "copy Output.rmdoc \"";
-    Command.append(Zipfile);
-    Command.append("\" /B /Y");
-    Result = exec(Command.c_str());
-    DoLog("RMAPI", Result.c_str(), LOG_DEBUG);
-}
-
-/*******************************************************************************
-
-    RMAPI.cpp
-
-    V2 - Using ReMarkable API Directly
-    See header for documentation
-
-    (C) David Poirier 2026
-
-********************************************************************************/
-
 constexpr auto CatalogCacheINI=L"\\RMCatalog.ini";
 
 RMAPI::RMAPI()
 {
+    crc32c_init_sw(); // Build the CRC32 table
+
     wIniFileName = s2ws(gszIniFileName);
 
     wchar_t* wTokenIniPath;
@@ -320,10 +70,6 @@ RMAPI::RMAPI()
 
     GetPrivateProfileStringW(L"RMAPI", L"StorageRoot", L"", StorageRoot, IB_SIZE, wIniFileName.c_str());
     GetPrivateProfileStringW(L"RMAPI", L"StorageDataPath", L"", StorageDataPath, IB_SIZE, wIniFileName.c_str());
-
-    wchar_t Data[IB_SIZE];
-    GetPrivateProfileStringW(L"GEN", L"LastGeneration", L"0", Data, IB_SIZE, CatalogCache.c_str());
-    LastGeneration = std::stoll(wstring(Data));
 }
 
 RMAPI::~RMAPI()
@@ -352,7 +98,6 @@ int RMAPI::RegisterDevice(const char * deviceCode) {
 
     RegisterPayload[L"deviceID"] = json::value(str);
     RpcStringFreeA((RPC_CSTR*)&str);
-
 
     // Build request URI 
     wchar_t Data[IB_SIZE];
@@ -417,7 +162,7 @@ int RMAPI::RegisterDevice(const char * deviceCode) {
     }
     return -1;
 
-        //    POST https ://webapp.cloud.remarkable.com/token/json/2/device/new
+//    POST https ://webapp.cloud.remarkable.com/token/json/2/device/new
 //Payload:
 //
 //    {
@@ -431,7 +176,6 @@ int RMAPI::RegisterDevice(const char * deviceCode) {
 //        The response is the new token in plain text.
 //
 //
-    return 0;
 }
 
 int RMAPI::GetUserToken(char * DeviceToken) {
@@ -556,7 +300,7 @@ bool RMAPI::EnsureConnected(void) {
 }
 
 
-void RMAPI::SetDeviceCode(const wchar_t* DeviceCodeW) {
+void RMAPI::SetAuthCode(const wchar_t* DeviceCodeW) {
 
     std::string DeviceCode = ws2s(DeviceCodeW);
     std::wostringstream LB;
@@ -623,12 +367,12 @@ void RMAPI::GetServicePath() {
 }
 */
 
-std::wstring* RMAPI::GetDataStorage(const wchar_t* node, const wchar_t* RMFilename)
+std::wstring* RMAPI::GetDataStorage(const wchar_t* hash, const wchar_t* RMFilename)
 {
-    return GetStorage(StorageDataPath, node, RMFilename);
+    return GetStorage(StorageDataPath, hash, RMFilename);
 }
 
-wstring* RMAPI::GetStorage(const wchar_t* path, const wchar_t* node, const wchar_t* RMFilename)
+wstring* RMAPI::GetStorage(const wchar_t* path, const wchar_t* hash, const wchar_t* RMFilename)
 {
     //if (ServicePath.empty())
     //    GetServicePath();
@@ -637,8 +381,8 @@ wstring* RMAPI::GetStorage(const wchar_t* path, const wchar_t* node, const wchar
         // Build request URI 
         uri_builder URI;
         URI.set_path(path);
-        if (node)
-            URI.append_path(node);
+        if (hash)
+            URI.append_path(hash);
 
         utility::string_t s = URI.to_string();   // for debugging
 
@@ -692,7 +436,7 @@ wstring* RMAPI::GetStorage(const wchar_t* path, const wchar_t* node, const wchar
     }
 }
 
-concurrency::streams::istream RMAPI::GetPage(const wchar_t* node, const wchar_t* RMFilename)
+concurrency::streams::istream RMAPI::GetPage(const wchar_t* hash, const wchar_t* RMFilename)
 {
     //if (ServicePath.empty())
     //    GetServicePath();
@@ -701,8 +445,8 @@ concurrency::streams::istream RMAPI::GetPage(const wchar_t* node, const wchar_t*
         // Build request URI 
         uri_builder URI;
         URI.set_path(StorageDataPath);
-        if (node)
-            URI.append_path(node);
+        if (hash)
+            URI.append_path(hash);
 
         utility::string_t s = URI.to_string();   // for debugging
 
@@ -756,6 +500,87 @@ concurrency::streams::istream RMAPI::GetPage(const wchar_t* node, const wchar_t*
     }
 }
 
+int64_t RMAPI::PutDataStorage(const wchar_t* hash, const wchar_t* RMFilename, const char* BodyData)
+{
+    size_t DataLen = strlen(BodyData);
+    return PutStorage(StorageDataPath, hash, RMFilename, BodyData, DataLen);
+}
+
+int64_t RMAPI::PutDataStorage(const wchar_t* hash, const wchar_t* RMFilename, const char* BodyData, size_t DataLen) 
+{
+    return PutStorage(StorageDataPath, hash, RMFilename, BodyData, DataLen);
+}
+
+int64_t RMAPI::PutStorage(const wchar_t* path, const wchar_t* node, const wchar_t* RMFilename, const char* BodyData, size_t DataLen)
+{
+    if (UserToken) {
+        // Build request URI 
+        uri_builder URI;
+        URI.set_path(path);
+        if (node)
+            URI.append_path(node);
+
+        utility::string_t s = URI.to_string();   // for debugging
+
+        http_client client(StorageRoot);
+        http_request request(methods::PUT);
+
+        wstring Token(L"Bearer ");
+        Token.append(*UserToken);
+        request.headers().add(L"authorization", Token);
+        request.set_request_uri(URI.to_uri());
+
+        //utility::string_t ContentType(web::http::details::mime_types::application_octetstream);
+        //request.headers().set_content_type(ContentType);
+        request.headers().add(L"accept-encoding", L"gzip");
+        request.headers().add(L"rm-filename", RMFilename);
+
+        wstring GH(L"crc32c=");
+        uint32_t crc = crc32c_sw(0, BodyData, DataLen);
+        char bytes[] = { (char)(crc >> 24), (char)((crc >> 16) & 0xFF), (char)((crc >> 8) & 0xFF), (char)(crc & 0xFF), 0 };
+        string encoded = base64::to_base64(bytes);
+        GH.append(s2ws(encoded));
+
+        request.headers().add(L"x-goog-hash", GH.c_str());
+        std::vector<unsigned char> BD(BodyData, BodyData + DataLen);
+        request.set_body(BD);
+
+        pplx::task<http_response> requestTask = client.request(request);
+
+        http_response response;
+        try {
+            response = requestTask.get(); // If task is not complete, will wait
+        }
+        catch (std::exception& ex)
+        {
+            std::wostringstream LB;
+            LB << L"Cannot put Data EX: " << ex.what() << L" (URI:" << URI.to_string() << L", RM Filename:" << RMFilename << L")";
+            DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
+
+            return 0;
+        }
+
+        if (response.status_code() == status_codes::OK 
+            || response.status_code() == status_codes::Accepted
+            )
+        {
+            std::wostringstream LB;
+            LB << L"PUT storage doc (" << RMFilename << L")";
+            DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
+
+            return request.headers().content_length();
+        }
+        else {
+            std::wostringstream LB;
+            LB << L"Cannot put data: " << response.reason_phrase() << L" (URI:" << URI.to_string() << L", RM Filename:" << RMFilename << L")";;
+            DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
+            return 0;
+        }
+    }
+    return 0;
+}
+
+
 std::wstring RMAPI::ListDocsString() {
     DoLog(typeid(*this).name(), "Querying RM API for doc list", LOG_DEBUG);
     unordered_map<wstring, DocNode> Nodes;
@@ -777,20 +602,10 @@ std::wstring RMAPI::ListDocsString() {
     }
 
     if (respJson.contains("hash")) {
-        // Yay, found our root node
+        // Yay, found our root hash
         //"hash": "de5d158da3f264c5bb339f22bf7e995625314c82f54dc898ab7130ab3ec31601",
         wstring H = s2ws(respJson["hash"]);
         LoadRootNodes(Nodes, H);
-    }
-
-    // Having got all the nodes, make a note of the current generation
-    if (respJson.contains("generation"))
-    {
-        long long DevGeneration = respJson["generation"];
-        LastGeneration = DevGeneration;
-        wostringstream DG;
-        DG << DevGeneration;
-        WritePrivateProfileStringW(L"GEN", L"LastGeneration", DG.str().c_str(), CatalogCache.c_str());
     }
 
     // Now, tie up the nodes' parents
@@ -822,10 +637,10 @@ wstring RMAPI::RecursePath(unordered_map<wstring, DocNode>& Nodes, DocNode Node)
 
 }
 
-void RMAPI::LoadRootNodes(unordered_map<wstring, DocNode>& Nodes, wstring& NodeID)
+void RMAPI::LoadRootNodes(unordered_map<wstring, DocNode>& Nodes, wstring& Hash)
 {
     wstring NodeUUID(L"root.docSchema");
-    wstring* NodeData = GetStorage(StorageDataPath, NodeID.c_str(), NodeUUID.c_str());
+    wstring* NodeData = GetStorage(StorageDataPath, Hash.c_str(), NodeUUID.c_str());
     if (!NodeData)
         return;
 
@@ -842,31 +657,31 @@ void RMAPI::LoadRootNodes(unordered_map<wstring, DocNode>& Nodes, wstring& NodeI
         while (getline(Segs, Seg, L':'))
             Segments.push_back(Seg);
 
-        // The first field is the ID we want to query, the third id the UUID
+        // The first field is the Hash we want to query, the third id the UUID
         if (Segments.size() < 5)
             continue;
         
         DocNode NewNode;
-        NewNode.ID = Segments[0];
+        wstring Hash = Segments[0];
+        NewNode.Hash = Hash;
         NewNode.UUID = Segments[2];
-        NewNode.Gen = Segments[4];
-        long long EntryGen = std::stoll(NewNode.Gen);
-
+ 
         // See if it's changed since last time we looked
-        bool FoundInCache = NewNode.LoadFromCache(NewNode.ID, CatalogCache.c_str());
+        bool FoundInCache = NewNode.LoadFromCache(NewNode.UUID, CatalogCache.c_str());
 
-        if ((EntryGen >= LastGeneration) || !FoundInCache)
+        if (NewNode.Hash != Hash || !FoundInCache)
         {
+            NewNode.Hash = Hash;
             LoadFileData(&NewNode);
             std::wostringstream LB;
-            LB << L"Loaded from API: " << NewNode.UnitName << L" (EntryGen: " << EntryGen << L", LastGen: " << LastGeneration << L")";
+            LB << L"Loaded from API: " << NewNode.UnitName ;
             DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
 
             NewNode.SaveToCache(CatalogCache.c_str());
         }
         else {
             std::wostringstream LB;
-            LB << L"Loaded from Cache: " << NewNode.UnitName << L" (EntryGen: " << EntryGen << L", LastGen: " << LastGeneration << L")";
+            LB << L"Loaded from Cache: " << NewNode.UnitName ;
             DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
         }
 
@@ -878,7 +693,7 @@ void RMAPI::LoadFileData(DocNode* Node)
 {
     wstring NodeUUID = Node->UUID;
     NodeUUID.append(L".docSchema");
-    wstring* NodeData = GetStorage(StorageDataPath, Node->ID.c_str(), NodeUUID.c_str());
+    wstring* NodeData = GetStorage(StorageDataPath, Node->Hash.c_str(), NodeUUID.c_str());
     if (!NodeData)
         return;
 
@@ -899,14 +714,14 @@ void RMAPI::LoadFileData(DocNode* Node)
             while (getline(Segs, Seg, L':'))
                 Segments.push_back(Seg);
 
-            // The first field is the ID we want to query, the third id the UUID
+            // The first field is the Hash we want to query, the third id the UUID
             if (Segments.size() < 5)
                 continue;
 
-            // The first field is the ID we want to query, the third id the UUID
-            wstring ID = Segments[0];
+            // The first field is the Hash we want to query, the third id the UUID
+            wstring Hash = Segments[0];
             wstring UUID = Segments[2];
-            LoadMetadata(ID, UUID, Node);
+            LoadMetadata(Hash, UUID, Node);
         }
     }
 
@@ -944,92 +759,221 @@ void RMAPI::LoadMetadata(wstring& NodeID, wstring& NodeUUID, DocNode* Node)
     }
 
 }
+/*
+void RMAPI::RecoverRootDocSchema() {
+    // Find and Load the previous Root Doc Schema
+// So, first call the doc root
+    wchar_t D[IB_SIZE];
+    GetPrivateProfileStringW(L"RMAPI", L"StorageRootPath", L"", D, IB_SIZE, wIniFileName.c_str());
 
-//void RMAPI::WalkTree(unordered_map<string, DocNode>& Nodes, wstring& NodeID, wstring& NodeUUID, NodeType type, DocNode* Node)
-//{
-//    // So, first get this node's data
-//    switch (type)
-//    {
-//    case NodeType::Directory:
-//    case NodeType::FileData:
-//        NodeUUID.append(L".docSchema");
-//        break;
-//    case NodeType::Content:
-//        break;
-//    case NodeType::Metadata:
-////        NodeUUID.append(L".metadata");
-//        break;
-//    }
-//
-//    wstring* NodeData = GetStorage(StorageDataPath, NodeID.c_str(), NodeUUID.c_str());
-//    if (!NodeData)
-//        return;
-//
-//    switch (type)
-//    {
-//    case NodeType::Directory:
-//    {
-//        break;
-//    }
-//    case NodeType::FileData:
-//    {
-//
-//        break;
-//    }
-//    case NodeType::Content:
-//    {
-//        // nothing here for us right now...
-//        break;
-//    }
-//    case NodeType::Metadata:
-//    {
-//        break;
-//    }
-//    default:
-//    {
-//        DoLog(typeid(*this).name(), "Unrecognised node type in RMAPI results", LOG_ERROR);
-//        break;
-//    }
-//
-//    }
-//}
+    wstring* RootData = GetStorage(D, nullptr, L"");
+    njson respJson;
+    try {
+        respJson = njson::parse(*RootData);
+    }
+    catch (njson::parse_error ex) {
+        std::wostringstream LB;
+        LB << L"JSON Parse Error: " << ex.what();
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
+        return;
+    }
 
+    if (!respJson.contains("hash"))
+        return;
+
+    // Prepare the new DocSchema
+    wostringstream DocSchema(L"");
+
+    wchar_t Data[LB_SIZE];
+    wchar_t* P = Data;
+    GetPrivateProfileStringW(NULL, NULL, L"", Data, IB_SIZE, CatalogCache.c_str());
+    vector<wstring> IDs;
+    size_t Sz;
+    do {
+        wstring S(P);
+        IDs.push_back(S);
+        Sz = S.size();
+        P += Sz + 1;
+    } while ( Sz > 0 );
+
+    // Split into lines
+    // e.g. 250240707f951ddd6c859b9a163556d55837115f22d1e52fc997ca7abf329d39:0:0071ec9e-8eef-4ea6-b3e5-21260a0d5458:1:250
+    for (wstring ID: IDs)
+    { 
+        DocNode UpdatedNode;
+        UpdatedNode.LoadFromCache(ID, CatalogCache.c_str());
+            // NOTE: requires the entries to be sorted by doc hash. Since this is unchanged, we can update in place
+        DocSchema << UpdatedNode.Hash << L":0:" << UpdatedNode.UUID << L":" << 1 << L":" << UpdatedNode.Len;
+        DocSchema << "\n";
+    }
+
+    wostringstream DocSchemaFull(L"");
+    DocSchemaFull << L"3\n";
+    DocSchemaFull << L"0:.:" << IDs.size() << ":" << DocSchema.str().size() << L"\n";
+    DocSchemaFull << DocSchema.str();
+
+     // And post the new root schema back to the server
+    string Content = ws2s(DocSchemaFull.str());
+    string NewHash = sha256(Content);
+ //   PutDataStorage(s2ws(NewHash).c_str(), L"root.docSchema", Content.c_str());
+
+    // Since the root schema hash has changed, we need to update that as well
+    respJson["hash"] = "fc92216cc7c69c65b5a3a0580f8f8d43ae300b23e9be9ba8fbe2b7274809cb32";
+    respJson["broadcast"] = false;
+    //  int64_t gen = respJson["generation"];
+    //  respJson["generation"] = ++gen;
+
+    Content = respJson.dump();
+
+    GetPrivateProfileStringW(L"RMAPI", L"StorageRootPutPath", L"", Data, IB_SIZE, wIniFileName.c_str());
+    PutStorage(Data, nullptr, L"roothash", Content.c_str(), Content.size());
+    /*
+    {"broadcast":false,"hash":"44ac407c979f4ca9a0ce5b0c5b3a85cc826c664c3103a6a634865dda4429cf22","generation":1787579158542117}
+    
+    return;
+
+}
+*/
+void RMAPI::UpdateRootDocSchema(DocNode& UpdatedNode, int NumPages) 
+{
+    // Update the cache
+    UpdatedNode.SaveToCache(CatalogCache.c_str());
+
+    // Find and Load the previous Root Doc Schema
+    // So, first call the doc root
+    wchar_t Data[IB_SIZE];
+    GetPrivateProfileStringW(L"RMAPI", L"StorageRootPath", L"", Data, IB_SIZE, wIniFileName.c_str());
+
+    wstring* RootData = GetStorage(Data, nullptr, L"");
+    njson respJson;
+    try {
+        respJson = njson::parse(*RootData);
+    }
+    catch (njson::parse_error ex) {
+        std::wostringstream LB;
+        LB << L"JSON Parse Error: " << ex.what();
+        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
+        return ;
+    }
+
+    if (!respJson.contains("hash"))
+        return ;
+
+    wstring Hash = s2ws(respJson["hash"]);
+    wstring NodeUUID(L"root.docSchema");
+    wstring* NodeData = GetStorage(StorageDataPath, Hash.c_str(), NodeUUID.c_str());
+    if (!NodeData)
+        return ;
+
+    // Prepare the new root DocSchema based on the old one
+    // Note, unlike the v3 docschema used for the actual doc, the v4 docschema uses the simple hash
+    wostringstream DocSchema(L"");
+
+    // Split into lines
+    // e.g. 250240707f951ddd6c859b9a163556d55837115f22d1e52fc997ca7abf329d39:0:0071ec9e-8eef-4ea6-b3e5-21260a0d5458:1:250
+    std::wstringstream AllNodes(*NodeData);
+    int Lines = 0;
+    long long TotalSize = 0;
+
+    wstring line;
+    while (getline(AllNodes, line))
+    {
+        // Split into sections seperated by ":"
+        vector<wstring> Segments;
+        std::wstringstream Segs(line);
+        wstring Seg;
+        while (getline(Segs, Seg, L':'))
+            Segments.push_back(Seg);
+
+        // If it's not the updated node, just copy through unchanged
+        if (Segments.size() < 5) // v4 schema header
+        {
+            if (Segments.size() > 1) 
+            {
+                // v4 index line... must be at the start, before all the doc entries
+                // Note, we're not changing the number of entries
+                //0:.:86:620150930        0, ., Count of entries, size of file
+                Lines = stoi(Segments[2]);
+            }
+        }
+        else {
+            if (Segments[2] != UpdatedNode.UUID)
+            {
+                DocSchema << line;
+            }
+            else {
+                // Updated node, regenerate line
+                // NOTE: requires the entries to be sorted by doc hash. Since this is unchanged, we can update in place
+                DocSchema << UpdatedNode.Hash << L":0:" << UpdatedNode.UUID << L":" << NumPages << L":" << UpdatedNode.Len;
+                Segments[0] = UpdatedNode.Hash;
+                Segments[4] = std::to_wstring(UpdatedNode.Len);
+            }
+            TotalSize += stol(Segments[4]);
+            DocSchema << "\n";
+        }
+    }
+
+    // And post the new root schema back to the server
+    std::stringstream ContentSS("");
+    ContentSS << "4\n";
+    ContentSS << "0:.:" << Lines << ":" << TotalSize << "\n";
+    ContentSS << ws2s(DocSchema.str());
+    std::string NewHash = sha256(ContentSS.str());
+    int64_t ret = PutDataStorage(s2ws(NewHash).c_str(), L"root.docSchema", ContentSS.str().c_str());
+
+    if (ret == 0)
+        return;
+
+    // Since the root schema hash has changed, we need to update that as well
+    respJson["hash"] = NewHash;
+    respJson["broadcast"] = false;
+  //  int64_t gen = respJson["generation"];
+  //  respJson["generation"] = ++gen;
+
+    string Content = respJson.dump();
+
+    GetPrivateProfileStringW(L"RMAPI", L"StorageRootPutPath", L"", Data, IB_SIZE, wIniFileName.c_str());
+    PutStorage(Data, nullptr, L"roothash", Content.c_str(), Content.size());
+    /*
+    {"broadcast":false,"hash":"44ac407c979f4ca9a0ce5b0c5b3a85cc826c664c3103a6a634865dda4429cf22","generation":1787579158542117}
+    */
+    return;
+}
+
+//////////////////////////////////////////////////////////////////
 
 void RMAPI::DocNode::SaveToCache(const wchar_t * CatalogCache) const
 {
-    WritePrivateProfileStringW(ID.c_str(), L"UUID", UUID.c_str(), CatalogCache);
-    WritePrivateProfileStringW(ID.c_str(), L"Parent", Parent.c_str(), CatalogCache);
-    WritePrivateProfileStringW(ID.c_str(), L"UnitName", UnitName.c_str(), CatalogCache);
-    WritePrivateProfileStringW(ID.c_str(), L"Gen", Gen.c_str(), CatalogCache);
+    WritePrivateProfileStringW(UUID.c_str(), L"Hash", Hash.c_str(), CatalogCache);
+    WritePrivateProfileStringW(UUID.c_str(), L"Parent", Parent.c_str(), CatalogCache);
+    WritePrivateProfileStringW(UUID.c_str(), L"UnitName", UnitName.c_str(), CatalogCache);
     switch (Type)
     {
     case NodeType::Directory:
-        WritePrivateProfileStringW(ID.c_str(), L"Type", L"D", CatalogCache);
+        WritePrivateProfileStringW(UUID.c_str(), L"Type", L"D", CatalogCache);
         break;
     case NodeType::FileData:
-        WritePrivateProfileStringW(ID.c_str(), L"Type", L"F", CatalogCache);
+        WritePrivateProfileStringW(UUID.c_str(), L"Type", L"F", CatalogCache);
         break;
     default:
-        WritePrivateProfileStringW(ID.c_str(), L"Type", L"?", CatalogCache);
+        WritePrivateProfileStringW(UUID.c_str(), L"Type", L"?", CatalogCache);
         break;
     }
 }
 
-bool RMAPI::DocNode::LoadFromCache(std::wstring sID,const wchar_t* CatalogCache)
+bool RMAPI::DocNode::LoadFromCache(std::wstring sID, const wchar_t* CatalogCache)
 {
-    ID = sID;
+    UUID = sID;
     wchar_t Buff[IB_SIZE];
-    GetPrivateProfileStringW(ID.c_str(), L"UUID", L"", Buff, IB_SIZE, CatalogCache);
+    GetPrivateProfileStringW(UUID.c_str(), L"Hash", L"", Buff, IB_SIZE, CatalogCache);
     if (wcsnlen(Buff, IB_SIZE) == 0) // Entry was not found, so default has been returned...
         return false;
-    UUID = wstring(Buff);
-    GetPrivateProfileStringW(ID.c_str(), L"Parent", L"", Buff, IB_SIZE, CatalogCache);
+    Hash = wstring(Buff);
+    GetPrivateProfileStringW(UUID.c_str(), L"Parent", L"", Buff, IB_SIZE, CatalogCache);
     Parent = wstring(Buff);
-    GetPrivateProfileStringW(ID.c_str(), L"UnitName", L"", Buff, IB_SIZE, CatalogCache);
+    GetPrivateProfileStringW(UUID.c_str(), L"UnitName", L"", Buff, IB_SIZE, CatalogCache);
     UnitName = wstring(Buff);
-    GetPrivateProfileStringW(ID.c_str(), L"Gen", L"", Buff, IB_SIZE, CatalogCache);
-    Gen = wstring(Buff);
-    GetPrivateProfileStringW(ID.c_str(), L"Type", L"", Buff, IB_SIZE, CatalogCache);
+    GetPrivateProfileStringW(UUID.c_str(), L"Type", L"", Buff, IB_SIZE, CatalogCache);
     switch (Buff[0])
     {
     case 'D':
@@ -1043,6 +987,11 @@ bool RMAPI::DocNode::LoadFromCache(std::wstring sID,const wchar_t* CatalogCache)
         break;
     }
     return true;
+}
+
+void RMAPI::DocNode::DeleteFromCache(const wchar_t* CatalogCache) const
+{
+    WritePrivateProfileStringW(UUID.c_str(), NULL, NULL, CatalogCache);
 }
 
     /*
@@ -1059,9 +1008,10 @@ https://internal.cloud.remarkable.com/sync/v3/files/de5d158da3f264c5bb339f22bf7e
 Header: rm-filename: root.docschema
 
 -->
-4
-0:.:86:620150930
+4                       Schema Version
+0:.:86:620150930        0, ., Count of entries, size of file
 250240707f951ddd6c859b9a163556d55837115f22d1e52fc997ca7abf329d39:0:0071ec9e-8eef-4ea6-b3e5-21260a0d5458:1:250
+                        Hash, Type, Doc ID, Subfiles(pages):size
 ae75ab0446349bf12e9bfbbbfd64cbb2082e5ff807c8039e63beabe4f7d7f80b:0:04f496fa-f4e1-407a-870c-e77a96302a21:3:154907
 4be3c6efea8cd90a8548ddb276d1a2fafc8c40bfe28783cd1688abb76c62b3a5:0:0594dd88-ed32-45c7-82f9-570b1d5a8d51:4:43253651
 1135a2c7199d477e8b5a0a349bfefc0c8b7db2d9fbd89132b2dc36e9e29aacf7:0:0640b6ff-a7d8-463d-bdea-5a9c1e451f68:6:754320

@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include "OneNoteToRM.h"
+
 /*******************************************************************************
 
 	GraphAPI.h
@@ -29,11 +31,11 @@
 typedef struct one_Section {
 	std::wstring Notebook;
 	std::wstring Section;
-	std::wstring ID;
+	std::wstring Hash;
 } ONE_Section;
 
 
-class GraphAPI
+class GraphAPI : public BaseAPI
 {
 private:
 	std::string TokenIniFileName;
@@ -62,9 +64,10 @@ public:
 	void DeletePage(const wchar_t * URLPath);
 
 	void ListSections(std::vector<ONE_Section>& Sections);
-	std::wstring ListDocsString();
 
+	// Override base class
 	bool EnsureConnected(void);
-	void SetLoginCode(const wchar_t* LoginCodeW);
+	void SetAuthCode(const wchar_t* DeviceCodeW);
+	std::wstring ListDocsString();
 };
 

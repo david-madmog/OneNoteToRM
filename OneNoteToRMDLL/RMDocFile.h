@@ -34,7 +34,7 @@
 
 using json = nlohmann::json;
 
-template<class PageType> class RMDocFile : public Drawable
+template<class PageType> class RMDocFile : public BaseDoc
 {
 private:
     RMAPI * API;
@@ -43,12 +43,14 @@ protected:
     void LoadMetaData(json J);
     void LoadContentData(json J);
     void LoadPageData(json J);
-    void* WriteMetaData(zip* archive, const char* docID);
-    void* WritePagesData(zip* archive, const char* docID);
-    void* WritePage(zip* archive, const char* docID, RMPage* Page);
+    //void* WriteMetaData(zip* archive, const char* docID);
+    //void* WritePagesData(zip* archive, const char* docID);
+    //void* WritePage(zip* archive, const char* docID, RMPage* Page);
+    std::string WriteMetaData();
+    std::string WriteContentData();
+    std::string WritePageData();
 
-    void WriteZipData(zip* archive, const char* docID, const char* ext, void* data, size_t data_size);
-
+    //void WriteZipData(zip* archive, const char* docID, const char* ext, void* data, size_t data_size);
     std::vector<PageType* > Pages;
 
     json LoadJSONData(zip_file* file, zip_uint64_t size);
@@ -56,15 +58,18 @@ public:
     RMDocFile(RMAPI * pAPI);
     ~RMDocFile();
 //    int ExtractRMsFromZip(const char* FileName);
-    int SaveRMsToZip(const char* FileName);
+//    int SaveRMsToZip(const char* FileName);
 
-    int LoadDoc(std::wstring ID, std::wstring UUID);
-
-    void DrawPage(void* DrawDetails, int page);
     void AddPage(PageType* Page) { Pages.push_back(Page); }
-    time_t LastEditTime();
 
     json Metadata;
-    std::string Name;
+
+    //Override base class
+    int LoadDoc(const std::string& Part1, const std::string& Part2);
+    int SaveDoc(const std::string& Part1, const std::string& Part2);
+    int LoadDoc(const wchar_t* SectionID);
+    int SaveDoc(const wchar_t* SectionID);
+    void DrawPage(void* DrawDetails, int page);
+    time_t LastEditTime();
 };
 

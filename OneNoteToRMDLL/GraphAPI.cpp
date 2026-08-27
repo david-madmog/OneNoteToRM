@@ -388,7 +388,7 @@ void GraphAPI::DeletePage(const wchar_t* URLPath)
 }
 
 
-void GraphAPI::SetLoginCode(const wchar_t* LoginCodeW) {
+void GraphAPI::SetAuthCode(const wchar_t* LoginCodeW) {
     //size_t i;
     //size_t Size = std::wcslen(LoginCodeW) + 1;
     //LoginCode = (char*)malloc(Size);
@@ -409,7 +409,7 @@ bool GraphAPI::EnsureConnected(void)
 }
 
 void GraphAPI::ListSections(std::vector<ONE_Section>& Sections) {
-    // Get full list of sections and get the ID of the one which matches our input
+    // Get full list of sections and get the Hash of the one which matches our input
     std::wstring* RespData = SendRequestAndAwaitResponse(L"me/onenote/sections?$select=id,displayName&$expand=parentNotebook($select=id,displayName)");
 
     if (!RespData)
@@ -444,7 +444,7 @@ void GraphAPI::ListSections(std::vector<ONE_Section>& Sections) {
                 SectionDets.Notebook = tmp.str();
                 tmp.str(L"");
                 tmp << Section["id"].get< std::string>().c_str();
-                SectionDets.ID = tmp.str();
+                SectionDets.Hash = tmp.str();
             
                 Sections.push_back(SectionDets);
             }
@@ -458,7 +458,7 @@ std::wstring GraphAPI::ListDocsString() {
       
     ListSections(Sections);
     for (auto& Section : Sections) {
-        Result << Section.Notebook << L" - " << Section.Section << L"|" << Section.ID << std::endl;
+        Result << Section.Notebook << L" - " << Section.Section << L"|" << Section.Hash << std::endl;
     }
     return Result.str();
 }

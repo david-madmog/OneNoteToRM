@@ -14,22 +14,27 @@
 #pragma comment(lib, "rpcrt4.lib")  // UuidCreate - Minimum supported OS Win 2000
 
 #include "RMDocFile.h"
+
+#include "SHA256.h"
+
 using namespace std;
 
 // We need to include possible types so compiler knows what instantiations we need
 #include "WindowRMPage.h"
-template int RMDocFile<WindowRMPage>::LoadDoc(std::wstring ID, std::wstring UUID);
-//template int RMDocFile<WindowRMPage>::ExtractRMsFromZip(const char* FileName);
-template int RMDocFile<WindowRMPage>::SaveRMsToZip(const char* FileName);
+template int RMDocFile<WindowRMPage>::LoadDoc(const std::string& Hash, const std::string& UUID);
+template int RMDocFile<WindowRMPage>::SaveDoc(const std::string& Hash, const std::string& UUID);
+template int RMDocFile<WindowRMPage>::LoadDoc(const wchar_t* SectionID);
+template int RMDocFile<WindowRMPage>::SaveDoc(const wchar_t* SectionID);
 template void RMDocFile<WindowRMPage>::DrawPage(void* DrawDetails, int Page);
 template time_t RMDocFile<WindowRMPage>::LastEditTime();
 template RMDocFile<WindowRMPage>::RMDocFile(RMAPI* pAPI);
 template RMDocFile<WindowRMPage>::~RMDocFile();
 
 #include "ToOneRMPage.h"
-template int RMDocFile<ToOneRMPage>::LoadDoc(std::wstring ID, std::wstring UUID);
-//template int RMDocFile<ToOneRMPage>::ExtractRMsFromZip(const char* FileName);
-template int RMDocFile<ToOneRMPage>::SaveRMsToZip(const char* FileName);
+template int RMDocFile<ToOneRMPage>::LoadDoc(const std::string& Hash, const std::string& UUID);
+template int RMDocFile<ToOneRMPage>::SaveDoc(const std::string& Hash, const std::string& UUID);
+template int RMDocFile<WindowRMPage>::LoadDoc(const wchar_t* SectionID);
+template int RMDocFile<WindowRMPage>::SaveDoc(const wchar_t* SectionID);
 template void RMDocFile<ToOneRMPage>::DrawPage(void* DrawDetails, int Page);
 template time_t RMDocFile<ToOneRMPage>::LastEditTime();
 template RMDocFile<ToOneRMPage>::RMDocFile(RMAPI* pAPI);
@@ -47,11 +52,14 @@ template<class PageType> RMDocFile<PageType>::~RMDocFile() {
     Pages.clear();
 }
 
-template<class PageType> int RMDocFile<PageType>::LoadDoc(std::wstring ID, std::wstring UUID)
+template<class PageType> int RMDocFile<PageType>::LoadDoc(const std::string& Part1, const std::string& Part2)
 { 
+    wstring Hash(s2ws(Part1));
+    wstring UUID(s2ws(Part2));
+
     UUID.append(L".docSchema");
 
-    wstring* NodeData = API->GetDataStorage(ID.c_str(), UUID.c_str());
+    wstring* NodeData = API->GetDataStorage(Hash.c_str(), UUID.c_str());
     if (!NodeData)
         return 0;
 
@@ -60,7 +68,7 @@ template<class PageType> int RMDocFile<PageType>::LoadDoc(std::wstring ID, std::
     wstring line;
     while (getline(ss, line))
     {
-        // The first field is the ID we want to query, the third id the UUID (including it's extension)
+        // The first field is the Hash we want to query, the third id the UUID (including it's extension)
         //c81c44980d2a67b170cab01e8a617e14571d8cfa8015bc9b3c454ddb369e50bb:0:bd924c5d-1e0c-40af-a915-f1931a1c9524.content:0:59659
 
         size_t i1, i2, i3; // used for string splitting index
@@ -95,8 +103,8 @@ template<class PageType> int RMDocFile<PageType>::LoadDoc(std::wstring ID, std::
                         if (lastnamesegment == NULL)
                             continue;
 
-                        std::string ID(lastnamesegment);
-                        PageType* Page = new PageType(ID);
+                        std::string Hash(lastnamesegment);
+                        PageType* Page = new PageType(Hash);
                         Pages.push_back(Page);
                         Page->Load(DocData);
                     }
@@ -149,114 +157,6 @@ template<class PageType> int RMDocFile<PageType>::LoadDoc(std::wstring ID, std::
     return (int)Pages.size();
 }
 
-
-//template<class PageType> int RMDocFile<PageType>::ExtractRMsFromZip(const char* FileName)
-//{
-//    int err;
-//    zip* archive = zip_open(FileName, ZIP_RDONLY, & err);
-//    
-//    if (!archive)
-//    {
-//        zip_error_t Zerr;
-//        zip_error_init_with_code(&Zerr, err);
-//        std::wostringstream LB;
-//        LB << L"Unable to open rmdoc: error code " << err << L": " << zip_error_strerror(&Zerr);
-//        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
-//        zip_error_fini(&Zerr);
-//        return 0;
-//    }
-//
-//    // Step 2: Get the total number of files in the zip
-//    // archive
-//    zip_int64_t numFiles = zip_get_num_entries(archive, 0);
-//
-//    // Step 3: Loop through each file and print its contents
-//    for (int ZipIndex = 0; ZipIndex < numFiles; ++ZipIndex) {
-//        struct zip_stat fileInfo;
-//        zip_stat_init(&fileInfo);
-//
-//        if (zip_stat_index(archive, ZipIndex, 0, &fileInfo) == 0) {
-//            // see what sort of file it is, and if we want to try and parse it
-//            DoLog(typeid(*this).name(), fileInfo.name, LOG_DEBUG);
-//            char * strtok_context = NULL;
-//            char* namebody = strtok_s((char*)fileInfo.name, ".", &strtok_context);
-//            char* ext = strtok_s(NULL, ".", &strtok_context);
-//                        
-//            if (ext) {
-//                if (!strcmp(ext, "rm"))
-//                {
-//                    // Find the relevant page
-//                    char* strtok_context_2 = NULL;
-//                    char* namesegment = strtok_s((char*)fileInfo.name, "/", &strtok_context_2);
-//                    char* lastnamesegment = namesegment;
-//                    while (namesegment) {
-//                        lastnamesegment = namesegment;
-//                        namesegment = strtok_s(NULL, "/", &strtok_context_2);
-//                    }
-//                    if (lastnamesegment == NULL)
-//                        continue;
-//
-//                    std::string ID(lastnamesegment);
-//                    bool bFound = false;
-//                    for (PageType* Page : Pages)
-//                    {
-//                        if (*Page == ID) {
-//                            Page->Load(zip_fopen_index(archive, ZipIndex, 0));
-//                            bFound = true;
-//                        }
-//                    }
-//                    if (!bFound) {
-//                        PageType* Page = new PageType(ID);
-//                        Pages.push_back(Page);
-//                        Page->Load(zip_fopen_index(archive, ZipIndex, 0));
-//                    }
-//                }
-//                else if (!strcmp(ext, "metadata"))
-//                {
-//                    json J = LoadJSONData(zip_fopen_index(archive, ZipIndex, 0), fileInfo.size);
-//                    LoadMetaData(J);
-//                }
-//                else if (!strcmp(ext, "content"))
-//                {
-//                    json J = LoadJSONData(zip_fopen_index(archive, ZipIndex, 0), fileInfo.size);
-//                    LoadContentData(J);
-//                }
-//                else if (!strcmp(ext, "pagedata"))
-//                    ; // We have nothing to do with this for now... don't know what it is!
-//                else {
-//                    std::wostringstream LB;
-//                    LB << L"Unrecognised file type in Zip: " << ext ;
-//                    DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
-//                }
-//            }
-//
-//        }
-//        else {
-//            zip_error_t * Zerr = zip_get_error(archive);
-////            zip_error_init_with_code(&Zerr, archive->);
-//            std::wostringstream LB;
-//            LB << L"Unable to read zip for file index " << ZipIndex << L": " << zip_error_strerror(Zerr);
-//            DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
-// //           zip_error_fini(&Zerr);
-//        }
-//    }
-//
-//    // Close the zip archive
-//    zip_close(archive);
-//    DoLog(typeid(*this).name(), "Done extract from Zip", LOG_DEBUG);
-//
-//    int i = 1;
-//    for (auto&Page : Pages) 
-//    {
-//        std::ostringstream PageName;
-////        PageName << Name << " - Page " << i++;
-//        PageName << "Page " << i++;
-//        Page->PageTitle = PageName.str();
-//    }
-//
-//    return (int)Pages.size();
-//}
-
 template<class PageType> void RMDocFile<PageType>::LoadMetaData(json J) {
     Metadata = J;
 
@@ -269,6 +169,7 @@ template<class PageType> void RMDocFile<PageType>::LoadMetaData(json J) {
         DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
     }
 
+    /*
     //.metadata
     //{
     //    "createdTime": "0",
@@ -284,7 +185,7 @@ template<class PageType> void RMDocFile<PageType>::LoadMetaData(json J) {
     //        "type" : "DocumentType",
     //        "visibleName" : "Jobs"
     //}
-
+    */
 }
 
 template<class PageType> void RMDocFile<PageType>::LoadPageData(json J) {
@@ -312,19 +213,7 @@ template<class PageType> void RMDocFile<PageType>::LoadContentData(json J) {
     LB << L"Content:" << C_Pages.size() << L" pages listed";
     DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
 
-    // Now create a page object for each one...
-    // Actually, no need...
-    //for (json C_Page : C_Pages) {
-    //    std::string ID;
-    //    if (C_Page.is_string()) {
-    //        ID = C_Page.get<std::string>();
-    //    }
-    //    else {
-    //        ID = C_Page["id"];
-    //    }
-    //    PageType* Page = new PageType(ID);
-    //    Pages.push_back(Page);
-    //    /*
+        /*
     //    .content
     //    {
     //        "cPages": {
@@ -448,105 +337,181 @@ template<class PageType> void RMDocFile<PageType>::LoadContentData(json J) {
     //        "zoomMode": "bestFit"
     //    }
 
-    //    */
-    //}
+        */
 }
-
-
-//template<class PageType> json RMDocFile<PageType>::LoadJSONData(zip_file* file, zip_uint64_t size)
-//{
-//    zip_int64_t NumRead;
-//    json obj;
-//    if (file) {
-//        char* Buffer = (char*)calloc(size + 1, sizeof(char));
-//
-//        if (Buffer)
-//        {
-//            NumRead = zip_fread(file, Buffer, size);
-//
-//            try {
-//                obj = json::parse(std::string(Buffer));
-//            }
-//            catch (exception ex)
-//            {
-//                DoLog(typeid(*this).name(), ex.what(), LOG_ERROR);
-//            }
-//        }
-//    }
-//    return obj;
-//}
-
-
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-template<class PageType> int RMDocFile<PageType>::SaveRMsToZip(const char* FileName)
+
+template<class PageType> int RMDocFile<PageType>::SaveDoc(const std::string& Part1, const std::string& Part2)
 {
-    zip_error_t Zerr;
-    int err;
-    zip* archive = zip_open(FileName, ZIP_CREATE | ZIP_TRUNCATE, &err);
-    
+    wstring Hash(s2ws(Part1));
+    wstring UUID(s2ws(Part2));
 
-    UUID uuid;
-    if (UuidCreate(&uuid) != RPC_S_OK)
-        return 0;
-    char* docID = nullptr;
-    if( UuidToStringA(&uuid, (RPC_CSTR*)&docID) != RPC_S_OK)
-        return 0;
+    vector<RMAPI::DocNode> DocParts;
+    // Put all the doc parts
+    // HASH comes from contents of the doc
+    // RMFilename is ID.type
+    //    ID.content
+    //    ID.metadata
+    //    ID.pagedata
+    // each page: 
+    // RMFileName is DocID/PageID.rm
+    // ID.Docschema containing hashes and "content-length" previously used for each part (type 3)
+    // root.docSchema with updated data: New hash for doc ID replacing old one
 
-    if (!archive)
+    RMAPI::DocNode Node;
+    std::string Content;
+
+    Node.UUID = UUID;
+    Node.LoadFromCache(UUID, API->CatalogCache.c_str());
+    this->Name = ws2s(Node.UnitName);
+
+    Node.UUID.append(L".content");
+    Content = WriteContentData();
+    Node.Hash = s2ws(sha256(Content));
+    Node.Len = API->PutDataStorage(Node.Hash.c_str(), Node.UUID.c_str(), Content.c_str());
+    if (Node.Len == 0)
+        return 0;
+    DocParts.push_back(Node);
+
+    Node.UUID = UUID;
+    Node.UUID.append(L".metadata");
+    Content = WriteMetaData();
+    Node.Hash = s2ws(sha256(Content));
+    Node.Len = API->PutDataStorage(Node.Hash.c_str(), Node.UUID.c_str(), Content.c_str());
+    if (Node.Len == 0)
+        return 0;
+    DocParts.push_back(Node);
+
+    Node.UUID = UUID;
+    Node.UUID.append(L".pagedata");
+    Content = WritePageData();
+    Node.Hash = s2ws(sha256(Content));
+    Node.Len = API->PutDataStorage(Node.Hash.c_str(), Node.UUID.c_str(), Content.c_str());
+    if (Node.Len == 0)
+        return 0;
+    DocParts.push_back(Node);
+
+    // We must include the pages in ID order. Note the wrinkle that we're sorting pointers to pages, not the pages
+    //      themselves, so we need a helper funcion to dereference
+    std::sort(Pages.begin(), Pages.end(), RMPagePointerComp);   
+
+    for (RMPage* Page : Pages) {
+        Node.UUID = UUID;
+        Node.UUID.append(L"/");
+        Node.UUID.append(s2ws(Page->m_id));
+        Node.UUID.append(L".rm");
+        size_t BuffSize;
+        char* PageData = (char*)Page->Write(&BuffSize);
+
+        Node.Hash = s2ws(sha256(PageData, BuffSize));
+        Node.Len = API->PutDataStorage(Node.Hash.c_str(), Node.UUID.c_str(), PageData, BuffSize);
+        if (Node.Len == 0)
+            return 0;
+        DocParts.push_back(Node);
+        free(PageData);
+    }
+
+    // So, for the DocSchema, the hash is not the SHA256 of the doc itself (as it is for everything else)
+    //  but rather the SAH256 of the hashes of each of the parts in the doc
+    ostringstream DocSchema("");
+    char * HashString = new char[32 * DocParts.size()];
+    int HSI = 0;
+    int64_t TotalLen = 0;
+    DocSchema << "3\n";
+    for (RMAPI::DocNode& Part : DocParts)
     {
-        zip_error_t Zerr;
-        zip_error_init_with_code(&Zerr, err);
-        std::wostringstream LB;
-        LB << L"Unable to open rmdoc: error code " << err << L": " << zip_error_strerror(&Zerr);
-        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
-        zip_error_fini(&Zerr);
+        //c81c44980d2a67b170cab01e8a617e14571d8cfa8015bc9b3c454ddb369e50bb:0:bd924c5d-1e0c-40af-a915-f1931a1c9524.content:0:59659
+        DocSchema << ws2s(Part.Hash) << ":0:" << ws2s(Part.UUID) << ":0:" << Part.Len << "\n";
+        for (int i = 0; i<32; i++)
+            HashString[HSI++] = stoi(Part.Hash.substr(i*2, 2), nullptr, 16);
+//        Node.Hash = s2ws(sha256((char*)HashString, 32, false));
+        TotalLen += Part.Len;
+    }
+
+    Node.UUID = UUID;
+    wstring RMfilename = UUID;
+    RMfilename.append(L".docSchema");
+    Node.Hash = s2ws(sha256(HashString, 32 * DocParts.size()));
+    delete[] HashString;
+    Node.Len = API->PutDataStorage(Node.Hash.c_str(), RMfilename.c_str(), DocSchema.str().c_str());
+    if (Node.Len == 0)
         return 0;
-    }
+    Node.Len = TotalLen;
 
-    zip_set_archive_flag(archive, ZIP_AFL_CREATE_OR_KEEP_FILE_FOR_EMPTY_ARCHIVE, TRUE);
-    // Buffer of data has to exist until we close the file, so we hold the memory refernces for now and free it later
-    vector<void*> Buffers;
-    Buffers.push_back(WriteMetaData(archive, (const char*)docID));
-    Buffers.push_back(WritePagesData(archive, (const char*)docID));
-
-
-    for (auto Page : Pages) {
-        Buffers.push_back(WritePage(archive, (const char*)docID, Page));
-    }
-
-    // Close the zip archive
-    if (zip_close(archive))
-    {
-        Zerr = * zip_get_error(archive);
-        std::wostringstream LB;
-        LB << L"Unable to open rmdoc: error code " << Zerr.zip_err << L": " << zip_error_strerror(&Zerr);
-        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
-    }
-    DoLog(typeid(*this).name(), "Done Write to Zip", LOG_DEBUG);
-
-    RpcStringFreeA((RPC_CSTR*)&docID);
-    for (void* Buff : Buffers)
-        free(Buff);
+    API->UpdateRootDocSchema(Node, (int)Pages.size());
 
     return (int)Pages.size();
-
 }
 
-template<class PageType> void * RMDocFile<PageType>::WriteMetaData(zip* archive, const char * docID) {
+template<class PageType> int RMDocFile<PageType>::LoadDoc(const wchar_t* SectionID) { return 0; }
+
+
+template<class PageType> int RMDocFile<PageType>::SaveDoc(const wchar_t* SectionID) {
+//    API->RecoverRootDocSchema();
+    
+    return 0; }
+
+
+//template<class PageType> int RMDocFile<PageType>::SaveRMsToZip(const char* FileName)
+    //zip_error_t Zerr;
+    //int err;
+    //zip* archive = zip_open(FileName, ZIP_CREATE | ZIP_TRUNCATE, &err);
+    //
+
+    //UUID uuid;
+    //if (UuidCreate(&uuid) != RPC_S_OK)
+    //    return 0;
+    //char* docID = nullptr;
+    //if( UuidToStringA(&uuid, (RPC_CSTR*)&docID) != RPC_S_OK)
+    //    return 0;
+
+    //if (!archive)
+    //{
+    //    zip_error_t Zerr;
+    //    zip_error_init_with_code(&Zerr, err);
+    //    std::wostringstream LB;
+    //    LB << L"Unable to open rmdoc: error code " << err << L": " << zip_error_strerror(&Zerr);
+    //    DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
+    //    zip_error_fini(&Zerr);
+    //    return 0;
+    //}
+
+    //zip_set_archive_flag(archive, ZIP_AFL_CREATE_OR_KEEP_FILE_FOR_EMPTY_ARCHIVE, TRUE);
+    //// Buffer of data has to exist until we close the file, so we hold the memory refernces for now and free it later
+    //vector<void*> Buffers;
+    //Buffers.push_back(WriteMetaData(archive, (const char*)docID));
+    //Buffers.push_back(WritePagesData(archive, (const char*)docID));
+
+
+    //for (auto Page : Pages) {
+    //    Buffers.push_back(WritePage(archive, (const char*)docID, Page));
+    //}
+
+    //// Close the zip archive
+    //if (zip_close(archive))
+    //{
+    //    Zerr = * zip_get_error(archive);
+    //    std::wostringstream LB;
+    //    LB << L"Unable to open rmdoc: error code " << Zerr.zip_err << L": " << zip_error_strerror(&Zerr);
+    //    DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
+    //}
+    //DoLog(typeid(*this).name(), "Done Write to Zip", LOG_DEBUG);
+
+    //RpcStringFreeA((RPC_CSTR*)&docID);
+    //for (void* Buff : Buffers)
+    //    free(Buff);
+
+    //return (int)Pages.size();
+
+template<class PageType> string RMDocFile<PageType>::WriteMetaData() {
 
     Metadata["visibleName"] = Name;
     std::string MD{ Metadata.dump() };
 
-    void* Buff = malloc(MD.size() + 1);
-    if (Buff)
-    {
-        strcpy_s((char*)Buff, MD.size() + 1, MD.c_str());
-        WriteZipData(archive, docID, ".metadata", Buff, MD.size());
-    }
-    return Buff;
+    return MD;
 }
 
 struct JsonPageEntry {
@@ -554,7 +519,7 @@ struct JsonPageEntry {
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(JsonPageEntry, id)
 
-template<class PageType> void* RMDocFile<PageType>::WritePagesData(zip* archive, const char* docID) {
+template<class PageType> string RMDocFile<PageType>::WriteContentData() {
     std::vector<JsonPageEntry> JsonPageEntries;
 
     for (auto Page : Pages) {
@@ -564,15 +529,15 @@ template<class PageType> void* RMDocFile<PageType>::WritePagesData(zip* archive,
 
     json content{ { "cPages", {{"pages", JsonPageEntries}}} };
     std::string CN{ content.dump() };
-    void* Buff = malloc(CN.size() + 1);
-    strcpy_s((char*)Buff, CN.size()+1, CN.c_str());
-    WriteZipData(archive, docID, ".content", Buff, CN.size());
-    return Buff;
+    return CN;
 }
 
-template<class PageType> void * RMDocFile<PageType>::WritePage(zip* archive, const char* docID, RMPage * Page) {
-    size_t BuffSize;
-    void* PageBuffer = Page->Write(&BuffSize);
+template<class PageType> string RMDocFile<PageType>::WritePageData() {
+    return "Blank\nBlank\n";
+}
+
+/*
+template<class PageType> char * RMDocFile<PageType>::WritePage(RMPage * Page) {
 
     size_t FNSize = strlen(docID) + strlen(Page->m_id.c_str()) +2;
     char* FileName = (char*)malloc(FNSize);
@@ -610,7 +575,7 @@ template<class PageType> void RMDocFile<PageType>::WriteZipData(zip* archive, co
         }
     }
 }
-
+*/
 
 template<class PageType> void RMDocFile<PageType>::DrawPage(void* DrawDetails, int Page)
 {

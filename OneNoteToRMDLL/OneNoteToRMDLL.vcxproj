@@ -141,6 +141,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="base64.hpp" />
     <ClInclude Include="ConversionConstants.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="GraphAPI.h" />
@@ -156,6 +157,7 @@
     <ClInclude Include="RMBlockTypes.h" />
     <ClInclude Include="RMDocFile.h" />
     <ClInclude Include="RMPage.h" />
+    <ClInclude Include="SHA256.h" />
     <ClInclude Include="ToOneRMPage.h" />
     <ClInclude Include="ToRMOnePage.h" />
     <ClInclude Include="WindowONEPage.h" />

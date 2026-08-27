@@ -41,6 +41,7 @@ public:
     virtual ~RMPage();
     bool operator== (const RMPage& b) { return m_id == b.m_id; };
     bool operator== (const std::string& b) { return m_id == b; };
+    bool operator< (const RMPage& b) { return m_id < b.m_id; };
     void Load(zip_file* file);
     void Load(concurrency::streams::istream Doc);
     void * Write(size_t* BuffSize);
@@ -53,3 +54,5 @@ public:
 
     friend class ToRMOnePage;
 };
+
+inline bool RMPagePointerComp(RMPage* a, RMPage* b) { return (*a < *b); }

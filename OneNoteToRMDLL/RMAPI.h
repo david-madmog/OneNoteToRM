@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <cpprest/filestream.h>
 
+#include "OneNoteToRM.h"
+
 /*******************************************************************************
 
 	RMAPI.h
@@ -24,7 +26,7 @@
 constexpr auto Sep = L"\\";
 
 
-class RMAPI
+class RMAPI : public BaseAPI
 {
 private:
 	static std::string exec(const char* cmd); 
@@ -32,8 +34,6 @@ private:
 
 	std::string TokenIniFileName;
 	std::wstring wIniFileName;
-	std::wstring CatalogCache;
-	long long LastGeneration = 0;
 
 	char* DeviceToken = NULL;
 	std::wstring* UserToken = NULL;
@@ -49,6 +49,7 @@ private:
 	int GetUserToken(char* DeviceToken);
 	//void GetServicePath();
 
+public:
 	enum NodeType {
 		Unknown,
 		Directory,
@@ -58,30 +59,34 @@ private:
 	};
 
 	typedef struct sDocNode {
-		std::wstring ID = L"";
+		std::wstring Hash = L"";
 		std::wstring UUID=L"";
 		NodeType Type = NodeType::Unknown;
 		std::wstring Parent=L"";
 		std::wstring UnitName=L"";
 		std::wstring Path=L"";
-		std::wstring Gen = L"";
+		int64_t Len = 0;
 
 		friend std::wostream& operator<<(std::wostream& os, const sDocNode RHS)
 		{
 			if (RHS.Path.empty())
 				os << RHS.UnitName << L"(" << RHS.UUID << L")";
 			else
-				os << RHS.Path << L"|" << RHS.ID << L"," << RHS.UUID;
+				os << RHS.Path << L"|" << RHS.Hash << L"/" << RHS.UUID;
 //				os << RHS.Path;
 			return os;
 		}
 
 	public: 
 		void SaveToCache(const wchar_t* CatalogCache) const;
-		bool LoadFromCache(std::wstring ID, const wchar_t* CatalogCache);
+		bool LoadFromCache(std::wstring Hash, const wchar_t* CatalogCache);
+		void DeleteFromCache(const wchar_t* CatalogCache) const;
 	} DocNode;
+	std::wstring CatalogCache;
 
+private:
 	std::wstring* GetStorage(const wchar_t* path, const wchar_t* node, const wchar_t* RMFilename);
+	int64_t PutStorage(const wchar_t* path, const wchar_t* node, const wchar_t* RMFilename, const char* BodyData, size_t DataLen);
 
 	std::wstring RecursePath(std::unordered_map<std::wstring, DocNode>& Nodes, DocNode Node);
 	void LoadRootNodes(std::unordered_map<std::wstring, DocNode>& Nodes, std::wstring& NodeID);
@@ -93,17 +98,21 @@ public:
 	RMAPI();
 	~RMAPI();
 
-	bool EnsureConnected(void);
-	void SetDeviceCode(const wchar_t* DeviceCodeW);
-
-	static void GetDoc(std::string Name); // Old (RMAPI) version
+	//static void GetDoc(std::string Name); // Old (RMAPI) version
 	//	static void ListDocsStringToVector(std::string ListDocsString, std::vector<std::wstring>& Docs);
-	std::wstring ListDocsString();
 	std::wstring* GetDataStorage(const wchar_t* node, const wchar_t* RMFilename);
+	int64_t PutDataStorage(const wchar_t* hash, const wchar_t* RMFilename, const char* BodyData);
+	int64_t PutDataStorage(const wchar_t* hash, const wchar_t* RMFilename, const char* BodyData, size_t DataLen);
 	concurrency::streams::istream GetPage(const wchar_t* node, const wchar_t* RMFilename);
 
+	void UpdateRootDocSchema(DocNode& UpdatedNode, int NumPages);
+	void RecoverRootDocSchema();
 
-	static void SaveDoc(std::string Name, std::string path);
-	static void CopyDoc(std::string Name);
+	//static void CopyDoc(std::string Name);
+
+	//Override base class
+	bool EnsureConnected(void);
+	void SetAuthCode(const wchar_t* DeviceCodeW);
+	std::wstring ListDocsString();
 };
 

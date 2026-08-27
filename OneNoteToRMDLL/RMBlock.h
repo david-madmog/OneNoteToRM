@@ -58,7 +58,7 @@ struct incorrect_tag : public std::exception
 
 enum TagTypeEnum {
 	//Tag type representing the type of following data."
-	ID = 0x0F,
+	Hash = 0x0F,
 	Length4 = 0x0C,
 	Byte8 = 0x08,
 	Byte4 = 0x04,
@@ -187,20 +187,20 @@ typedef struct rm_LWW_Float {
 
 class RMBlock {
 protected:
-	static void* ReadTaggedData(RM_LWW_ID * ID, void* Buff_Ptr, int index);
-	static void* ReadTaggedData(RM_LWW_Bool* ID, void* Buff_Ptr, int index);
-	static void* ReadTaggedData(RM_LWW_Byte* ID, void* Buff_Ptr, int index);
-	static void* ReadTaggedData(RM_LWW_String* ID, void* Buff_Ptr, int index);
-	static void* ReadTaggedData(RM_LWW_Float* ID, void* Buff_Ptr, int index);
-	static void* ReadTaggedData(RM_CRDT_ID* ID, void* Buff_Ptr, int index);
+	static void* ReadTaggedData(RM_LWW_ID * Hash, void* Buff_Ptr, int index);
+	static void* ReadTaggedData(RM_LWW_Bool* Hash, void* Buff_Ptr, int index);
+	static void* ReadTaggedData(RM_LWW_Byte* Hash, void* Buff_Ptr, int index);
+	static void* ReadTaggedData(RM_LWW_String* Hash, void* Buff_Ptr, int index);
+	static void* ReadTaggedData(RM_LWW_Float* Hash, void* Buff_Ptr, int index);
+	static void* ReadTaggedData(RM_CRDT_ID* Hash, void* Buff_Ptr, int index);
 	static void* ReadTaggedData(RM_BOOL* Bool, void* Buff_Ptr, int index);
 	static void* ReadTaggedData(UINT32* data, void* Buff_Ptr, int index);
 	static void* ReadTaggedData(FLOAT* data, void* Buff_Ptr, int index);
 	static void* ReadTaggedData(DOUBLE* data, void* Buff_Ptr, int index);
 
-	static void* WriteTaggedData(RM_CRDT_ID* ID, void* Buff_Ptr, int index);
+	static void* WriteTaggedData(RM_CRDT_ID* Hash, void* Buff_Ptr, int index);
 	static void* WriteTaggedData(RM_BOOL* Bool, void* Buff_Ptr, int index);
-	static void* WriteTaggedData(RM_LWW_ID* ID, void* Buff_Ptr, int index);
+	static void* WriteTaggedData(RM_LWW_ID* Hash, void* Buff_Ptr, int index);
 	static void* WriteTaggedData(RM_LWW_Bool* data, void* Buff_Ptr, int index);
 	static void* WriteTaggedData(RM_LWW_Byte* data, void* Buff_Ptr, int index);
 	static void* WriteTaggedData(RM_LWW_String* data, void* Buff_Ptr, int index);
@@ -224,7 +224,7 @@ protected:
 	static void* WriteIntPair(UINT32* Ints, void* Buff_Ptr, int index);
 	static void* WriteVarUINT(int data, void* Buff_Ptr);
 	static size_t VarUINTLen(int data);
-//	static size_t RM_CRDT_Len(const rm_CRDT_ID& ID);
+//	static size_t RM_CRDT_Len(const rm_CRDT_ID& Hash);
 
 	static void* WriteTag(void* Buff_Ptr, int index, TagTypeEnum TagType);
 	static void* WriteString(RM_STRING* data, void* Buff_Ptr, int index);
@@ -236,7 +236,7 @@ protected:
 	static void* Read(UINT16* data, void* Buff_Ptr, int count = 1);
 	static void* Read(FLOAT* data, void* Buff_Ptr, int count = 1);
 	static void* Read(DOUBLE* data, void* Buff_Ptr, int count = 1);
-	static void* Read(RM_CRDT_ID* ID, void* Buff_Ptr, int count = 1);
+	static void* Read(RM_CRDT_ID* Hash, void* Buff_Ptr, int count = 1);
 
 	static void* ReadTextItem(struct rm_CRDT_SEQ_ITEM<RM_STRING>* data, void* Buff_Ptr);
 
@@ -245,7 +245,7 @@ protected:
 	static void* Write(UINT32* data, void* Buff_Ptr, int count = 1);
 	static void* Write(FLOAT* data, void* Buff_Ptr, int count = 1);
 	static void* Write(DOUBLE* data, void* Buff_Ptr, int count = 1);
-	static void* Write(RM_CRDT_ID* ID, void* Buff_Ptr, int count = 1);
+	static void* Write(RM_CRDT_ID* Hash, void* Buff_Ptr, int count = 1);
 
 	static void* WriteTextItem(rm_CRDT_SEQ_ITEM<RM_STRING>* data, void* Buff_Ptr);
 

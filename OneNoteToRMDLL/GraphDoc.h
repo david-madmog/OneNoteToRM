@@ -18,7 +18,7 @@
 ********************************************************************************/
 
 
-template<class PageType> class GraphDoc : public Drawable
+template<class PageType> class GraphDoc : public BaseDoc
 {
 private:
 	void DeletePages(const wchar_t* SectionID);
@@ -34,16 +34,14 @@ public:
 	GraphDoc(GraphAPI* pAPI);
 	~GraphDoc();
 
-	int LoadDoc(const std::string& NotebookName, const std::string& SectionName);
-	int SaveDoc(const std::string& NotebookName, const std::string& SectionName);
+	void AddPage(PageType* Page) { Pages.push_back(Page); }
+
+	//Override base class
+	int LoadDoc(const std::string& Part1, const std::string& Part2);
+	int SaveDoc(const std::string& Part1, const std::string& Part2);
 	int LoadDoc(const wchar_t* SectionID);
 	int SaveDoc(const wchar_t* SectionID);
-
 	void DrawPage(void* DrawDetails, int page);
-
-	void AddPage(PageType* Page) { Pages.push_back(Page); }
 	time_t LastEditTime();
-
-	std::string Name = "";
 };
 

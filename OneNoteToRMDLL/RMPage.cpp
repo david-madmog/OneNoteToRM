@@ -26,8 +26,8 @@ RMPage::RMPage()
 {
 }
 
-RMPage::RMPage(std::string ID) {
-    m_id = ID;
+RMPage::RMPage(std::string Hash) {
+    m_id = Hash;
 }
 
 RMPage::~RMPage() {

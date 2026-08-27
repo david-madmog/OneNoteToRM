@@ -31,9 +31,9 @@ These blocks/classes can be lumped into the following categories:
 
 * Hierarchy/tree organisation
 	- TreeNode (AKA "Layer Names") - These are parents (or root ancestors) of scene items. 
-		Each has an Anchor ID which refers to one of the text sequences in the root text block
-	- SceneTree (AKA "Layer Definition") - These seem to mirror the tree nodes (same ID's)
-	- SceneGroupItem - Also inherits from "Item Block", so has a "Parent ID", can act as an 
+		Each has an Anchor Hash which refers to one of the text sequences in the root text block
+	- SceneTree (AKA "Layer Definition") - These seem to mirror the tree nodes (same Hash's)
+	- SceneGroupItem - Also inherits from "Item Block", so has a "Parent Hash", can act as an 
 		intermediate node between lines etc. and the tree nodes.
 
 * Blocks containing actual stuff to draw/render
@@ -41,13 +41,13 @@ These blocks/classes can be lumped into the following categories:
 	- SceneGlyphItem (Never actually seen one of these, but Rick seems to think they exist)
 	- SceneLineItem (Most of the actual stuff)
 	- SceneTextItem... TO DO
-  These all inherit from "Item Block", which means that as well as the item ID, they have a 
-"Parent ID", which represents the grouping item and ultimately determines where they will be 
+  These all inherit from "Item Block", which means that as well as the item Hash, they have a 
+"Parent Hash", which represents the grouping item and ultimately determines where they will be 
 drawn on the page.
 
 * Root text block
   This seems to contain the actual text on the page. It consists of a number of strings, and 
-  an associated "start ID", then subsequent anchor ID's refer to subsequent characters in the 
+  an associated "start Hash", then subsequent anchor Hash's refer to subsequent characters in the 
   string which are the base points of the referred items
 
 

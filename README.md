@@ -3,8 +3,7 @@
 
 OneNote to RM is a MS Windows application that synchronises ReMarkable documents to and from Microsoft OneNote.
 
-It uses the ReMarkable cloud api (through use of the excellent [RMAPI](https://github.com/ddvk/rmapi) application) to access  ReMarkable 
-documents and the [Microsoft Graph API](https://learn.microsoft.com/en-us/graph/overview) to manage OneNote douments in OneDrive.
+It uses the ReMarkable cloud api to access  ReMarkable documents and the [Microsoft Graph API](https://learn.microsoft.com/en-us/graph/overview) to manage OneNote douments in OneDrive.
 
 It is intended to allow documents to be edited on either the ReMarkable device or in OneNote and then the document can be sent to the other
 environment for further editing. Note, unlike the native RM integrations, it actually translates the native lines formats rather than converting to
@@ -85,6 +84,12 @@ The format of ReMarkable .rmdoc files is not officially documented. I made heavy
 - Rick Lupton's RMScene - <https://github.com/ricklupton/rmscene/tree/main>
 - ddvk's work - <https://github.com/ddvk>
 - Excustic's further development of RMC, including the InkML exporter - <https://github.com/Excustic/rmc>
+
+### RM Cloud API
+
+Initial versions shelled out to the excellent [RMAPI](https://github.com/ddvk/rmapi) application originally developed by Javier Uruen Val (https://github.com/juruen) and forked by ddvk.
+In the end, I decided it was better to use the RM cloud API directly, so I reverse-engineered RMAPI for the latest API abd with the help of Fiddler and some guesswork, managed to get it going.
+Note, there's a lot of documentation on the older version of the API, but very little on the newer one!
 
 ### OneNote (Graph) API
 

@@ -153,14 +153,14 @@ void* RMBlock::Read(DOUBLE* data, void* Buff_Ptr, int count) {
 	return (void*)Local_Ptr;
 }
 
-void* RMBlock::Read(RM_CRDT_ID* ID, void* Buff_Ptr, int count) {
+void* RMBlock::Read(RM_CRDT_ID* Hash, void* Buff_Ptr, int count) {
 	UINT8* Local_Ptr;
 
 	Local_Ptr = (UINT8*)Buff_Ptr;
-	ID->part1 = *Local_Ptr;
+	Hash->part1 = *Local_Ptr;
 	Local_Ptr++;
 
-	Buff_Ptr = ReadVarUINT(&ID->part2, (void*)Local_Ptr);
+	Buff_Ptr = ReadVarUINT(&Hash->part2, (void*)Local_Ptr);
 	return Buff_Ptr;
 }
 
@@ -178,15 +178,15 @@ void* RMBlock::ReadIntPair(UINT32* Ints, void* Buff_Ptr, int index) {
 ///////////////////////
 // Overloaded set of main read TAG functions
 
-void* RMBlock::ReadTaggedData(RM_CRDT_ID* ID, void* Buff_Ptr, int index) {
+void* RMBlock::ReadTaggedData(RM_CRDT_ID* Hash, void* Buff_Ptr, int index) {
 	RM_Tag tag;
 	UINT8* Local_Ptr;
 
-	Local_Ptr = (UINT8*)ReadTag(&tag, Buff_Ptr, index, TagTypeEnum::ID);
-	ID->part1 = *Local_Ptr;
+	Local_Ptr = (UINT8*)ReadTag(&tag, Buff_Ptr, index, TagTypeEnum::Hash);
+	Hash->part1 = *Local_Ptr;
 	Local_Ptr++;
 
-	Buff_Ptr = ReadVarUINT(&ID->part2, (void*)Local_Ptr);
+	Buff_Ptr = ReadVarUINT(&Hash->part2, (void*)Local_Ptr);
 	return Buff_Ptr;
 }
 
@@ -201,11 +201,11 @@ void* RMBlock::ReadTaggedData(RM_BOOL* Bool, void* Buff_Ptr, int index) {
 	return Local_Ptr;
 }
 
-void* RMBlock::ReadTaggedData(RM_LWW_ID* ID, void* Buff_Ptr, int index)
+void* RMBlock::ReadTaggedData(RM_LWW_ID* Hash, void* Buff_Ptr, int index)
 {
 	Buff_Ptr = ReadSubblock(Buff_Ptr, index);
-	Buff_Ptr = ReadTaggedData(&ID->timestamp, Buff_Ptr, 1);
-	Buff_Ptr = ReadTaggedData(&ID->value, Buff_Ptr, 2);
+	Buff_Ptr = ReadTaggedData(&Hash->timestamp, Buff_Ptr, 1);
+	Buff_Ptr = ReadTaggedData(&Hash->value, Buff_Ptr, 2);
 	return Buff_Ptr;
 }
 
@@ -520,9 +520,9 @@ void* RMBlock::Write(DOUBLE* data, void* Buff_Ptr, int count) {
 	return (void*)Local_Ptr;
 }
 
-void* RMBlock::Write(RM_CRDT_ID* ID, void* Buff_Ptr, int count) {
-	Buff_Ptr = Write(&ID->part1, Buff_Ptr);
-	Buff_Ptr = WriteVarUINT(ID->part2, Buff_Ptr);
+void* RMBlock::Write(RM_CRDT_ID* Hash, void* Buff_Ptr, int count) {
+	Buff_Ptr = Write(&Hash->part1, Buff_Ptr);
+	Buff_Ptr = WriteVarUINT(Hash->part2, Buff_Ptr);
 	
 	return Buff_Ptr;
 }
@@ -537,9 +537,9 @@ void* RMBlock::WriteIntPair(UINT32* Ints, void* Buff_Ptr, int index) {
 ///////////////////////
 // Overloaded set of main read TAG functions
 
-void* RMBlock::WriteTaggedData(RM_CRDT_ID* ID, void* Buff_Ptr, int index) {
-	Buff_Ptr = WriteTag(Buff_Ptr, index, TagTypeEnum::ID);
-	Buff_Ptr = Write(ID, Buff_Ptr);
+void* RMBlock::WriteTaggedData(RM_CRDT_ID* Hash, void* Buff_Ptr, int index) {
+	Buff_Ptr = WriteTag(Buff_Ptr, index, TagTypeEnum::Hash);
+	Buff_Ptr = Write(Hash, Buff_Ptr);
 	return Buff_Ptr;
 }
 

@@ -24,8 +24,8 @@ WindowRMPage::WindowRMPage()
 {
 }
 
-WindowRMPage::WindowRMPage(std::string ID) 
-    : RMPage(ID)
+WindowRMPage::WindowRMPage(std::string Hash) 
+    : RMPage(Hash)
 {
 }
 

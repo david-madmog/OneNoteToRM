@@ -164,13 +164,13 @@ void SetToken(const int PageType, LPCWSTR LoginCodeW)
     case PAGE_TYPE_TO_ONE_RM_PAGE:
         if (!rmAPI)
             rmAPI = new RMAPI();
-        rmAPI->SetDeviceCode(LoginCodeW);
+        rmAPI->SetAuthCode(LoginCodeW);
         break;
     case PAGE_TYPE_WINDOW_ONE_PAGE:
     case PAGE_TYPE_TO_RM_ONE_PAGE:
         if (!gAPI)
             gAPI = new GraphAPI();
-        gAPI->SetLoginCode(LoginCodeW);
+        gAPI->SetAuthCode(LoginCodeW);
         break;
     default:
         ;
@@ -181,6 +181,7 @@ void SetToken(const int PageType, LPCWSTR LoginCodeW)
 HRESULT ListDocs(const int PageType, LPCWSTR Buffer, int BuffLen)
 {
     std::wstring List(L"");
+    BaseAPI* API = nullptr;
 
     switch (PageType)
     {
@@ -188,25 +189,25 @@ HRESULT ListDocs(const int PageType, LPCWSTR Buffer, int BuffLen)
     case PAGE_TYPE_TO_ONE_RM_PAGE:
         if (!rmAPI)
             rmAPI = new RMAPI();
-        if (!rmAPI->EnsureConnected())
-            return E_FAIL;
-
-        List = rmAPI->ListDocsString();
-        //List = RMAPI::ListDocsString();
+        API = rmAPI;
         break;
     case PAGE_TYPE_WINDOW_ONE_PAGE:
     case PAGE_TYPE_TO_RM_ONE_PAGE:
         if (!gAPI)
             gAPI = new GraphAPI();
-        if (!gAPI->EnsureConnected())
-            return E_FAIL;
-
-        List = gAPI->ListDocsString();
+        API = gAPI;
         break;
     default:
         ;
     }
 
+    if (!API)
+        return E_FAIL;
+
+    if (!API->EnsureConnected())
+        return E_FAIL;
+
+    List = API->ListDocsString();
     int err = wcscpy_s((wchar_t *)Buffer, (long)BuffLen, List.c_str());
     return err;
 }
@@ -247,278 +248,169 @@ HDOCFILE CreateEmptyDoc(const int PageType)
 int LoadDoc(HDOCFILE Doc, const char* FileName)
 {
     int Pages = 0;
-    Drawable * baseClass = nullptr;
-    baseClass = (Drawable *)Doc;
+    BaseDoc * baseDoc = (BaseDoc *)Doc;
 
-    if (typeid(*baseClass).hash_code() == typeid(RMDocFile<WindowRMPage>).hash_code()
-        || typeid(*baseClass).hash_code() == typeid(RMDocFile<ToOneRMPage>).hash_code())
+    if (typeid(*baseDoc).hash_code() != typeid(RMDocFile<WindowRMPage>).hash_code()
+        && typeid(*baseDoc).hash_code() != typeid(RMDocFile<ToOneRMPage>).hash_code()
+        && typeid(*baseDoc).hash_code() != typeid(GraphDoc<WindowONEPage>).hash_code()
+        && typeid(*baseDoc).hash_code() != typeid(GraphDoc<ToRMOnePage>).hash_code()
+        )
+      return ERR_INVLAID_DOC_TYPE;
+
+    // So, see if we've got a single or compound filename
+    std::string sFile(FileName);
+    std::string Msg = "Starting Load ";
+
+    std::string part1, part2;
+    // SO, we assume two parts must be seperated by / - and that's not going to be valid as a part of an Hash
+    size_t Found = sFile.find_last_of("/");
+    bool bGotID = false;
+    if (Found != std::string::npos)
     {
-        if (!rmAPI)
-            rmAPI = new RMAPI();
-
-        std::string sRMFile(FileName);
-        std::string Msg = "Starting RM Load : ";
-        Msg.append(sRMFile);
-        Msg.append("...");
-        DoLog("DLL MAIN", Msg.c_str(), LOG_INFO);
-
-        // Name _should_ consist of ID,UUID
-        size_t i = sRMFile.find(",", 0);
-        if (i == std::string::npos)
-            return 0;
-        std::string ID = sRMFile.substr(0, i);
-        std::string UUID = sRMFile.substr(++i, std::string::npos);
-
-        if (typeid(*baseClass).hash_code() == typeid(RMDocFile<WindowRMPage>).hash_code())
-        {
-            RMDocFile<WindowRMPage>* TypeDoc = (RMDocFile<WindowRMPage> *)Doc;
-            Pages = TypeDoc->LoadDoc(s2ws(ID), s2ws(UUID));
-            //            Pages = TypeDoc->ExtractRMsFromZip(Zipfile.c_str());
-        }
-        else {
-            RMDocFile<ToOneRMPage>* TypeDoc = (RMDocFile<ToOneRMPage> *)Doc;
-            Pages = TypeDoc->LoadDoc(s2ws(ID), s2ws(UUID));
-            //            Pages = TypeDoc->ExtractRMsFromZip(Zipfile.c_str());
-        }
-        
+        // Got one - must be NB/part2
+        part1 = sFile.substr(0, Found);
+        part2 = sFile.substr(Found + 1);
+        Msg.append("by Name: ");
+        Msg.append(part1);
+        Msg.append(" - ");
+        Msg.append(part2);
     }
-    else if (typeid(*baseClass).hash_code() == typeid(GraphDoc<WindowONEPage>).hash_code() || 
-        typeid(*baseClass).hash_code() == typeid(GraphDoc<ToRMOnePage>).hash_code())
-    {
-        // So, see if we've got an ID, or a Notebook and section
-        std::string sOneFile(FileName);
-        std::string Msg = "Starting ONE Load ";
-
-        std::string Notebook, Section;
-        // SO, we assume notebook and section must be seperated by / - and that's not going to be valid as a part of an ID
-        size_t Found = sOneFile.find_last_of("/");
-        bool bGotID = false;
-        if (Found != std::string::npos)
-        {
-            // Got one - must be NB/Section
-            Notebook = sOneFile.substr(0, Found);
-            Section = sOneFile.substr(Found + 1);
-            Msg.append("by Name: ");
-            Msg.append(Notebook);
-            Msg.append(" - ");
-            Msg.append(Section);
-        }
-        else {
-            // No "/" character - must be an ID
-            Msg.append("by ID: ");
-            Msg.append(FileName);
-            Msg.append(Section);
-            bGotID = true;
-        }
-
-        Msg.append("...");
-        DoLog("DLL MAIN", Msg.c_str(), LOG_INFO);
-
-        if (typeid(*baseClass).hash_code() == typeid(GraphDoc<WindowONEPage>).hash_code())
-        {
-            GraphDoc<WindowONEPage>* TypeDoc = (GraphDoc<WindowONEPage>*)Doc;
-            if (bGotID)
-                Pages = TypeDoc->LoadDoc(s2ws(sOneFile).c_str());
-            else
-                Pages = TypeDoc->LoadDoc(Notebook, Section);
-        } else
-        {
-            GraphDoc<ToRMOnePage>* TypeDoc = (GraphDoc<ToRMOnePage>*)Doc;
-            if (bGotID)
-                Pages = TypeDoc->LoadDoc(s2ws(sOneFile).c_str());
-            else
-                Pages = TypeDoc->LoadDoc(Notebook, Section);
-        }
+    else {
+        // No "/" character - must be an Hash
+        Msg.append("by ID: ");
+        Msg.append(FileName);
+        bGotID = true;
     }
+
+    Msg.append("...");
+    DoLog("DLL MAIN", Msg.c_str(), LOG_INFO);
+
+    if (bGotID)
+        Pages = baseDoc->LoadDoc(s2ws(sFile).c_str());
     else
-        Pages = ERR_INVLAID_DOC_TYPE;
+        Pages = baseDoc->LoadDoc(part1, part2);
 
     return Pages;
 }
 
 HRESULT ConvertPage(HDOCFILE Source, HDOCFILE Dest, int Page)
 {
-    int Pages = 0;
-    Drawable* baseClass = nullptr;
-    baseClass = (Drawable*)Source;
+    BaseDoc* baseDoc = (BaseDoc*)Source;
+    if (typeid(*baseDoc).hash_code() != typeid(RMDocFile<WindowRMPage>).hash_code()
+        && typeid(*baseDoc).hash_code() != typeid(RMDocFile<ToOneRMPage>).hash_code()
+        && typeid(*baseDoc).hash_code() != typeid(GraphDoc<WindowONEPage>).hash_code()
+        && typeid(*baseDoc).hash_code() != typeid(GraphDoc<ToRMOnePage>).hash_code()
+        )
+        return ERR_INVLAID_DOC_TYPE;
 
-    if (typeid(*baseClass).hash_code() == typeid(RMDocFile<WindowRMPage>).hash_code())
-    {
-        // Window type, dest should be a DrawDetailsParams
-        RMDocFile<ToOneRMPage>* TypeDoc = (RMDocFile<ToOneRMPage> *)Source;
-        TypeDoc->DrawPage(Dest, Page);
-    }
-    else if (typeid(*baseClass).hash_code() == typeid(RMDocFile<ToOneRMPage>).hash_code())
-    {
-        // Conversion type, dest should be a DOCFILE
-        RMDocFile<ToOneRMPage>* TypeDoc = (RMDocFile<ToOneRMPage> *)Source;
-        TypeDoc->DrawPage(Dest, Page);
-    }
-    else if (typeid(*baseClass).hash_code() == typeid(GraphDoc<WindowONEPage>).hash_code())
-    {
-        // Window type, dest should be a DrawDetailsParams
-        GraphDoc<WindowONEPage>* TypeDoc = (GraphDoc<WindowONEPage> *)Source;
-        TypeDoc->DrawPage(Dest, Page);
-    }
-    else if (typeid(*baseClass).hash_code() == typeid(GraphDoc<ToRMOnePage>).hash_code())
-    {
-        // Conversion type, dest should be a DOCFILE
-        GraphDoc<ToRMOnePage>* TypeDoc = (GraphDoc<ToRMOnePage> *)Source;
-        TypeDoc->DrawPage(Dest, Page);
-    }
-    else
-        assert(false);
+    // Window type, dest should be a DrawDetailsParams
+    // Conversion type, dest should be a DOCFILE
+    baseDoc->DrawPage(Dest, Page);
+
     return 0;
 }
 
 HRESULT ConvertPageB(HDOCFILE Source, DrawDetailsParams* DDP, int Page)
 {
-    return ConvertPage(Source, (HDOCFILE)DDP, Page);
+    BaseDoc* baseDoc = (BaseDoc*)Source;
+    if (typeid(*baseDoc).hash_code() != typeid(RMDocFile<WindowRMPage>).hash_code()
+        && typeid(*baseDoc).hash_code() != typeid(RMDocFile<ToOneRMPage>).hash_code()
+        && typeid(*baseDoc).hash_code() != typeid(GraphDoc<WindowONEPage>).hash_code()
+        && typeid(*baseDoc).hash_code() != typeid(GraphDoc<ToRMOnePage>).hash_code()
+        )
+        return ERR_INVLAID_DOC_TYPE;
+
+    baseDoc->DrawPage(DDP, Page);
+
+    return 0;
 }
 
 time_t GetDocDateTime(HDOCFILE Source)
 {
-    Drawable* baseClass = nullptr;
-    baseClass = (Drawable*)Source;
-    time_t LETime;
+    BaseDoc* baseDoc = (BaseDoc*)Source;
+    if (typeid(*baseDoc).hash_code() != typeid(RMDocFile<WindowRMPage>).hash_code()
+        && typeid(*baseDoc).hash_code() != typeid(RMDocFile<ToOneRMPage>).hash_code()
+        && typeid(*baseDoc).hash_code() != typeid(GraphDoc<WindowONEPage>).hash_code()
+        && typeid(*baseDoc).hash_code() != typeid(GraphDoc<ToRMOnePage>).hash_code()
+        )
+        return ERR_INVLAID_DOC_TYPE;
 
-    if (typeid(*baseClass).hash_code() == typeid(RMDocFile<WindowRMPage>).hash_code())
-    {
-        RMDocFile<ToOneRMPage>* TypeDoc = (RMDocFile<ToOneRMPage> *)Source;
-        LETime = TypeDoc->LastEditTime();
-    }
-    else if (typeid(*baseClass).hash_code() == typeid(RMDocFile<ToOneRMPage>).hash_code())
-    {
-        RMDocFile<ToOneRMPage>* TypeDoc = (RMDocFile<ToOneRMPage> *)Source;
-        LETime = TypeDoc->LastEditTime();
-    }
-    else if (typeid(*baseClass).hash_code() == typeid(GraphDoc<WindowONEPage>).hash_code())
-    {
-        GraphDoc<WindowONEPage>* TypeDoc = (GraphDoc<WindowONEPage> *)Source;
-        LETime = TypeDoc->LastEditTime();
-    }
-    else if (typeid(*baseClass).hash_code() == typeid(GraphDoc<ToRMOnePage>).hash_code())
-    {
-        GraphDoc<ToRMOnePage>* TypeDoc = (GraphDoc<ToRMOnePage> *)Source;
-        LETime = TypeDoc->LastEditTime();
-    }
-    else
-        assert(false);
+    time_t LETime = baseDoc->LastEditTime();
     return LETime;
 
-    time_t NowTime;
-    time(&NowTime);
-    return NowTime;
+//    time_t NowTime;
+//    time(&NowTime);
+//    return NowTime;
 }
 
 
 int SaveDoc(HDOCFILE Doc, const char* FileName)
 {
     int Pages = 0;
-    Drawable* baseClass = nullptr;
-    baseClass = (Drawable*)Doc;
+    BaseDoc* baseDoc = (BaseDoc*)Doc;
+    if (typeid(*baseDoc).hash_code() != typeid(RMDocFile<WindowRMPage>).hash_code()
+        && typeid(*baseDoc).hash_code() != typeid(RMDocFile<ToOneRMPage>).hash_code()
+        && typeid(*baseDoc).hash_code() != typeid(GraphDoc<WindowONEPage>).hash_code()
+        && typeid(*baseDoc).hash_code() != typeid(GraphDoc<ToRMOnePage>).hash_code()
+        )
+        return ERR_INVLAID_DOC_TYPE;
 
-    if (typeid(*baseClass).hash_code() == typeid(RMDocFile<WindowRMPage>).hash_code()
-        || typeid(*baseClass).hash_code() == typeid(RMDocFile<ToOneRMPage>).hash_code())
+
+    // So, see if we've got an Hash, or two parts
+    std::string sFile(FileName);
+    std::string Msg = "Starting Save ";
+
+    std::string part1, part2;
+    // SO, we assume two parts must be seperated by / - and that's not going to be valid as a part of an Hash
+    size_t Found = sFile.find_last_of("/");
+    bool bGotID = false;
+    if (Found != std::string::npos)
     {
-        std::unique_ptr<char> WorkingDir(new char[LB_SIZE]);
-        GetTempPathA(LB_SIZE - 1, WorkingDir.get());
-
-        std::wstring Msg = L"Starting RM Save: ";
-        Msg.append(s2ws(FileName));
-        Msg.append(L"...");
-        DoLog("DLL MAIN", Msg, LOG_INFO);
-        std::string TMPfile = WorkingDir.get();
-        TMPfile.append("Output.rmdoc");
-
-        if (typeid(*baseClass).hash_code() == typeid(RMDocFile<WindowRMPage>).hash_code())
-        {
-            RMDocFile<WindowRMPage>* TypeDoc = (RMDocFile<WindowRMPage> *)Doc;
-            TypeDoc->Name = FileName;
-            Pages = TypeDoc->SaveRMsToZip(TMPfile.c_str());
-            RMAPI::SaveDoc(FileName, WorkingDir.get());
-        }
-        else {
-            RMDocFile<ToOneRMPage>* TypeDoc = (RMDocFile<ToOneRMPage> *)Doc;
-            TypeDoc->Name = FileName;
-            Pages = TypeDoc->SaveRMsToZip(TMPfile.c_str());
-            RMAPI::SaveDoc(FileName, WorkingDir.get());
-        }
+        // Got one - must be NB/part2
+        part1 = sFile.substr(0, Found);
+        part2 = sFile.substr(Found + 1);
+        Msg.append("by Name: ");
+        Msg.append(part1);
+        Msg.append(" - ");
+        Msg.append(part2);
     }
-    else if (typeid(*baseClass).hash_code() == typeid(GraphDoc<WindowONEPage>).hash_code() ||
-        typeid(*baseClass).hash_code() == typeid(GraphDoc<ToRMOnePage>).hash_code())
-    {
-        // So, see if we've got an ID, or a Notebook and section
-        std::string sOneFile(FileName);
-        std::string Msg = "Starting ONE Save ";
-
-        std::string Notebook, Section;
-        // SO, we assume notebook and section must be seperated by / - and that's not going to be valid as a part of an ID
-        size_t Found = sOneFile.find_last_of("/");
-        bool bGotID = false;
-        if (Found != std::string::npos)
-        {
-            // Got one - must be NB/Section
-            Notebook = sOneFile.substr(0, Found);
-            Section = sOneFile.substr(Found + 1);
-            Msg.append(" by Name: ");
-            Msg.append(Notebook);
-            Msg.append(" - ");
-            Msg.append(Section);
-        }
-        else {
-            // No "/" character - must be an ID
-            Msg.append(" by ID: ");
-            Msg.append(FileName);
-            Msg.append(Section);
-            bGotID = true;
-        }
-
-        Msg.append("...");
-        DoLog("DLL MAIN", Msg.c_str(), LOG_INFO);
-
-        if (typeid(*baseClass).hash_code() == typeid(GraphDoc<WindowONEPage>).hash_code())
-        {
-            GraphDoc<WindowONEPage>* TypeDoc = (GraphDoc<WindowONEPage>*)Doc;
-            if (bGotID)
-                Pages = TypeDoc->SaveDoc(s2ws(sOneFile).c_str());
-            else
-                Pages = TypeDoc->SaveDoc(Notebook, Section);
-        }
-        else
-        {
-            GraphDoc<ToRMOnePage>* TypeDoc = (GraphDoc<ToRMOnePage>*)Doc;
-            if (bGotID)
-                Pages = TypeDoc->SaveDoc(s2ws(sOneFile).c_str());
-            else
-                Pages = TypeDoc->SaveDoc(Notebook, Section);
-        }
+    else {
+        // No "/" character - must be an Hash
+        Msg.append("by ID: ");
+        Msg.append(FileName);
+        bGotID = true;
     }
+
+    Msg.append("...");
+    DoLog("DLL MAIN", Msg.c_str(), LOG_INFO);
+
+    if (bGotID)
+        Pages = baseDoc->SaveDoc(s2ws(sFile).c_str());
     else
-        Pages = ERR_INVLAID_DOC_TYPE;
+        Pages = baseDoc->SaveDoc(part1, part2);
 
     return Pages;
 }
 
 HRESULT DeleteDoc(HDOCFILE Doc)
 {
-    Drawable* baseClass = (Drawable*)Doc;
+    BaseDoc* baseClass = (BaseDoc*)Doc;
     delete baseClass;
     return 0;
 }
 
 
 /*
-if (typeid(*baseClass).hash_code() == typeid(RMDocFile<WindowRMPage>).hash_code())
+if (typeid(*baseDoc).hash_code() == typeid(RMDocFile<WindowRMPage>).hash_code())
 {
 }
-if (typeid(*baseClass).hash_code() == typeid(RMDocFile<ToOneRMPage>).hash_code())
+if (typeid(*baseDoc).hash_code() == typeid(RMDocFile<ToOneRMPage>).hash_code())
 {
 }
-if (typeid(*baseClass).hash_code() == typeid(GraphDoc<WindowONEPage>).hash_code())
+if (typeid(*baseDoc).hash_code() == typeid(GraphDoc<WindowONEPage>).hash_code())
 {
 }
-if (typeid(*baseClass).hash_code() == typeid(GraphDoc<ToRMOnePage>).hash_code())
+if (typeid(*baseDoc).hash_code() == typeid(GraphDoc<ToRMOnePage>).hash_code())
 {
 }
 else

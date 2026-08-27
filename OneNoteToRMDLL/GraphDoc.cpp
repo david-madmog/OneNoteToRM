@@ -98,9 +98,9 @@ template<class PageType> int GraphDoc<PageType>::LoadDoc(const wchar_t * Section
 		for (njson& PageJson : respJson["value"])
         {
             std::wstring PageQuery{ L"me/onenote/pages/" };
-            std::string ID = PageJson["id"].get<std::string>();
+            std::string Hash = PageJson["id"].get<std::string>();
             std::string LMDT = PageJson["lastModifiedDateTime"].get<std::string>();
-            mbstowcs_s(&convertedChars, LocalWBuff, 1024, ID.c_str(), ID.length());
+            mbstowcs_s(&convertedChars, LocalWBuff, 1024, Hash.c_str(), Hash.length());
             PageQuery.append(LocalWBuff);
             PageQuery.append(L"/content?includeinkML=true");
             std::wstring* PageData = API->SendRequestAndAwaitResponse(PageQuery.c_str());
@@ -148,17 +148,17 @@ template<class PageType> void GraphDoc<PageType>::DeletePages(const wchar_t* Sec
         for (njson& PageJson : respJson["value"])
         {
             std::wstring PageQuery{ L"me/onenote/pages/" };
-            std::string ID = PageJson["id"].get< std::string>();
-            mbstowcs_s(&convertedChars, LocalWBuff, 1024, ID.c_str(), ID.length());
+            std::string Hash = PageJson["id"].get< std::string>();
+            mbstowcs_s(&convertedChars, LocalWBuff, 1024, Hash.c_str(), Hash.length());
             PageQuery.append(LocalWBuff);
             API->DeletePage(PageQuery.c_str());
         }
     }
 }
 
-template<class PageType> wchar_t * GraphDoc<PageType>::FindDocID(const std::string& NotebookName,const std::string& SectionName)
+template<class PageType> wchar_t* GraphDoc<PageType>::FindDocID(const std::string& NotebookName, const std::string& SectionName)
 {
-    // Get full list of sections and get the ID of the one which matches our input
+    // Get full list of sections and get the Hash of the one which matches our input
     std::wstring* RespData = API->SendRequestAndAwaitResponse(L"me/onenote/sections?$select=id,displayName&$expand=parentNotebook($select=id,displayName)");
     
     if (!RespData)
@@ -210,7 +210,7 @@ template<class PageType> wchar_t* GraphDoc<PageType>::CreateSection(const std::s
 {
     std::string NotebookID = "";
 
-    //First we need to find the ID of the notebook...
+    //First we need to find the Hash of the notebook...
     std::wstring* RespData = API->SendRequestAndAwaitResponse(L"me/onenote/notebooks?$select=id,displayName");
 
     if (!RespData)
@@ -324,6 +324,7 @@ template<class PageType> int GraphDoc<PageType>::LoadDoc(const std::string& Note
     if (!API->EnsureConnected())
         return -1;
 
+    this->Name = NotebookName;
     wchar_t* SectionID = FindDocID(NotebookName, SectionName);
     if (SectionID)
     {

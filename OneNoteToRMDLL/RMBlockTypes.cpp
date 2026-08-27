@@ -68,7 +68,7 @@ bool SceneTree::ParseBuffer(const unsigned char* Buff, size_t ValidLen, int vers
 		//	# XXX can there sometimes be something else here ?
 	}
 
-	//¬¬ So, if node Id is blank, we should use tree ID as the node ID
+	//¬¬ So, if node Id is blank, we should use tree Hash as the node ID
 	if (node_id == RM_CRDT_ID{0, 0}) {
 		DoLog(typeid(*this).name(), "Blank Node", LOG_DEBUG_VERBOSE);
 //		node_id = tree_id;
@@ -556,8 +556,8 @@ bool RootText::ParseBuffer(const unsigned char* Buff, size_t ValidLen, int versi
 
 	DoLog(typeid(*this).name(), "RootText...", LOG_DEBUG_VERBOSE);
 
-	RM_CRDT_ID ID;
-	void* Buff_Ptr = ReadTaggedData(&ID, (void *)Buff, 1);
+	RM_CRDT_ID Hash;
+	void* Buff_Ptr = ReadTaggedData(&Hash, (void *)Buff, 1);
 //		assert block_id == CrdtId(0, 0)
 
 	Buff_Ptr = ReadSubblock(Buff_Ptr, 2);
@@ -807,7 +807,7 @@ bool SceneInfo::ParseBuffer(const unsigned char* Buff, size_t ValidLen, int vers
 		Buff_Ptr = Read(Magic1, Buff_Ptr, 32);
 
 //		6c  28 00 00 00   -> Subblock
-//			1F 00 00      -> ID
+//			1F 00 00      -> Hash
 //			2C 20 00 00 00     --> ???
 //				0x20 lots of 00
 
@@ -832,7 +832,7 @@ bool SceneInfo::ParseBuffer(const unsigned char* Buff, size_t ValidLen, int vers
 	if (Buff_Ptr < Buff + ValidLen)
 		Buff_Ptr = Read(&Magic3b, Buff_Ptr, 1);
 //		8c 01  18 00 00 00  --> 8C = length = 18   --> SubBlock
-//			1F 00 00 -> ID
+//			1F 00 00 -> Hash
 //			2C 10 00 00 00 
 //				00 00 00 00  00 F0 95 40  00 00 00 00  00 40 9D 40 
 		 

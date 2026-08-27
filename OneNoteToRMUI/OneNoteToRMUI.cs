@@ -165,9 +165,10 @@ namespace OneNoteToRMUI
 
             SelectedNode = tvRM.SelectedNode;
             if (SelectedNode != null)
-            {
-                RMFilename = SelectedNode.FullPath;
-            }
+                if (SelectedNode.Tag != null)
+                {
+                    RMFilename = (string)SelectedNode.Tag;
+                }
 
             SelectedNode = tvOne.SelectedNode;
             if (SelectedNode != null)
