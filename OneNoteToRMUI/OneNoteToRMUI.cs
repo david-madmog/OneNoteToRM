@@ -49,7 +49,17 @@ namespace OneNoteToRMUI
         private void BtnRMRefresh_Click(object sender, EventArgs e)
         {
             Task Tsk = Task.Run(() => {
-                string[] strings = DllWrapper.DLLListDocs(DllWrapper.PageType.WINDOW_RM_PAGE);
+                string[] strings = [];
+                try
+                {
+                    strings = DllWrapper.DLLListDocs(DllWrapper.PageType.WINDOW_RM_PAGE);
+                }
+                catch (InvalidOperationException)
+                {
+                    // We assume this is cos we're not logged in
+                    RMLoginForm F = new();
+                    F.ShowDialog();
+                }
                 ParseDocList(strings, tvRM);
             });
         }

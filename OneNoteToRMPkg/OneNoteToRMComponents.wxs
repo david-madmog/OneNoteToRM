@@ -31,10 +31,6 @@
 				<File Source="cpprest_2_10d.dll" />
 			</Component>
 
-			<Component Id="RMAPI">
-				<File Source="$(var.ExtrasSourceDir)\RMAPI.exe" />
-			</Component>
-
 			<Component Id="DLL" Guid="{E286D218-20B4-49B2-BCE9-4346A589C805}">
 				<File Source="$(var.OneNoteToRMDLL.TargetPath)" />
 				<File Source="bz2.dll" />

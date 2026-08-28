@@ -111,7 +111,7 @@ int RMAPI::RegisterDevice(const char * deviceCode) {
     http_client_config config;
     config.set_timeout(utility::seconds(60));
     wchar_t TokenHostRoot[IB_SIZE];
-    GetPrivateProfileStringW(L"RMAPI", L"TokenHost", L"", TokenHostRoot, IB_SIZE, wIniFileName.c_str());
+    GetPrivateProfileStringW(L"RMAPI", L"TokenHostRoot", L"", TokenHostRoot, IB_SIZE, wIniFileName.c_str());
 
     http_client client(TokenHostRoot, config);
 
@@ -590,6 +590,9 @@ std::wstring RMAPI::ListDocsString() {
     GetPrivateProfileStringW(L"RMAPI", L"StorageRootPath", L"", Data, IB_SIZE, wIniFileName.c_str());
 
     wstring* RootData = GetStorage(Data, nullptr, L"");
+    if (!RootData)
+        return L"";
+
     njson respJson;
     try {
         respJson = njson::parse(*RootData);
