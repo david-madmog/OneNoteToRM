@@ -15,9 +15,8 @@ The focus is on translating the actual lines, though it will translate text also
 
 ## Installation
 
-*TO DO.* There's no installation yet. For now, you'll have to download the source and build it yourself. You'll also have to install RMAPI directly from [DDVK's Github](https://github.com/ddvk/rmapi) 
-
-Sorry. I'm working on the installer, it should be available "soon"
+There's an msi package included in the release, and I've included the source from the wix installer as a part of the visual studio solution.
+As at v0.2.0 release, the build is a DEBUG build - since the code is early enough to be fragile and crashes are likely.
 
 ## Usage
 
@@ -25,11 +24,13 @@ The application runs in interactive mode on a Windows desktop or from a windows 
 
 ### Setup 
 
-On the first run, the application will need to be configured for permissions to access both the RM Cloud and the MS Graph API.
+On the first run, the application will need to be configured for permissions to access both the RM Cloud and the MS Graph API. You may need to refresh the document lists after logging in.
 
-*TO DO: Document logging in with RMAPI*
-
+####Log in to Microsoft####
 The application will present a Microsoft login dialog and ask for permissions to access the OneNote files. Once this is granted, it will obtain a token that is valid for 90 days, and is refreshed on each run. Once the token is obtained it should not need to ask again, unless the app is not used for a period of time, in which case it will need re-authenticating (but should not ask for permissions to be granted again).
+
+####Log in to RM Cloud####
+A dialog will be presented. Go to the ["My ReMarkable" page](https://my.remarkable.com/#desktop) to obtain an 8-character key associated with your account. Enter this key in the dialog and the app will obtain and cache a key. 
 
 ### Interactive mode
 
@@ -100,3 +101,5 @@ for logon, the Graph API is relatively straightforward.
 - see <https://microsoft.github.io/cpprestsdk/classweb_1_1http_1_1http__request.html> for documentation on C++ REST API
 - I also used the nlohmann/json parser for building the body of requests and managing the responses. See <https://json.nlohmann.me/api/basic_json/> for JSON docs
 - I also used the pugixml C++ XML processing library for processing the HTML and InkML documents: <https://pugixml.org>
+- SHA256 algorithm was from https://github.com/kibonga/sha256-cpp (MIT License applies - not included in this repo)
+- Base64 encoding was from https://github.com/tobiaslocker/base64 ((MIT License applies)
