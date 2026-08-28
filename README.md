@@ -99,7 +99,10 @@ for logon, the Graph API is relatively straightforward.
 	
 - see <https://learn.microsoft.com/en-us/graph/integrate-with-onenote> for API description.
 - see <https://microsoft.github.io/cpprestsdk/classweb_1_1http_1_1http__request.html> for documentation on C++ REST API
-- I also used the nlohmann/json parser for building the body of requests and managing the responses. See <https://json.nlohmann.me/api/basic_json/> for JSON docs
-- I also used the pugixml C++ XML processing library for processing the HTML and InkML documents: <https://pugixml.org>
-- SHA256 algorithm was from https://github.com/kibonga/sha256-cpp (MIT License applies - not included in this repo)
-- Base64 encoding was from https://github.com/tobiaslocker/base64 ((MIT License applies)
+
+### Utility libraries
+I also used the following utility libraries:
+- nlohmann/json parser for building the body of requests and managing the responses. See <https://json.nlohmann.me/api/basic_json/> for JSON docs
+- pugixml C++ XML processing library for processing the HTML and InkML documents: <https://pugixml.org>
+- SHA256 algorithm was from <https://github.com/kibonga/sha256-cpp> (MIT License applies - not included in this repo)
+- Base64 encoding was from <https://github.com/tobiaslocker/base64> ((MIT License applies)
