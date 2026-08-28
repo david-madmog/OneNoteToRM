@@ -26,10 +26,10 @@ The application runs in interactive mode on a Windows desktop or from a windows 
 
 On the first run, the application will need to be configured for permissions to access both the RM Cloud and the MS Graph API. You may need to refresh the document lists after logging in.
 
-####Log in to Microsoft####
+#### Log in to Microsoft
 The application will present a Microsoft login dialog and ask for permissions to access the OneNote files. Once this is granted, it will obtain a token that is valid for 90 days, and is refreshed on each run. Once the token is obtained it should not need to ask again, unless the app is not used for a period of time, in which case it will need re-authenticating (but should not ask for permissions to be granted again).
 
-####Log in to RM Cloud####
+#### Log in to RM Cloud
 A dialog will be presented. Go to the ["My ReMarkable" page](https://my.remarkable.com/#desktop) to obtain an 8-character key associated with your account. Enter this key in the dialog and the app will obtain and cache a key. 
 
 ### Interactive mode
