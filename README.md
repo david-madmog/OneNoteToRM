@@ -16,7 +16,6 @@ The focus is on translating the actual lines, though it will translate text also
 ## Installation
 
 There's an msi package included in the release, and I've included the source from the wix installer as a part of the visual studio solution.
-As at v0.2.0 release, the build is a DEBUG build - since the code is early enough to be fragile and crashes are likely.
 
 ## Usage
 
