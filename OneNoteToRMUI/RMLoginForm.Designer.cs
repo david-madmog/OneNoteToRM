@@ -79,7 +79,7 @@
             messageLabel.TabStop = true;
             messageLabel.Text = "...";
             messageLabel.TextAlign = ContentAlignment.MiddleCenter;
-            messageLabel.LinkClicked += messageLabel_LinkClicked;
+            messageLabel.LinkClicked += MessageLabel_LinkClicked;
             // 
             // RMLoginForm
             // 

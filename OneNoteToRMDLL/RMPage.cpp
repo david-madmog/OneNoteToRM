@@ -71,7 +71,6 @@ void RMPage::Load(concurrency::streams::istream Doc){
         // now the rest of the block
         if (NumRead > 0)
             NumRead = ReadHelper(Doc, buffer, BH.len_body);
-//            NumRead = zip_fread(file, buffer, 1024);
         if (NumRead != BH.len_body && NumRead > 0)
         {
             std::wostringstream LB;
@@ -155,126 +154,6 @@ void RMPage::Load(concurrency::streams::istream Doc){
     std::wostringstream LB;
     LB << L"Read " << NumBlocks << L"blocks: " << Blocks.size() << L" blocks in Array";
     DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);    
-}
-
-void RMPage::Load(zip_file* file)
-{
-    zip_int64_t NumRead;
-    int NumBlocks = 0;
-
-    if (file) {
-        // So, first we read the file header
-        rm_frontmatter_header FM;
-        NumRead = zip_fread(file, &FM, sizeof(FM));
-//        DoLog((const char*)&FM);
-
-        unsigned char * buffer;
-        rm_BlockHead BH;
-
-        // now read the rest as a series of blocks
-        while (NumRead > 0) {
-            // first read the block header, to see it's size and type
-            NumRead = zip_fread(file, &BH, sizeof(BH));
-            
-            //buffer = (unsigned char *) malloc(BH.len_body);
-            buffer = new unsigned char[BH.len_body];
-            if (! buffer)
-                NumRead = 0;
-
-            // now the rest of the block
-            if (NumRead > 0)
-                NumRead = zip_fread(file, buffer, BH.len_body);
-//            NumRead = zip_fread(file, buffer, 1024);
-            if (NumRead != BH.len_body && NumRead > 0)
-            {
-                std::wostringstream LB;
-                LB << L"Couldn't read the amount we wanted: Read " << NumRead << L" wanted " << BH.len_body;
-                DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
-            }
-
-
-            if (NumRead > 0) {
-                NumBlocks++;
-                RMBlock* NewBlock = NULL;
-
-                switch (BH.BlockType) {
-                case BT_MigrationInfo:
-                    NewBlock = new MigrationInfo();
-                    break;
-                case BT_SceneTree:
-                    NewBlock = new SceneTree();
-                    break;
-                case BT_TreeNode:
-                    NewBlock = new TreeNode();
-                    break;
-                case BT_SceneGlyphItem:
-                    NewBlock = new SceneGlyphItem();
-                    break;
-                case BT_SceneGroupItem:
-                    NewBlock = new SceneGroupItem();
-                    break;
-                case BT_SceneLineItem:
-                    NewBlock = new SceneLineItem();
-                    break;
-                case BT_SceneTextItem:
-                    NewBlock = new SceneTextItem();
-                    break;
-                case BT_RootText:
-                    NewBlock = new RootText();
-                    break;
-                case BT_SceneTombstoneItem:
-                    NewBlock = new SceneTombstoneItem();
-                    break;
-                case BT_AuthorIds:
-                    NewBlock = new AuthorIds();
-                    break;
-                case BT_PageInfo:
-                    NewBlock = new PageInfo();
-                    break;
-                case BT_SceneInfo:
-                    NewBlock = new SceneInfo();
-                    break;
-                default:
-                    std::wostringstream LB;
-                    LB << L"Unknown block type " <<  BH.BlockType;
-                    DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
-                    break;
-                }
-
-                if (NewBlock) {
-                    try {
-                        bool bUseful = NewBlock->ParseBuffer(buffer, BH.len_body, BH.CurrentVersion);
-
-                        // Stash the block, and also build it into the indexed collection if necessary
-                        if (bUseful) {
-                            AddBlock(NewBlock);
-                        } else {
-                            DoLog(typeid(*this).name(), "Useless block: ignoring", LOG_DEBUG_VERBOSE);
-                        }
-                    }
-                    catch (incorrect_tag &e) {
-                        std::wostringstream LB;
-                        LB << L"Incorrect tag: " << e.what() << L" parsing block type " << typeid(*NewBlock).name();
-                        DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
-                    }
-                }
-
-            }
-
-            if (buffer)
-                delete[] buffer;
-        }
-        zip_fclose(file);
-        std::wostringstream LB;
-        LB << L"Read " << NumBlocks << L"blocks: " << Blocks.size() << L" blocks in Array";
-        DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG);
-    }
-    else {
-        std::wostringstream LB;
-        LB << L"Couldn't read the Zip File";
-        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
-
-    }
 }
 
 void* RMPage::Write(size_t *BuffSize)

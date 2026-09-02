@@ -141,9 +141,12 @@ namespace OneNoteToRMUI
             SelectedNode = tvRM.SelectedNode;
             if (SelectedNode != null)
             {
-                string RMFilename = SelectedNode.FullPath;
-                RMDoc = new(DllWrapper.PageType.TO_ONE_RM_PAGE);
-                RMPages = RMDoc.Load(RMFilename);
+                if (SelectedNode.Tag != null)
+                {
+                    string RMFilename = (string)SelectedNode.Tag;
+                    RMDoc = new(DllWrapper.PageType.TO_ONE_RM_PAGE);
+                    RMPages = RMDoc.Load(RMFilename);
+                }
             }
 
             SelectedNode = tvOne.SelectedNode;

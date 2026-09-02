@@ -43,22 +43,15 @@ protected:
     void LoadMetaData(json J);
     void LoadContentData(json J);
     void LoadPageData(json J);
-    //void* WriteMetaData(zip* archive, const char* docID);
-    //void* WritePagesData(zip* archive, const char* docID);
-    //void* WritePage(zip* archive, const char* docID, RMPage* Page);
     std::string WriteMetaData();
     std::string WriteContentData();
     std::string WritePageData();
 
-    //void WriteZipData(zip* archive, const char* docID, const char* ext, void* data, size_t data_size);
     std::vector<PageType* > Pages;
 
-    json LoadJSONData(zip_file* file, zip_uint64_t size);
 public:
     RMDocFile(RMAPI * pAPI);
     ~RMDocFile();
-//    int ExtractRMsFromZip(const char* FileName);
-//    int SaveRMsToZip(const char* FileName);
 
     void AddPage(PageType* Page) { Pages.push_back(Page); }
 

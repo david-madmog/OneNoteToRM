@@ -23,16 +23,16 @@ namespace OneNoteToRMUI
         {
             string LogonMessage = DllWrapper.GetIniSetting("RMAPI", "CodeGeneratorEndpoint");
             messageLabel.Text = LogonMessage;
-            int start = LogonMessage.IndexOf("[") + 1;
-            int end = LogonMessage.IndexOf("]");
+            int start = LogonMessage.IndexOf('[') + 1;
+            int end = LogonMessage.IndexOf(']');
             if (start > 0 && end > 0)
             {
-                messageLabel.Links.Add(start, end - start, LogonMessage.Substring(start, end - start));
+                messageLabel.Links.Add(start, end - start, LogonMessage[start..end]);
             }
             this.ActiveControl = codeInput;
         }
 
-        private void messageLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        private void MessageLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             if (e.Link != null)
             {
@@ -43,11 +43,12 @@ namespace OneNoteToRMUI
                 // LinkData property of the Link object.
                 if (e.Link.LinkData != null)
                 {
-                    string target = e.Link.LinkData as string;
                     try
                     {
-//                        Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
-                        Process.Start("explorer.exe", target);
+                        if (e.Link.LinkData is string target)
+                        {
+                            Process.Start("explorer.exe", target);
+                        }
                     }
                     catch {; } // just do nothing
                 }

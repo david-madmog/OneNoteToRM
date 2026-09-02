@@ -3,7 +3,6 @@
 #include "RMBlockTypes.h"
 #include <cpprest/filestream.h>
 
-#include <zip.h>
 #include <vector>
 #include <map>
 
@@ -42,7 +41,6 @@ public:
     bool operator== (const RMPage& b) { return m_id == b.m_id; };
     bool operator== (const std::string& b) { return m_id == b; };
     bool operator< (const RMPage& b) { return m_id < b.m_id; };
-    void Load(zip_file* file);
     void Load(concurrency::streams::istream Doc);
     void * Write(size_t* BuffSize);
     void DrawPage(void * DrawDetails);

@@ -20,10 +20,7 @@
 #include <cpprest/filestream.h>
 #include <cpprest/asyncrt_utils.h>
 
-#include <shellapi.h>
 #include <ShlObj_core.h>
-#include <wrl.h>
-#include <wil/com.h>
 #pragma warning ( pop )
 
 #pragma comment(lib, "rpcrt4.lib")  // UuidCreate - Minimum supported OS Win 2000
@@ -152,7 +149,6 @@ int RMAPI::RegisterDevice(const char * deviceCode) {
         strncpy_s(DeviceToken, IB_SIZE - 1, ws2s(*RespData).c_str(), IB_SIZE - 1);
         WritePrivateProfileStringA("RMAPI", "DeviceToken", DeviceToken, TokenIniFileName.c_str());
 
-//        Bearer_Token.append(RespData->c_str());
         return 0;
     }
     else {
@@ -162,20 +158,6 @@ int RMAPI::RegisterDevice(const char * deviceCode) {
     }
     return -1;
 
-//    POST https ://webapp.cloud.remarkable.com/token/json/2/device/new
-//Payload:
-//
-//    {
-//        "code": "gliuqtne",
-//            "deviceDesc" : "desktop-windows",
-//            "deviceID" : "701c3752-1025-4770-af43-5ddcfa4dabb2"
-//    }
-//    code is the code generated at https ://my.remarkable.com/#desktop
-//    deviceDesc describes the type of the device can be one of desktop - windows, desktop - macos, mobile - ios, mobile - android, browser - chrome, remarkable FIXME what else ?
-//        deviceID a UUID - 4, simply generate a new one to identify your client
-//        The response is the new token in plain text.
-//
-//
 }
 
 int RMAPI::GetUserToken(char * DeviceToken) {
@@ -239,7 +221,6 @@ int RMAPI::GetUserToken(char * DeviceToken) {
             if (UserToken)
                 delete UserToken;
             UserToken = new wstring(RespData->c_str());
-//            WritePrivateProfileStringW("RMAPI", "UserToken", UserToken->c_str(), TokenIniFileName.c_str());
             return 0;
         }
         else {
@@ -310,62 +291,6 @@ void RMAPI::SetAuthCode(const wchar_t* DeviceCodeW) {
     WritePrivateProfileStringA("RMAPI", "DeviceCode", DeviceCode.c_str(), TokenIniFileName.c_str());
 
 }
-/*
-void RMAPI::GetServicePath() {
-    unique_ptr<wchar_t> ServiceDiscoveryEndpoint(new wchar_t[LB_SIZE]);
-    std::wstring wIniFileName = s2ws(gszIniFileName);
-
-    GetPrivateProfileStringW(L"RMAPI", L"ServiceDiscoveryEndpoint", L"", ServiceDiscoveryEndpoint.get(), LB_SIZE, wIniFileName.c_str());
-
-    // Build request URI 
-    uri URI((utility::char_t *)ServiceDiscoveryEndpoint.get());
-
-    //¬¬utility::string_t s = URI.to_string();   // for debugging
-
-    http_client client(URI);
-
-    http_request request(methods::GET);
-    wstring Token(L"Bearer ");
-    Token.append(*UserToken);
-    request.headers().add(L"Authorization", Token);
-
-    //    req.Header.Set("Authorization", "Bearer " + deviceToken)
-
-    request.set_request_uri(URI);
-
-    pplx::task<http_response> requestTask = client.request(request);
-
-    http_response response;
-    try {
-        response = requestTask.get(); // If task is not complete, will wait
-    }
-    catch (std::exception& ex)
-    {
-        std::wostringstream LB;
-        LB << L"Cannot receive data: " << ex.what();
-        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
-        return ;
-    }
-
-    if (response.status_code() == status_codes::OK)
-    {
-        //¬¬pplx::task<utility::string_t> RespDataTask = response.extract_string(true); /// need to handle multipart response - sets ignore content type to true
-        //¬¬utility::string_t* RespData = new utility::string_t(RespDataTask.get());
-        std::wostringstream LB;
-        //¬¬LB << L"GOT data: " << RespData->substr(0, LB_SIZE - 50);
-        DoLog(typeid(*this).name(), LB.str(), LOG_DEBUG_VERBOSE);
-        //ServicePath.append(RespData->c_str());
-        return;
-    }
-    else {
-        std::wostringstream LB;
-        LB << L"Cannot receive data: " << response.reason_phrase();
-        DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
-    }
-    return;
-    
-}
-*/
 
 std::wstring* RMAPI::GetDataStorage(const wchar_t* hash, const wchar_t* RMFilename)
 {
@@ -374,9 +299,6 @@ std::wstring* RMAPI::GetDataStorage(const wchar_t* hash, const wchar_t* RMFilena
 
 wstring* RMAPI::GetStorage(const wchar_t* path, const wchar_t* hash, const wchar_t* RMFilename)
 {
-    //if (ServicePath.empty())
-    //    GetServicePath();
-
     if (UserToken) {
         // Build request URI 
         uri_builder URI;
@@ -438,9 +360,6 @@ wstring* RMAPI::GetStorage(const wchar_t* path, const wchar_t* hash, const wchar
 
 concurrency::streams::istream RMAPI::GetPage(const wchar_t* hash, const wchar_t* RMFilename)
 {
-    //if (ServicePath.empty())
-    //    GetServicePath();
-
     if (UserToken) {
         // Build request URI 
         uri_builder URI;
@@ -763,6 +682,9 @@ void RMAPI::LoadMetadata(wstring& NodeID, wstring& NodeUUID, DocNode* Node)
 
 }
 /*
+* **********************************************
+* Emergency code in case we trash the root schema
+* 
 void RMAPI::RecoverRootDocSchema() {
     // Find and Load the previous Root Doc Schema
 // So, first call the doc root
@@ -930,8 +852,6 @@ void RMAPI::UpdateRootDocSchema(DocNode& UpdatedNode, int NumPages)
     // Since the root schema hash has changed, we need to update that as well
     respJson["hash"] = NewHash;
     respJson["broadcast"] = false;
-  //  int64_t gen = respJson["generation"];
-  //  respJson["generation"] = ++gen;
 
     string Content = respJson.dump();
 

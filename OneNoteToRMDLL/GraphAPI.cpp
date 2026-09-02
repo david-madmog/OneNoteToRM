@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "GraphAPI.h"
-//#include "resource.h"
 /*******************************************************************************
 
     GraphAPI.cpp
@@ -19,10 +18,8 @@
 #include <cpprest/filestream.h>
 #include <cpprest/asyncrt_utils.h>
 
-#include <Shlwapi.h>
-#include <shlobj_core.h>
-#include <wrl.h>
-#include <wil/com.h>
+#include <ShlObj_core.h>
+
 #pragma warning ( pop )
 
 #include "OneNoteToRM.h"
@@ -112,7 +109,6 @@ std::wstring* GraphAPI::PostUpdateAndAwaitResponse(const wchar_t* URLPath, const
         utility::string_t ContentType(web::http::details::mime_types::multipart_form_data);
         ContentType.append(L"; boundary=");
         ContentType.append(Boundary);
-        //utility::string_t ContentType(L"application/xhtml+xml");
         request.headers().set_content_type(ContentType);
     }
     else {
@@ -234,7 +230,6 @@ int GraphAPI::GetLogonToken()
 
     utf8string body;
     body.append("client_id="); body.append(EntraAppID);
-    //    body.append("&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default");
     body.append("&scope=offline_access%20Notes.Create%20Notes.Read%20Notes.ReadWrite%20Notes.Read.All%20Notes.ReadWrite.All");
     body.append("&redirect_uri="); body.append(RedirectURI);
     if (bRefresh)
@@ -268,9 +263,6 @@ int GraphAPI::GetLogonToken()
 
     if (response.status_code() == status_codes::OK)
     {
-        //        std::wstring ss = response.headers().content_type();
-        //        utility::string_t st = web::http::details::mime_types::application_json;
-
         if (response.headers().content_type().find(web::http::details::mime_types::application_json) != std::string::npos)
         {
             pplx::task<web::json::value> RespDataTask = response.extract_json();
@@ -298,7 +290,6 @@ int GraphAPI::GetLogonToken()
             {
                 std::wstring RT{ std::wstring(RespData[L"refresh_token"].as_string()) };
                 Refresh_Token = new char[LB_SIZE];
-//                RefreshToken = ws2s(RT);
                 size_t Num;
                 wcstombs_s(&Num, Refresh_Token, LB_SIZE, RT.c_str(), LB_SIZE);
                 std::wostringstream LB;
@@ -389,10 +380,6 @@ void GraphAPI::DeletePage(const wchar_t* URLPath)
 
 
 void GraphAPI::SetAuthCode(const wchar_t* LoginCodeW) {
-    //size_t i;
-    //size_t Size = std::wcslen(LoginCodeW) + 1;
-    //LoginCode = (char*)malloc(Size);
-    //wcstombs_s(&i, LoginCode, Size, LoginCodeW, Size - 1);
     LoginCode = ws2s(LoginCodeW);
 }
 

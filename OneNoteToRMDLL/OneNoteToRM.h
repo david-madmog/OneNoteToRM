@@ -34,7 +34,6 @@ std::wstring s2ws(const std::string& str);
 std::string ws2s(const std::unique_ptr<wchar_t> str) ;
 std::string ws2s(const std::wstring& wstr);
 
-//extern char * LogBuffer;
 #define LB_SIZE 10240l
 
 void DoLog(const char* Class, const char* Msg, LogLevel Level = LOG_DEBUG_VERBOSE);

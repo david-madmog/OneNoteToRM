@@ -425,7 +425,7 @@ template<class PageType> int RMDocFile<PageType>::SaveDoc(const std::string& Par
     {
         //c81c44980d2a67b170cab01e8a617e14571d8cfa8015bc9b3c454ddb369e50bb:0:bd924c5d-1e0c-40af-a915-f1931a1c9524.content:0:59659
         DocSchema << ws2s(Part.Hash) << ":0:" << ws2s(Part.UUID) << ":0:" << Part.Len << "\n";
-        for (int i = 0; i<32; i++)
+        for (size_t i = 0; i<32; i++)
             HashString[HSI++] = stoi(Part.Hash.substr(i*2, 2), nullptr, 16);
 //        Node.Hash = s2ws(sha256((char*)HashString, 32, false));
         TotalLen += Part.Len;
@@ -452,59 +452,8 @@ template<class PageType> int RMDocFile<PageType>::LoadDoc(const wchar_t* Section
 template<class PageType> int RMDocFile<PageType>::SaveDoc(const wchar_t* SectionID) {
 //    API->RecoverRootDocSchema();
     
-    return 0; }
-
-
-//template<class PageType> int RMDocFile<PageType>::SaveRMsToZip(const char* FileName)
-    //zip_error_t Zerr;
-    //int err;
-    //zip* archive = zip_open(FileName, ZIP_CREATE | ZIP_TRUNCATE, &err);
-    //
-
-    //UUID uuid;
-    //if (UuidCreate(&uuid) != RPC_S_OK)
-    //    return 0;
-    //char* docID = nullptr;
-    //if( UuidToStringA(&uuid, (RPC_CSTR*)&docID) != RPC_S_OK)
-    //    return 0;
-
-    //if (!archive)
-    //{
-    //    zip_error_t Zerr;
-    //    zip_error_init_with_code(&Zerr, err);
-    //    std::wostringstream LB;
-    //    LB << L"Unable to open rmdoc: error code " << err << L": " << zip_error_strerror(&Zerr);
-    //    DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
-    //    zip_error_fini(&Zerr);
-    //    return 0;
-    //}
-
-    //zip_set_archive_flag(archive, ZIP_AFL_CREATE_OR_KEEP_FILE_FOR_EMPTY_ARCHIVE, TRUE);
-    //// Buffer of data has to exist until we close the file, so we hold the memory refernces for now and free it later
-    //vector<void*> Buffers;
-    //Buffers.push_back(WriteMetaData(archive, (const char*)docID));
-    //Buffers.push_back(WritePagesData(archive, (const char*)docID));
-
-
-    //for (auto Page : Pages) {
-    //    Buffers.push_back(WritePage(archive, (const char*)docID, Page));
-    //}
-
-    //// Close the zip archive
-    //if (zip_close(archive))
-    //{
-    //    Zerr = * zip_get_error(archive);
-    //    std::wostringstream LB;
-    //    LB << L"Unable to open rmdoc: error code " << Zerr.zip_err << L": " << zip_error_strerror(&Zerr);
-    //    DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
-    //}
-    //DoLog(typeid(*this).name(), "Done Write to Zip", LOG_DEBUG);
-
-    //RpcStringFreeA((RPC_CSTR*)&docID);
-    //for (void* Buff : Buffers)
-    //    free(Buff);
-
-    //return (int)Pages.size();
+    return 0; 
+}
 
 template<class PageType> string RMDocFile<PageType>::WriteMetaData() {
 
@@ -536,46 +485,6 @@ template<class PageType> string RMDocFile<PageType>::WritePageData() {
     return "Blank\nBlank\n";
 }
 
-/*
-template<class PageType> char * RMDocFile<PageType>::WritePage(RMPage * Page) {
-
-    size_t FNSize = strlen(docID) + strlen(Page->m_id.c_str()) +2;
-    char* FileName = (char*)malloc(FNSize);
-    if (!FileName)
-        return NULL; 
-
-    strcpy_s(FileName, FNSize, docID);
-    strcat_s(FileName, FNSize, "/");
-    strcat_s(FileName, FNSize, Page->m_id.c_str());
-
-    WriteZipData(archive, FileName, ".rm", (void*)PageBuffer, BuffSize);
-
-    return PageBuffer;
-}
-
-template<class PageType> void RMDocFile<PageType>::WriteZipData(zip* archive, const char* docID, const char* ext, void* data, size_t data_size) {
-
-    size_t FNSize = strlen(docID) + strlen(ext) + 1;
-    char* FileName = (char*)malloc(FNSize);
-    if (!FileName)
-        return;
-
-    strcpy_s(FileName, FNSize, docID);
-    strcat_s(FileName, FNSize, ext);
-
-    zip_source_t* source = zip_source_buffer(archive, data, data_size, 0);
-
-    if (source) {
-        if (zip_file_add(archive, FileName, source, ZIP_FL_ENC_UTF_8) == -1) {
-            zip_error_t Zerr = *zip_get_error(archive);
-            std::wostringstream LB;
-            LB << L"Unable to open rmdoc: error code " << Zerr.zip_err << L": " << zip_error_strerror(&Zerr);
-            DoLog(typeid(*this).name(), LB.str(), LOG_ERROR);
-            zip_source_free(source);
-        }
-    }
-}
-*/
 
 template<class PageType> void RMDocFile<PageType>::DrawPage(void* DrawDetails, int Page)
 {
@@ -590,7 +499,6 @@ template<class PageType> void RMDocFile<PageType>::DrawPage(void* DrawDetails, i
 #endif
     }
 }
-
 
 template<class PageType> time_t RMDocFile<PageType>::LastEditTime() {
     time_t EditTime = 0;

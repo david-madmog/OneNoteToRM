@@ -42,12 +42,10 @@ private:
 	wchar_t StorageDataPath[IB_SIZE];
 
 	//	char* LoginCode = NULL;
-	//std::string LoginCode;
 	std::wstring ServicePath = L"";
 
 	int RegisterDevice(const char* deviceCode);
 	int GetUserToken(char* DeviceToken);
-	//void GetServicePath();
 
 public:
 	enum NodeType {
@@ -73,7 +71,6 @@ public:
 				os << RHS.UnitName << L"(" << RHS.UUID << L")";
 			else
 				os << RHS.Path << L"|" << RHS.Hash << L"/" << RHS.UUID;
-//				os << RHS.Path;
 			return os;
 		}
 
@@ -92,14 +89,11 @@ private:
 	void LoadRootNodes(std::unordered_map<std::wstring, DocNode>& Nodes, std::wstring& NodeID);
 	void LoadFileData(DocNode* Node);
 	void LoadMetadata(std::wstring& NodeID, std::wstring& NodeUUID, DocNode* Node);
-//		void WalkTree(std::unordered_map<std::string, DocNode>& Nodes, std::wstring& NodeID, std::wstring& NodeUUID, NodeType type, DocNode* Node);
 
 public:
 	RMAPI();
 	~RMAPI();
 
-	//static void GetDoc(std::string Name); // Old (RMAPI) version
-	//	static void ListDocsStringToVector(std::string ListDocsString, std::vector<std::wstring>& Docs);
 	std::wstring* GetDataStorage(const wchar_t* node, const wchar_t* RMFilename);
 	int64_t PutDataStorage(const wchar_t* hash, const wchar_t* RMFilename, const char* BodyData);
 	int64_t PutDataStorage(const wchar_t* hash, const wchar_t* RMFilename, const char* BodyData, size_t DataLen);
@@ -107,8 +101,6 @@ public:
 
 	void UpdateRootDocSchema(DocNode& UpdatedNode, int NumPages);
 	void RecoverRootDocSchema();
-
-	//static void CopyDoc(std::string Name);
 
 	//Override base class
 	bool EnsureConnected(void);

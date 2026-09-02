@@ -1,5 +1,5 @@
 ﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-	<?define Version="0.1.1"?>
+	<?define Version="0.2.0"?>
 
 	<Package Id="DavidPoirier.OneNoteToRMPkg" Name="OneNoteToRM" Manufacturer="David Poirier" Version="$(var.Version)">
 		<MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />

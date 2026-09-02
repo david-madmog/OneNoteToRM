@@ -102,7 +102,6 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration.Ini" Version="10.0.10" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4078.44" />
-    <PackageReference Include="Serilog" Version="4.4.0" />
     <PackageReference Include="System.CommandLine" Version="2.0.10" />
   </ItemGroup>
 
@@ -111,9 +110,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="OneNoteToRM.ini">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
+    <Content Include="OneNoteToRM.ini">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

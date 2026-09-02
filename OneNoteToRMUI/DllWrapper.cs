@@ -36,7 +36,7 @@ namespace OneNoteToRMUI
         }
 
 
-        [DllImport(ONTR_DLL_PATH, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(ONTR_DLL_PATH, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
         [return: MarshalAs(UnmanagedType.LPStr)]
         private static extern string GetIniFile();
 
