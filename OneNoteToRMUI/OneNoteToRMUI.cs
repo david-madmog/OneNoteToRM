@@ -31,7 +31,6 @@ namespace OneNoteToRMUI
             {
                 if (SelectedNode.Tag != null)
                 {
-                    //                string FileName = SelectedNode.FullPath;
                     string FileName = (string)SelectedNode.Tag;
                     DllWrapper Doc = new(DllWrapper.PageType.WINDOW_RM_PAGE);
                     int Pages = Doc.Load(FileName);
@@ -48,7 +47,8 @@ namespace OneNoteToRMUI
 
         private void BtnRMRefresh_Click(object sender, EventArgs e)
         {
-            Task Tsk = Task.Run(() => {
+            Task Tsk = Task.Run(() =>
+            {
                 string[] strings = [];
                 try
                 {
@@ -66,6 +66,7 @@ namespace OneNoteToRMUI
 
         private void BtnOneRefresh_Click(object sender, EventArgs e)
         {
+            // Could be lengthy operation, so call it on the worker thread to keep UI responsive
             Task Tsk = Task.Run(() =>
             {
                 string[] strings = [];
@@ -76,8 +77,12 @@ namespace OneNoteToRMUI
                 catch (InvalidOperationException)
                 {
                     // We assume this is cos we're not logged in
-                    OAuthLogonForm F = new();
-                    F.ShowDialog();
+                    // Note, the login form contains the embedded web view control, which only works when the 
+                    //      form is running on the main UI thread (for it's own Async processing). So therefore
+                    //      we need to use invoke to call the login function on the main UI thread, not this 
+                    //      worker thread
+                    this.Invoke(() => { ONELogon(); });
+                    return;
                 }
                 ParseDocList(strings, tvOne);
             });
@@ -329,7 +334,7 @@ namespace OneNoteToRMUI
                         {
                             TreeNode T = tv.Nodes.Add(parts[0]);
                             T.Tag = parts[1];
-                        }         
+                        }
                     }
                     else
                     {
@@ -349,6 +354,24 @@ namespace OneNoteToRMUI
 
                 }
             });
+        }
+
+        private void TvRM_DoubleClick(object sender, EventArgs e)
+        {
+            btnRMPreview.PerformClick();
+        }
+
+        private void TvOne_DoubleClick(object sender, EventArgs e)
+        {
+            btnOnePreview.PerformClick();
+        }
+
+        private void ONELogon()
+        { 
+            // Called when we need to invoke the logon dialog
+            OAuthLogonForm F = new();
+            if (F.ShowDialog() == DialogResult.OK)
+                btnOneRefresh.PerformClick();
         }
     }
 }

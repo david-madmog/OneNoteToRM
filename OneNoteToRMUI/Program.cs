@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 
@@ -17,11 +18,15 @@ namespace OneNoteToRMUI
         [STAThread]
         static void Main(string[] args)
         {
+            DllWrapper.DLLLog("Program", "App Started: v" + Assembly.GetExecutingAssembly().GetName().Version.ToString(), DllWrapper.LogLevel.INFO);
+
             if (args.Length != 0)
             {
                 // Command line mode
-                RootCommand rootCommand = new("Convert documents between ReMarkable and OneNote");
-                rootCommand.Hidden = false;
+                RootCommand rootCommand = new("Convert documents between ReMarkable and OneNote")
+                {
+                    Hidden = false
+                };
 
                 Option<string> InputFile = new("--Input", "-I")
                 {
@@ -163,18 +168,15 @@ namespace OneNoteToRMUI
 
         public static void DoCheck(string RMFilename, string ONEFilename)
         {
-            DateTime RMDT = DateTime.MinValue, OneDT = DateTime.MinValue;
             DllWrapper RMDoc, OneDoc;
-            int RMPages = 0, ONEPages = 0;
-
-            RMDoc = new(DllWrapper.PageType.TO_ONE_RM_PAGE); 
-            RMPages = RMDoc.Load(RMFilename);
-            RMDT = RMDoc.DocDateTime();
+            RMDoc = new(DllWrapper.PageType.TO_ONE_RM_PAGE);
+            int RMPages = RMDoc.Load(RMFilename);
+            DateTime RMDT = RMDoc.DocDateTime();
             DllWrapper.DLLLog("Program", "RM DOC DT:" + RMDT.ToString(), DllWrapper.LogLevel.INFO);
 
             OneDoc = new(DllWrapper.PageType.TO_RM_ONE_PAGE);
-            ONEPages = OneDoc.Load(ONEFilename);
-            OneDT = OneDoc.DocDateTime();
+            int ONEPages = OneDoc.Load(ONEFilename);
+            DateTime OneDT = OneDoc.DocDateTime();
             DllWrapper.DLLLog("Program", "ONE DOC DT:" + OneDT.ToString(), DllWrapper.LogLevel.INFO);
 
             string LastCheckKey = RMFilename + ONEFilename;

@@ -68,6 +68,10 @@ HWND hLogListbox = NULL;
 LogLevel CurrentLevel = LogLevel::LOG_INFO;
 //LogLevel CurrentLevel = LogLevel::LOG_WARNING;
 bool bConsoleMode = false;
+std::wofstream LogStream;
+
+std::wstring AppLocalDirectory;
+
 
 void DoLog(const char* Class, const std::wstring& Msg, LogLevel Level)
 {
@@ -95,17 +99,24 @@ void DoLog(const char* Class, const wchar_t* Msg, LogLevel Level)
         }
 
         buff << std::endl;
-//        if (bConsoleMode)
-//        {
-            HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-            if (Level <= sizeof(LogLevelColour))
+        HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+        if (Level <= sizeof(LogLevelColour))
 #pragma warning ( suppress : 6385 )
-                SetConsoleTextAttribute(hConsole, LogLevelColour[Level]);
-            std::cout << ws2s(buff.str());
-//        }
-//        else
-            OutputDebugString(buff.str().c_str());
+            SetConsoleTextAttribute(hConsole, LogLevelColour[Level]);
+        std::cout << ws2s(buff.str());
+        OutputDebugString(buff.str().c_str());
+
+        std::wstring Tmp = AppLocalDirectory;
+        if (!LogStream.is_open())
+        {
+            Tmp.append(L"\\OneNoteToRM.log");
+            LogStream.open(Tmp, std::ios_base::app | std::ios_base::out); 
+        }
+        LogStream << buff.str();
+        LogStream.flush();
     }
+
+
 }
 
 void DoLog(const char* Class, const char* Msg, LogLevel Level)

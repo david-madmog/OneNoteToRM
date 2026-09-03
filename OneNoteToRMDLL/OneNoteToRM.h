@@ -26,6 +26,7 @@ enum LogLevel {
 };
 
 extern char gszIniFileName[];
+extern std::wstring AppLocalDirectory;
 
 constexpr auto TOKEN_INI = "\\OneNoteToRMToken.ini";
 

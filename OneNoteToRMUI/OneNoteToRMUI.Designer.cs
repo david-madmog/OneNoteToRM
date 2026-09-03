@@ -162,6 +162,7 @@ namespace OneNoteToRMUI
             tvRM.Nodes.AddRange(new TreeNode[] { treeNode1 });
             tvRM.Size = new Size(323, 231);
             tvRM.TabIndex = 13;
+            tvRM.DoubleClick += TvRM_DoubleClick;
             // 
             // tvOne
             // 
@@ -175,6 +176,7 @@ namespace OneNoteToRMUI
             tvOne.PathSeparator = " - ";
             tvOne.Size = new Size(323, 231);
             tvOne.TabIndex = 14;
+            tvOne.DoubleClick += TvOne_DoubleClick;
             // 
             // panel3
             // 

@@ -13,6 +13,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <BaseOutputPath>C:\Users\david\OneDrive\Documents\Development\ReMarkable\OneNoteToRM\x64</BaseOutputPath>
     <Title>One Note to RM converter</Title>
+	<Version>0.2.1</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -106,7 +107,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OneNoteToRMDLL\OneNoteToRMDLL.vcxproj" />
+    <ProjectReference Include="C:\Users\david\OneDrive\Documents\Development\ReMarkable\OneNoteToRM\OneNoteToRMDLL\OneNoteToRMDLL.vcxproj" />
   </ItemGroup>
 
   <ItemGroup>

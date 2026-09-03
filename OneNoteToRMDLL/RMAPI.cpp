@@ -50,16 +50,10 @@ RMAPI::RMAPI()
     crc32c_init_sw(); // Build the CRC32 table
 
     wIniFileName = s2ws(gszIniFileName);
-
-    wchar_t* wTokenIniPath;
-    std::wstring Tmp;
-    SHGetKnownFolderPath(FOLDERID_LocalAppData, KF_FLAG_DEFAULT, NULL, &wTokenIniPath);
-    Tmp = wTokenIniPath;
-    TokenIniFileName = ws2s(Tmp);
+    TokenIniFileName = ws2s(AppLocalDirectory);
     TokenIniFileName.append(TOKEN_INI);
-    CatalogCache = Tmp;
+    CatalogCache = AppLocalDirectory;
     CatalogCache.append(CatalogCacheINI);
-    CoTaskMemFree(wTokenIniPath);
 
     // So, when we're instantiated, get the bearer token 
     DeviceToken = new char[IB_SIZE];

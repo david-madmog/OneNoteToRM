@@ -44,13 +44,8 @@ GraphAPI::GraphAPI()
 {
     std::wstring wIniFileName = s2ws(gszIniFileName);
 
-    wchar_t * wTokenIniPath;
-    std::wstring Tmp;
-    SHGetKnownFolderPath(FOLDERID_LocalAppData, KF_FLAG_DEFAULT, NULL, &wTokenIniPath);
-    Tmp = wTokenIniPath;
-    TokenIniFileName = ws2s(Tmp);
+    TokenIniFileName = ws2s(AppLocalDirectory);
     TokenIniFileName.append(TOKEN_INI);
-    CoTaskMemFree(wTokenIniPath);
 
     // So, when we're instantiated, get the refresh token and clear the access token
     Refresh_Token = new char[IB_SIZE];
