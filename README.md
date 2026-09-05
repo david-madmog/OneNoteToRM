@@ -3,6 +3,7 @@
 
 OneNote to RM is a MS Windows application that synchronises ReMarkable documents to and from Microsoft OneNote.
 
+[<img src="composite.png"></p>](https://github.com/david-madmog/OneNoteToRM)
 It uses the ReMarkable cloud api to access  ReMarkable documents and the [Microsoft Graph API](https://learn.microsoft.com/en-us/graph/overview) to manage OneNote douments in OneDrive.
 
 It is intended to allow documents to be edited on either the ReMarkable device or in OneNote and then the document can be sent to the other
@@ -39,7 +40,7 @@ Once the documents are listed, there are three main features:
 
 - Overwrite → and ← : Will copy the highlighted source document to the highlighted destination document (irrevocably trashing the existing contents of the destination)
 
-- ← ? → : Will copy the highlighted source document to the destination document, based on whichever is updated most recently. 
+- ←→ : Will copy the highlighted source document to the destination document, based on whichever is updated most recently. 
 		If a destination document of that name already exists, it will be irrevocably overwritten. 
 
 - ← &#128337; → : Will scan every minute, and if either document has changed since the last scan, will copy the newer one to the older one.
